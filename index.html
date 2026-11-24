@@ -171,6 +171,12 @@
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <button type="button" id="register-biometric-btn" onclick="registerAdminBiometric()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-slate-900 hover:bg-slate-800 text-amber-300 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
+            </svg>
+            <span id="register-biometric-label">تفعيل البصمة</span>
+          </button>
           <button type="button" id="open-firebase-modal-btn" onclick="openFirebaseConfigModal()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
             إعدادات Firebase
           </button>
@@ -393,7 +399,7 @@
     </div>
   </div>
 
-  <!-- نافذة تسجيل دخول الإدارة (بريد إلكتروني وكلمة مرور فقط) -->
+  <!-- نافذة تسجيل دخول الإدارة (بريد إلكتروني وكلمة مرور وبصمة مفعلة دائماً) -->
   <div id="admin-login-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
       <div class="flex items-center justify-between">
@@ -412,9 +418,19 @@
         <p id="admin-login-error" class="hidden text-xs font-black text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
           بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.
         </p>
-        <div class="flex items-center gap-2 pt-2">
-          <button type="submit" id="admin-login-submit-btn" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">دخول</button>
-          <button type="button" onclick="closeAdminLoginModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        <div class="grid grid-cols-3 gap-2 pt-2">
+          <button type="button" id="admin-biometric-login-btn" onclick="loginWithAdminBiometric()" class="w-full h-14 bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-400/50 font-black px-2 rounded-2xl text-[11px] sm:text-xs leading-tight transition inline-flex items-center justify-center gap-1 overflow-hidden text-center cursor-pointer shadow-sm">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
+            </svg>
+            <span class="truncate">دخول بصمة</span>
+          </button>
+          <button type="submit" id="admin-login-submit-btn" class="w-full h-14 bg-emerald-700 hover:bg-emerald-600 text-white font-black px-2 rounded-2xl text-xs sm:text-sm leading-tight transition inline-flex items-center justify-center overflow-hidden text-center cursor-pointer shadow-sm">
+            <span class="truncate">دخول</span>
+          </button>
+          <button type="button" onclick="closeAdminLoginModal()" class="w-full h-14 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black px-2 rounded-2xl text-xs sm:text-sm leading-tight transition inline-flex items-center justify-center overflow-hidden text-center cursor-pointer shadow-2xs">
+            <span class="truncate">إلغاء</span>
+          </button>
         </div>
       </form>
     </div>
@@ -642,10 +658,11 @@
     const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v1';
     const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_latest_v1';
     const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v1';
+    const ADMIN_BIOMETRIC_KEY = 'sayaan_takaful_admin_biometric_v1';
     const MAX_BACKUP_SNAPSHOTS = 30;
     const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
-    const ADMIN_EMAIL = 'admin@sayaan.ly';
-    const ADMIN_PASS = 'Sayaan@2026';
+    const ADMIN_EMAIL = 'Ncbonlin@gmail.com';
+    const ADMIN_PASS = '756$$Gd70';
 
     function formatNowDate() {
       try {
@@ -1229,8 +1246,179 @@
     }
 
     /* =====================================================================
-       المصادقة ووضع الإدارة (بريد إلكتروني وكلمة مرور فقط)
+       المصادقة ووضع الإدارة (بريد إلكتروني وكلمة مرور وبصمة)
        ===================================================================== */
+    function getSavedBiometricCredential() {
+      try {
+        const raw = readStorageSafe(ADMIN_BIOMETRIC_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function bufferToBase64Url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function base64UrlToUint8Array(base64Url) {
+      const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+      const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    function updateBiometricButtonsUI() {
+      const saved = getSavedBiometricCredential();
+      const regLabel = document.getElementById('register-biometric-label');
+      const regBtn = document.getElementById('register-biometric-btn');
+      const loginBioBtn = document.getElementById('admin-biometric-login-btn');
+
+      if (regLabel && regBtn) {
+        if (saved && saved.credId) {
+          regLabel.textContent = 'البصمة مفعّلة ✓';
+        } else {
+          regLabel.textContent = 'البصمة مفعّلة (تحديث)';
+        }
+        regBtn.disabled = false;
+        regBtn.classList.remove('opacity-50', 'opacity-70', 'bg-slate-900', 'hover:bg-slate-800', 'text-amber-300');
+        regBtn.classList.add('bg-emerald-950', 'hover:bg-emerald-900', 'text-emerald-300', 'border', 'border-emerald-500/50');
+      }
+
+      if (loginBioBtn) {
+        loginBioBtn.disabled = false;
+        loginBioBtn.classList.remove('opacity-50', 'opacity-70');
+      }
+    }
+
+    async function createBiometricCredentialOnDevice() {
+      if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
+        throw new Error('UNSUPPORTED');
+      }
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new TextEncoder().encode(ADMIN_EMAIL);
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: {
+            name: 'صندوق التكافل الاجتماعي - قبيلة الصيعان'
+          },
+          user: {
+            id: userId,
+            name: ADMIN_EMAIL,
+            displayName: 'مشرف صندوق التكافل'
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 }
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required'
+          },
+          timeout: 60000,
+          attestation: 'none'
+        }
+      });
+
+      if (credential && credential.rawId) {
+        const credId = bufferToBase64Url(credential.rawId);
+        writeStorageSafe(ADMIN_BIOMETRIC_KEY, JSON.stringify({
+          credId,
+          email: ADMIN_EMAIL,
+          registeredAt: formatNowDate()
+        }));
+        updateBiometricButtonsUI();
+        return credId;
+      }
+      throw new Error('NO_CREDENTIAL');
+    }
+
+    async function registerAdminBiometric() {
+      if (!isAdminMode) {
+        openAdminLoginModal();
+        return;
+      }
+
+      try {
+        await createBiometricCredentialOnDevice();
+        showToast('تم تفعيل وتحديث البصمة بنجاح! يمكنك الدخول بالبصمة دائماً.');
+      } catch (err) {
+        if (err && err.message === 'UNSUPPORTED') {
+          showToast('متصفحك الحالي لا يدعم المصادقة بالبصمة (WebAuthn).');
+        } else {
+          showToast('تم إلغاء عملية البصمة أو تعذر التحقق من مستشعر الجهاز.');
+        }
+      }
+    }
+
+    async function loginWithAdminBiometric() {
+      const saved = getSavedBiometricCredential();
+      const errEl = document.getElementById('admin-login-error');
+      if (errEl) errEl.classList.add('hidden');
+
+      if (!window.PublicKeyCredential || !navigator.credentials) {
+        if (errEl) {
+          errEl.textContent = 'متصفحك الحالي لا يدعم الدخول بالبصمة.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      try {
+        let authenticated = false;
+
+        if (saved && saved.credId && navigator.credentials.get) {
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge,
+              allowCredentials: [
+                {
+                  id: base64UrlToUint8Array(saved.credId),
+                  type: 'public-key'
+                }
+              ],
+              userVerification: 'required',
+              timeout: 60000
+            }
+          });
+          authenticated = Boolean(assertion);
+        } else {
+          const newCredId = await createBiometricCredentialOnDevice();
+          authenticated = Boolean(newCredId);
+        }
+
+        if (authenticated) {
+          isAdminMode = true;
+          if (errEl) errEl.classList.add('hidden');
+          const passEl = document.getElementById('admin-pass-input');
+          if (passEl) passEl.value = '';
+          closeAdminLoginModal();
+          updateAdminUI();
+          renderAll();
+          showToast('تمت المصادقة بالبصمة بنجاح. مرحباً بك في وضع الإدارة.');
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على الجهاز أو تم إلغاء الطلب.';
+          errEl.classList.remove('hidden');
+        }
+      }
+    }
+
     function prepareMobileKeyboardFocus(el) {
       if (el && typeof el.focus === 'function') {
         setTimeout(() => el.focus(), 10);
@@ -1256,7 +1444,11 @@
     function openAdminLoginModal() {
       const modal = document.getElementById('admin-login-modal');
       const errEl = document.getElementById('admin-login-error');
-      if (errEl) errEl.classList.add('hidden');
+      if (errEl) {
+        errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
+        errEl.classList.add('hidden');
+      }
+      updateBiometricButtonsUI();
       if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -1289,7 +1481,10 @@
         renderAll();
         showToast('مرحباً بك في وضع الإدارة.');
       } else {
-        if (errEl) errEl.classList.remove('hidden');
+        if (errEl) {
+          errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
+          errEl.classList.remove('hidden');
+        }
       }
     }
 
@@ -1298,6 +1493,8 @@
       const toggleLabel = document.getElementById('admin-toggle-label');
       const pendingPanel = document.getElementById('admin-pending-panel');
       const addCaseBtn = document.getElementById('admin-add-case-btn');
+
+      updateBiometricButtonsUI();
 
       if (isAdminMode) {
         if (toggleLabel) toggleLabel.textContent = 'خروج الإدارة';
