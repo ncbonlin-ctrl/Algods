@@ -910,24 +910,7 @@
           }
         ],
         pendingContributions: [],
-        approvedContributions: [
-          {
-            id: 'app-init-1',
-            type: 'general',
-            contributorName: 'صندوق البداية التأسيسي',
-            branch: 'الهمايلة',
-            amount: 5000,
-            target: 'general',
-            targetLabel: 'رصيد الصندوق العام',
-            method: 'المصرف (تحويل مصرفي)',
-            note: 'رصيد افتتاحي للصندوق',
-            receiptData: '',
-            receiptName: '',
-            phone: '',
-            createdAt: formatNowDate(),
-            userEditUsed: false
-          }
-        ]
+        approvedContributions: []
       };
     }
 
@@ -1201,182 +1184,6 @@
         if (titleEl) titleEl.textContent = 'النسخة الاحتياطية الكاملة للمنصة';
         if (metaEl) metaEl.textContent = 'اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)';
         if (timeEl) timeEl.textContent = '--:--';
-      }
-    }
-
-    function captureCurrentFormInputs() {
-      return {
-        contribName: document.getElementById('contrib-name')?.value || '',
-        contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
-        contribAmount: document.getElementById('contrib-amount')?.value || '',
-        contribTarget: document.getElementById('contrib-target')?.value || 'general',
-        contribMethod: document.getElementById('contrib-method')?.value || '',
-        contribNote: document.getElementById('contrib-note')?.value || '',
-        contribPhone: document.getElementById('contrib-phone')?.value || '',
-        ledgerSearch: document.getElementById('ledger-search-input')?.value || '',
-        ledgerFilter: document.getElementById('ledger-filter-select')?.value || 'all'
-      };
-    }
-
-    function applyRestoredFormInputs(inputs) {
-      if (!inputs || typeof inputs !== 'object') return;
-      const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined && val !== null) el.value = val;
-      };
-      setVal('contrib-name', inputs.contribName);
-      setVal('contrib-branch', inputs.contribBranch);
-      setVal('contrib-amount', inputs.contribAmount);
-      renderTargetSelects();
-      setVal('contrib-target', inputs.contribTarget);
-      setVal('contrib-method', inputs.contribMethod);
-      setVal('contrib-note', inputs.contribNote);
-      setVal('contrib-phone', inputs.contribPhone);
-      setVal('ledger-search-input', inputs.ledgerSearch);
-      setVal('ledger-filter-select', inputs.ledgerFilter);
-      toggleNewPaymentFields();
-    }
-
-    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية كل 10 دقائق') {
-      try {
-        const history = getAutoBackupHistory();
-        const latest = history[0];
-        if (reason === 'حفظ تلقائي كل 10 دقائق' && latest && latest.timestamp && (Date.now() - Number(latest.timestamp)) < (BACKUP_INTERVAL_MS - 15000)) {
-          return;
-        }
-
-        const snapshot = {
-          id: 'bkp-' + Date.now(),
-          createdAt: formatNowDate(),
-          timestamp: Date.now(),
-          reason: reason,
-          lang: document.documentElement.lang || 'ar',
-          dir: document.documentElement.dir || 'rtl',
-          inputs: captureCurrentFormInputs(),
-          recentEdits: {
-            lastUpdated: appState.lastUpdated,
-            casesCount: appState.cases.length,
-            pendingCount: appState.pendingContributions.length,
-            approvedCount: appState.approvedContributions.length
-          },
-          state: JSON.parse(JSON.stringify(appState))
-        };
-        writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
-        history.unshift(snapshot);
-        let evictedSnapshot = null;
-        while (history.length > MAX_BACKUP_SNAPSHOTS) {
-          evictedSnapshot = history.pop();
-        }
-        if (evictedSnapshot) {
-          snapshot.evictedReason = `حُذفت الأقدم (${evictedSnapshot.createdAt}) ضمن دورة الـ 10 نسخ`;
-        }
-        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(history));
-        updateBackupAdminUI();
-      } catch (e) {}
-    }
-
-    function selectBackupSlot(snapshotId) {
-      if (!snapshotId) return;
-      const history = getAutoBackupHistory();
-      const target = history.find(item => item.id === snapshotId);
-      if (!target || !target.state) {
-        showToast('تعذر العثور على بيانات النسخة المحددة.');
-        return;
-      }
-      pendingRestoreSnapshotId = snapshotId;
-      const detailsEl = document.getElementById('restore-confirm-details');
-      if (detailsEl) {
-        detailsEl.textContent = `استرداد النسخة (${target.createdAt} — ${target.reason}) شاملة البيانات واللغة والمدخلات والتعديلات؟`;
-      }
-      const modal = document.getElementById('restore-confirm-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeRestoreConfirmModal() {
-      pendingRestoreSnapshotId = null;
-      const modal = document.getElementById('restore-confirm-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function confirmRestorePendingSnapshot() {
-      const targetId = pendingRestoreSnapshotId;
-      closeRestoreConfirmModal();
-      if (!targetId) return;
-      const history = getAutoBackupHistory();
-      const found = history.find(item => item.id === targetId);
-      if (!found || !found.state) {
-        showToast('تعذر استرداد النسخة المختارة.');
-        return;
-      }
-      applyRestoredState(found);
-    }
-
-    function onBackupHistorySelectChange() {
-      updateBackupAdminUI();
-    }
-
-    function updateBackupAdminUI() {
-      const infoEl = document.getElementById('backup-last-snapshot-info');
-      const badgeEl = document.getElementById('backup-count-badge');
-      const trackEl = document.getElementById('backup-track-strip');
-      const selectedSummaryEl = document.getElementById('backup-selected-summary');
-      const history = getAutoBackupHistory();
-
-      if (badgeEl) {
-        badgeEl.textContent = `${history.length} / ${MAX_BACKUP_SNAPSHOTS} نسخ`;
-      }
-
-      if (trackEl) {
-        trackEl.innerHTML = Array.from({ length: MAX_BACKUP_SNAPSHOTS }, (_, idx) => {
-          const item = history[idx];
-          if (item) {
-            return `
-              <button
-                type="button"
-                onclick="selectBackupSlot('${escapeHtml(item.id)}')"
-                title="نسخة #${idx + 1} (${escapeHtml(item.createdAt)}) — ${escapeHtml(item.reason)}"
-                class="snap-start shrink-0 w-36 rounded-2xl p-2.5 text-right border transition cursor-pointer flex flex-col justify-between gap-1 bg-emerald-50/85 hover:bg-emerald-100 active:scale-[0.99] text-emerald-950 border-emerald-300 shadow-2xs"
-              >
-                <div class="flex items-center justify-between gap-1">
-                  <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-700 text-white">#${idx + 1}</span>
-                  <span class="text-[10px] font-bold opacity-85" dir="ltr">${escapeHtml(formatNumericTimeAmPm(item.timestamp || item.createdAt))}</span>
-                </div>
-                <p class="text-[11px] font-black truncate mt-0.5">${escapeHtml(item.reason)}</p>
-                <p class="text-[10px] font-bold opacity-80 truncate">${escapeHtml(item.lang || 'ar')} • ${(item.state?.approvedContributions || []).length} قيد</p>
-              </button>
-            `;
-          }
-          return `
-            <div class="snap-start shrink-0 w-36 rounded-2xl p-2.5 border border-dashed border-slate-300 bg-slate-50/70 text-slate-400 flex flex-col justify-between gap-1">
-              <span class="text-[11px] font-black">#${idx + 1}</span>
-              <span class="text-[10px] font-bold">فارغ (كل 10 د)</span>
-            </div>
-          `;
-        }).join('');
-      }
-
-      if (history.length > 0) {
-        const latest = history[0];
-        if (infoEl) {
-          const cycleNote = latest.evictedReason ? ` • ${latest.evictedReason}` : '';
-          infoEl.textContent = `دورة من 10 نسخ كل 10 دقائق (حذف الأقدم تلقائياً عند اكتمال 10) • آخر نسخة: ${latest.createdAt} (${latest.reason})${cycleNote}`;
-        }
-        if (selectedSummaryEl) {
-          selectedSummaryEl.textContent = `آخر نسخة: ${latest.createdAt}`;
-        }
-      } else {
-        if (infoEl) {
-          infoEl.textContent = 'مسار من 10 نسخ محفوظة كل 10 دقائق ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد';
-        }
-        if (selectedSummaryEl) {
-          selectedSummaryEl.textContent = 'اضغط على أي نسخة لاستردادها';
-        }
       }
     }
 
@@ -1841,9 +1648,9 @@
           item => item.type !== 'disbursement' && item.target === c.id
         );
 
-        const netFundTotal = caseDisbursements.reduce((s, x) => s + (Number(x.amount) || 0), 0) || disb;
+        const netFundTotal = caseDisbursements.reduce((s, x) => s + (Number(x.amount) || 0), 0);
         const netContributorsTotal = caseContributors.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-        const effectiveFunded = Math.max(disb, netFundTotal) + netContributorsTotal;
+        const effectiveFunded = netFundTotal + netContributorsTotal;
         const pct = req > 0 ? Math.min(100, Math.round((effectiveFunded / req) * 100)) : 0;
         const remaining = Math.max(0, req - effectiveFunded);
         const isCompleted = req > 0 && effectiveFunded >= req;
@@ -1852,39 +1659,24 @@
         const paymentSources = [];
         let runningCoveredBeforeItem = 0;
 
-        if (disb > 0) {
-          if (caseDisbursements.length) {
-            caseDisbursements.slice().reverse().forEach(d => {
-              const amt = Number(d.amount) || 0;
-              if (amt > 0) {
-                const beforeAmt = runningCoveredBeforeItem;
-                runningCoveredBeforeItem += amt;
-                const itemSurplus = req > 0 ? Math.max(0, runningCoveredBeforeItem - Math.max(req, beforeAmt)) : 0;
-                paymentSources.push({
-                  sourceType: 'fund',
-                  sourceBadge: 'صرف من الصندوق',
-                  payerName: 'صندوق التكافل الاجتماعي',
-                  amount: amt,
-                  surplusToFund: itemSurplus,
-                  date: d.createdAt || '',
-                  note: d.note || ''
-                });
-              }
-            });
-          } else {
-            const beforeAmt = runningCoveredBeforeItem;
-            runningCoveredBeforeItem += disb;
-            const itemSurplus = req > 0 ? Math.max(0, runningCoveredBeforeItem - Math.max(req, beforeAmt)) : 0;
-            paymentSources.push({
-              sourceType: 'fund',
-              sourceBadge: 'صرف من الصندوق',
-              payerName: 'صندوق التكافل الاجتماعي',
-              amount: disb,
-              surplusToFund: itemSurplus,
-              date: appState.lastUpdated || '',
-              note: 'تمويل وصرف معتمد من الصندوق'
-            });
-          }
+        if (netFundTotal > 0 && caseDisbursements.length) {
+          caseDisbursements.slice().reverse().forEach(d => {
+            const amt = Number(d.amount) || 0;
+            if (amt > 0) {
+              const beforeAmt = runningCoveredBeforeItem;
+              runningCoveredBeforeItem += amt;
+              const itemSurplus = req > 0 ? Math.max(0, runningCoveredBeforeItem - Math.max(req, beforeAmt)) : 0;
+              paymentSources.push({
+                sourceType: 'fund',
+                sourceBadge: 'صرف من الصندوق',
+                payerName: 'صندوق التكافل الاجتماعي',
+                amount: amt,
+                surplusToFund: itemSurplus,
+                date: d.createdAt || '',
+                note: d.note || ''
+              });
+            }
+          });
         }
 
         caseContributors.slice().reverse().forEach(contrib => {
@@ -2804,13 +2596,16 @@
         const targetCase = appState.cases.find(c => c.id === entry.target);
         if (targetCase) {
           targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) - (Number(entry.amount) || 0));
+          if (targetCase.disbursedAmount < (Number(targetCase.requiredAmount) || 0)) {
+            targetCase.closed = false;
+          }
         }
       }
       addDeletedId(id);
       appState.approvedContributions = appState.approvedContributions.filter(a => a.id !== id);
       saveAppState('حذف قيد من السجل');
       renderAll();
-      showToast('تم حذف القيد وتحديث الأرصدة.');
+      showToast('تم حذف القيد وإلغاء القيمة من الحالة واسترجاعها إلى الصندوق.');
     }
 
     function openAdminDisbursementEditModal(id) {
@@ -3119,7 +2914,7 @@
 
       const approvedContributions = Array.isArray(rawState.approvedContributions)
         ? rawState.approvedContributions.filter(a => a && a.id && !deleted.has(String(a.id)))
-        : base.approvedContributions;
+        : [];
 
       return {
         lastUpdated: String(rawState.lastUpdated || formatNowDate()),
@@ -3173,13 +2968,6 @@
       autoBackupMinuteTimer = setInterval(() => {
         saveAutoBackupSnapshot('نسخة تلقائية كل 10 دقائق', true);
       }, BACKUP_INTERVAL_MS);
-    }
-
-    function startAutoBackupTimer() {
-      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
-      autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('حفظ تلقائي كل 10 دقائق');
-      }, 60 * 1000);
     }
 
     function getFirebaseConfig() {
