@@ -1569,35 +1569,53 @@
       }
 
       const deviceVotes = getDeviceVotes();
+      const caseFrameThemes = [
+        {
+          frameClass: 'bg-gradient-to-b from-emerald-50/65 via-white to-teal-50/45 border-2 border-emerald-500/80 ring-4 ring-emerald-500/10 shadow-sm',
+          ribbonClass: 'bg-emerald-700 text-white'
+        },
+        {
+          frameClass: 'bg-gradient-to-b from-amber-50/75 via-white to-orange-50/45 border-2 border-amber-500/85 ring-4 ring-amber-500/10 shadow-sm',
+          ribbonClass: 'bg-amber-600 text-white'
+        },
+        {
+          frameClass: 'bg-gradient-to-b from-sky-50/70 via-white to-cyan-50/45 border-2 border-sky-500/80 ring-4 ring-sky-500/10 shadow-sm',
+          ribbonClass: 'bg-sky-700 text-white'
+        },
+        {
+          frameClass: 'bg-gradient-to-b from-indigo-50/65 via-white to-violet-50/45 border-2 border-indigo-500/80 ring-4 ring-indigo-500/10 shadow-sm',
+          ribbonClass: 'bg-indigo-700 text-white'
+        },
+        {
+          frameClass: 'bg-gradient-to-b from-rose-50/65 via-white to-pink-50/45 border-2 border-rose-500/80 ring-4 ring-rose-500/10 shadow-sm',
+          ribbonClass: 'bg-rose-700 text-white'
+        },
+        {
+          frameClass: 'bg-gradient-to-b from-lime-50/70 via-white to-emerald-50/45 border-2 border-lime-600/80 ring-4 ring-lime-600/10 shadow-sm',
+          ribbonClass: 'bg-lime-700 text-white'
+        }
+      ];
 
-      container.innerHTML = appState.cases.map(c => {
+      container.innerHTML = appState.cases.map((c, caseIndex) => {
         const req = Number(c.requiredAmount) || 0;
         const disb = Number(c.disbursedAmount) || 0;
+        const frameTheme = caseFrameThemes[caseIndex % caseFrameThemes.length];
 
-        // تجميع المساهمات المعتمدة المرتبطة بهذه الحالة لإظهار اسم المساهم وقيمته (بقيمة أكبر من صفر فقط)
-        const caseContributors = appState.approvedContributions.filter(
-          item => item.type !== 'disbursement' && item.target === c.id && (Number(item.amount) || 0) > 0
-        );
         const caseDisbursements = appState.approvedContributions.filter(
-          item => item.type === 'disbursement' && item.target === c.id && (Number(item.amount) || 0) > 0
+          item => item.type === 'disbursement' && item.target === c.id
         );
-        const caseContribsTotal = caseContributors.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-        const effectiveFunded = disb + caseContribsTotal;
-        const surplusAmount = Math.max(0, effectiveFunded - req);
-        const remaining = Math.max(0, req - effectiveFunded);
+        const caseContributors = appState.approvedContributions.filter(
+          item => item.type !== 'disbursement' && item.target === c.id
+        );
+
+        const netFundTotal = caseDisbursements.reduce((s, x) => s + (Number(x.amount) || 0), 0) || disb;
+        const netContributorsTotal = caseContributors.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+        const effectiveFunded = Math.max(disb, netFundTotal) + netContributorsTotal;
         const pct = req > 0 ? Math.min(100, Math.round((effectiveFunded / req) * 100)) : 0;
+        const remaining = Math.max(0, req - effectiveFunded);
         const isCompleted = req > 0 && effectiveFunded >= req;
         const myVote = deviceVotes[c.id] || '';
-        const isCatDiyah = c.category === 'دية';
 
-        // رصيد محول من الصندوق vs رصيد محول من المساهمين (بعد استبعاد الفائض العائد للصندوق)
-        // تبقى القيم السابقة (مثل الصرف من الصندوق) ضمن تغطية الحالة أولاً ويُخصم الفائض من الدفعة الكبيرة التالية
-        const netFundTotal = Math.max(0, disb - Math.max(0, disb - req));
-        const netContributorsTotal = Math.max(0, caseContribsTotal - (disb >= req ? caseContribsTotal : Math.max(0, (disb + caseContribsTotal) - req)));
-
-        // قائمة الجهات الدافعة للحالة (الصندوق أو المساهمون ذوو القيمة الفعلية > 0 فقط)
-        // نرتب الدفعات زمنياً من الأقدم إلى الأحدث بحيث تغطي القيم السابقة النصاب أولاً،
-        // وتتحمل الدفعة الكبيرة اللاحقة أي فائض يتجاوز المبلغ المطلوب وتحويله للصندوق
         const paymentSources = [];
         let runningCoveredBeforeItem = 0;
 
@@ -1798,10 +1816,10 @@
           : '';
 
         return `
-          <article class="bg-slate-50/70 rounded-3xl p-5 border ${isCompleted ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'} flex flex-col justify-between gap-4">
+          <article class="${frameTheme.frameClass} rounded-3xl p-5 flex flex-col justify-between gap-4 transition">
             <div class="space-y-3">
               <div class="flex items-center justify-center gap-1.5 w-full">
-                <span class="text-center text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 ${isCatDiyah ? 'bg-amber-100 text-amber-950' : 'bg-emerald-100 text-emerald-900'}">
+                <span class="text-center text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 ${frameTheme.ribbonClass}">
                   ${escapeHtml(c.category)}
                 </span>
                 <span class="text-center text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 status-badge-glow ${isCompleted ? 'bg-gradient-to-l from-orange-500 via-amber-400 to-yellow-300 text-slate-950' : (c.closed ? 'bg-gradient-to-l from-orange-600 via-amber-500 to-yellow-400 text-slate-950' : 'bg-gradient-to-l from-orange-400 via-amber-300 to-yellow-200 text-amber-950')}">
