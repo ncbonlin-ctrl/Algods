@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -614,20 +614,20 @@
             <input type="text" id="edit-contrib-note" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
           </div>
         </div>
-        <div id="edit-contrib-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
+        <div id="edit-contrib-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 space-y-2">
           <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث صورة الإيصال (اختياري)</label>
           <input type="file" id="edit-contrib-receipt" accept="image/*,.pdf" onchange="handleEditReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
           <p id="edit-contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
           <div id="edit-contrib-receipt-preview" class="hidden pt-1">
-            <img id="edit-contrib-receipt-img" src="" alt="معاينة الإيصال" class="max-h-32 rounded-xl border border-emerald-200 object-contain bg-white p-1" />
+            <img id="edit-contrib-receipt-img" src="" alt="معاينة الإيصال" class="max-h-36 rounded-xl border border-slate-200 object-contain" />
           </div>
         </div>
-        <div id="edit-contrib-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-2">
-          <label for="edit-contrib-phone" class="block text-xs font-extrabold text-amber-950">رقم الهاتف (10 أرقام)</label>
-          <input type="tel" id="edit-contrib-phone" maxlength="10" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
+        <div id="edit-contrib-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-3 space-y-2">
+          <label for="edit-contrib-phone" class="block text-xs font-extrabold text-amber-950">الهاتف المرسل منه الرصيد (10 أرقام)</label>
+          <input type="tel" id="edit-contrib-phone" maxlength="10" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
         </div>
         <div class="flex items-center gap-2 pt-2">
-          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ التعديلات</button>
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ التعديل</button>
           <button type="button" onclick="closeEditContributionModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
         </div>
       </form>
@@ -635,37 +635,27 @@
   </div>
 
   <script>
-    /* =====================================================================
-       الثوابت ومفاتيح التخزين والإعدادات الافتراضية
-       ===================================================================== */
-    const STORAGE_KEY = 'sayaan_takaful_platform_v7';
-    const TOMBSTONE_KEY = 'sayaan_takaful_deleted_ids_v7';
-    const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v7';
-    const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contributions_v7';
-    const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v7';
-    const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_v7';
-    const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v7';
-    const MAX_BACKUP_SNAPSHOTS = 60;
-
+    const STORAGE_KEY = 'sayaan_takaful_state_v1';
+    const TOMBSTONE_KEY = 'sayaan_takaful_deleted_ids_v1';
+    const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v1';
+    const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contribs_v1';
+    const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v1';
+    const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_latest_v1';
+    const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v1';
+    const MAX_BACKUP_SNAPSHOTS = 30;
     const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
+    const ADMIN_EMAIL = 'admin@sayaan.ly';
+    const ADMIN_PASS = 'Sayaan@2026';
 
-    // بيانات دخول المشرف (بريد إلكتروني وكلمة مرور فقط)
-    const ADMIN_EMAIL = 'Ncbonlin@gmail.com';
-    const ADMIN_PASS = '756$$Gd70';
-
-    /* =====================================================================
-       دوال المساعدة والتنسيق والتخزين الآمن
-       ===================================================================== */
     function formatNowDate() {
       try {
-        return new Date().toLocaleString('ar-LY', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
       } catch (e) {
         return new Date().toISOString().slice(0, 16).replace('T', ' ');
       }
@@ -1458,29 +1448,32 @@
         const myVote = deviceVotes[c.id] || '';
         const isCatDiyah = c.category === 'دية';
 
-        // تجميع المساهمات المعتمدة المرتبطة بهذه الحالة لإظهار اسم المساهم وقيمته
+        // تجميع المساهمات المعتمدة المرتبطة بهذه الحالة لإظهار اسم المساهم وقيمته (بقيمة أكبر من صفر فقط)
         const caseContributors = appState.approvedContributions.filter(
-          item => item.type !== 'disbursement' && item.target === c.id
+          item => item.type !== 'disbursement' && item.target === c.id && (Number(item.amount) || 0) > 0
         );
 
-        // قيود الصرف المرتبطة بهذه الحالة (تمويل من الصندوق)
+        // قيود الصرف المرتبطة بهذه الحالة (بقيمة أكبر من صفر فقط)
         const caseDisbursements = appState.approvedContributions.filter(
-          item => item.type === 'disbursement' && item.target === c.id
+          item => item.type === 'disbursement' && item.target === c.id && (Number(item.amount) || 0) > 0
         );
 
-        // قائمة الجهات الدافعة للحالة (الصندوق أو المساهمون)
+        // قائمة الجهات الدافعة للحالة (الصندوق أو المساهمون ذوو القيمة الفعلية > 0 فقط)
         const paymentSources = [];
         if (disb > 0) {
           if (caseDisbursements.length) {
             caseDisbursements.forEach(d => {
-              paymentSources.push({
-                sourceType: 'fund',
-                sourceBadge: 'صرف من الصندوق',
-                payerName: 'صندوق التكافل الاجتماعي',
-                amount: Number(d.amount) || 0,
-                date: d.createdAt || '',
-                note: d.note || ''
-              });
+              const amt = Number(d.amount) || 0;
+              if (amt > 0) {
+                paymentSources.push({
+                  sourceType: 'fund',
+                  sourceBadge: 'صرف من الصندوق',
+                  payerName: 'صندوق التكافل الاجتماعي',
+                  amount: amt,
+                  date: d.createdAt || '',
+                  note: d.note || ''
+                });
+              }
             });
           } else {
             paymentSources.push({
@@ -1494,15 +1487,18 @@
           }
         }
         caseContributors.forEach(contrib => {
-          paymentSources.push({
-            sourceType: 'contributor',
-            sourceBadge: 'مساهم مباشر',
-            payerName: contrib.contributorName || 'فاعل خير',
-            subLabel: contrib.branch || '',
-            amount: Number(contrib.amount) || 0,
-            date: contrib.createdAt || '',
-            note: contrib.note || ''
-          });
+          const amt = Number(contrib.amount) || 0;
+          if (amt > 0) {
+            paymentSources.push({
+              sourceType: 'contributor',
+              sourceBadge: 'مساهم مباشر',
+              payerName: contrib.contributorName || 'فاعل خير',
+              subLabel: contrib.branch || '',
+              amount: amt,
+              date: contrib.createdAt || '',
+              note: contrib.note || ''
+            });
+          }
         });
 
         // تحديد مرحلة الشريط الزمني للحالة (قيد المعالجة / قيد الصرف / مكتملة)
@@ -2365,6 +2361,15 @@
         if (targetCase) {
           targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) + diff);
         }
+      }
+      if (newAmount <= 0) {
+        addDeletedId(id);
+        appState.approvedContributions = appState.approvedContributions.filter(a => a.id !== id);
+        closeAdminDisbursementEditModal();
+        saveAppState('إزالة قيد صرف بقيمة صفر');
+        renderAll();
+        showToast('تمت إزالة قيد الصرف لأن قيمته أصبحت 0 د.ل.');
+        return;
       }
       entry.amount = newAmount;
       entry.note = newNote;
