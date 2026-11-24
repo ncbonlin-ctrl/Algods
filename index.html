@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -71,6 +71,39 @@
       color: #b45309;
       background: transparent;
       box-shadow: none;
+    }
+    @keyframes highDonorFireGlow {
+      0%, 100% {
+        box-shadow: 0 0 6px rgba(16, 185, 129, 0.35), inset 0 0 4px rgba(16, 185, 129, 0.18);
+      }
+      50% {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5), inset 0 0 6px rgba(16, 185, 129, 0.25);
+      }
+    }
+    .high-donor-glow {
+      color: #475569;
+      font-weight: 800;
+      border: 1px solid rgba(16, 185, 129, 0.55);
+      border-radius: 9999px;
+      padding: 1px 8px;
+      animation: highDonorFireGlow 2.4s ease-in-out infinite;
+    }
+    @keyframes highDonorStarSpinGlow {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.06);
+      }
+    }
+    .high-donor-star {
+      display: inline-block;
+      color: #10b981;
+      animation: highDonorStarSpinGlow 2.2s ease-in-out infinite;
+    }
+    .recipient-tri-glow {
+      color: #475569;
+      font-weight: 700;
     }
   </style>
 </head>
@@ -2476,7 +2509,6 @@
       if (!tbody) return;
       const search = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
       const filter = document.getElementById('ledger-filter-select')?.value || 'all';
-      const contributorStatsMap = getContributorStatsMap();
 
       const filtered = appState.approvedContributions.filter(item => {
         if (filter !== 'all' && item.type !== filter) return false;
@@ -2492,20 +2524,30 @@
 
       tbody.innerHTML = filtered.map(item => {
         const isDisb = item.type === 'disbursement';
-        const contributorStat = !isDisb ? contributorStatsMap.get(normalizeContributorKey(item.contributorName)) : null;
-        const hasHonorBadge = !isDisb && qualifiesForHonorBadge(contributorStat);
-        const honorReason = hasHonorBadge
-          ? (contributorStat.count > 3
-            ? `${contributorStat.count} مساهمات`
-            : `3 مساهمات • ${formatCurrency(contributorStat.totalAmount)}`)
-          : '';
-        const honorBadgeHtml = hasHonorBadge
-          ? `<div class="mt-1 inline-flex items-center gap-1 donor-honor-badge text-[10px] font-black leading-tight">
-              <span class="text-amber-500">✦</span>
-              <span>مساهم مهم ويستحق التقدير</span>
-              <span class="text-amber-700/80">(${escapeHtml(honorReason)})</span>
+        const contribAmount = Number(item.amount) || 0;
+        const isHighValueDonor = !isDisb && contribAmount >= 10000;
+
+        const highDonorBadgeHtml = isHighValueDonor
+          ? `<div class="mt-1 inline-flex items-center gap-1 text-xs high-donor-glow">
+              <span class="high-donor-star">★</span>
+              <span>مساهم مميز</span>
             </div>`
           : '';
+
+        const contributorNameHtml = isHighValueDonor
+          ? `<span class="inline-flex items-center gap-1 high-donor-glow text-xs sm:text-sm">
+              <span class="high-donor-star">★</span>
+              <span>${escapeHtml(item.contributorName)}</span>
+            </span>`
+          : `<span class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</span>`;
+
+        const branchHtml = isHighValueDonor
+          ? `<span class="text-slate-600 font-bold">${escapeHtml(item.branch)}</span>`
+          : `<span>${escapeHtml(item.branch)}</span>`;
+
+        const targetLabelHtml = isHighValueDonor
+          ? `<span class="recipient-tri-glow">${escapeHtml(item.targetLabel)}</span>`
+          : `<span>${escapeHtml(item.targetLabel)}</span>`;
 
         const usedEdits = Math.min(2, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0)));
         const remainingEdits = Math.max(0, 2 - usedEdits);
@@ -2536,10 +2578,10 @@
         return `
           <tr class="hover:bg-slate-50/90 transition">
             <td class="py-3.5 px-5">
-              <p class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</p>
-              <p class="text-[11px] font-bold text-slate-500 mt-0.5">${escapeHtml(item.branch)} — ${escapeHtml(item.targetLabel)}</p>
+              <p>${contributorNameHtml}</p>
+              <p class="text-[11px] font-bold text-slate-500 mt-0.5">${branchHtml} — ${targetLabelHtml}</p>
               ${item.note ? `<p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(item.note)}</p>` : ''}
-              ${honorBadgeHtml}
+              ${highDonorBadgeHtml}
             </td>
             <td class="py-3.5 px-3 text-center">${typeBadge}</td>
             <td class="py-3.5 px-3 text-center font-black text-xs sm:text-sm ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
