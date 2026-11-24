@@ -47,6 +47,17 @@
       background: linear-gradient(90deg, #059669 0%, #10b981 50%, #047857 100%);
       box-shadow: 0 0 14px rgba(16, 185, 129, 0.55);
     }
+    @keyframes badgeGlowPulse {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(249, 115, 22, 0.65), 0 0 18px rgba(250, 204, 21, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 16px rgba(251, 146, 60, 0.9), 0 0 28px rgba(253, 224, 71, 0.7);
+      }
+    }
+    .status-badge-glow {
+      animation: badgeGlowPulse 2.4s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-200 selection:text-emerald-950">
@@ -192,18 +203,27 @@
           <div class="space-y-1">
             <div class="flex items-center gap-2">
               <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية للمنصة (حفظ تلقائي كل دقيقة)</p>
+              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية للمنصة (حفظ تلقائي كل 10 دقائق — حد أقصى 10 نسخ)</p>
             </div>
             <p id="backup-last-snapshot-info" class="text-xs font-bold text-slate-600">
-              يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد
+              يتم الاحتفاظ بـ 10 نسخ في مسار واحد كل 10 دقائق ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد
             </p>
           </div>
-          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">0 نسخ محفوظة</span>
+          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">0 / 10 نسخ</span>
         </div>
 
-        <!-- قائمة النسخ الزمنية المحفوظة (كل دقيقة / عند التعديل) -->
+        <!-- مسار واحد من 10 نسخ احتياطية للاسترداد الفوري -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-black text-slate-600 px-1">
+            <span>مسار النسخ الاحتياطية (10 نسخ — بيانات، لغة، مدخلات، وتعديلات)</span>
+            <span id="backup-selected-summary" class="text-emerald-800">اختر نسخة لاستردادها</span>
+          </div>
+          <div id="backup-track-strip" class="flex items-stretch gap-2 overflow-x-auto pb-2 pt-0.5 snap-x"></div>
+        </div>
+
+        <!-- قائمة النسخ الزمنية المحفوظة (كل 10 دقائق / عند التعديل) -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-center">
-          <select id="backup-history-select" class="sm:col-span-2 w-full h-11 bg-slate-50 border border-slate-300 rounded-2xl px-4 text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:border-emerald-600 outline-none">
+          <select id="backup-history-select" onchange="onBackupHistorySelectChange()" class="sm:col-span-2 w-full h-11 bg-slate-50 border border-slate-300 rounded-2xl px-4 text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:border-emerald-600 outline-none">
             <option value="">لا توجد نسخ زمنية محفوظة بعد...</option>
           </select>
           <button type="button" id="restore-selected-backup-btn" onclick="restoreSelectedBackupSnapshot()" class="w-full h-11 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
@@ -707,7 +727,8 @@
     const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_latest_v1';
     const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v1';
     const ADMIN_BIOMETRIC_KEY = 'sayaan_takaful_admin_biometric_v1';
-    const MAX_BACKUP_SNAPSHOTS = 30;
+    const MAX_BACKUP_SNAPSHOTS = 10;
+    const BACKUP_INTERVAL_MS = 10 * 60 * 1000;
     const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
     const ADMIN_EMAIL = 'Ncbonlin@gmail.com';
     const ADMIN_PASS = '756$$Gd70';
@@ -926,68 +947,178 @@
     }
 
     /* =====================================================================
-       إدارة النسخ الاحتياطي التلقائي كل دقيقة وعند التعديل
+       إدارة النسخ الاحتياطي التلقائي كل 10 دقائق وعند التعديل (10 نسخ في مسار واحد)
        ===================================================================== */
     function getAutoBackupHistory() {
       try {
         const raw = readStorageSafe(BACKUP_HISTORY_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? parsed.slice(0, MAX_BACKUP_SNAPSHOTS) : [];
       } catch (e) {
         return [];
       }
     }
 
-    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية') {
+    function captureCurrentFormInputs() {
+      return {
+        contribName: document.getElementById('contrib-name')?.value || '',
+        contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
+        contribAmount: document.getElementById('contrib-amount')?.value || '',
+        contribTarget: document.getElementById('contrib-target')?.value || 'general',
+        contribMethod: document.getElementById('contrib-method')?.value || '',
+        contribNote: document.getElementById('contrib-note')?.value || '',
+        contribPhone: document.getElementById('contrib-phone')?.value || '',
+        ledgerSearch: document.getElementById('ledger-search-input')?.value || '',
+        ledgerFilter: document.getElementById('ledger-filter-select')?.value || 'all'
+      };
+    }
+
+    function applyRestoredFormInputs(inputs) {
+      if (!inputs || typeof inputs !== 'object') return;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined && val !== null) el.value = val;
+      };
+      setVal('contrib-name', inputs.contribName);
+      setVal('contrib-branch', inputs.contribBranch);
+      setVal('contrib-amount', inputs.contribAmount);
+      renderTargetSelects();
+      setVal('contrib-target', inputs.contribTarget);
+      setVal('contrib-method', inputs.contribMethod);
+      setVal('contrib-note', inputs.contribNote);
+      setVal('contrib-phone', inputs.contribPhone);
+      setVal('ledger-search-input', inputs.ledgerSearch);
+      setVal('ledger-filter-select', inputs.ledgerFilter);
+      toggleNewPaymentFields();
+    }
+
+    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية كل 10 دقائق') {
       try {
+        const history = getAutoBackupHistory();
+        const latest = history[0];
+        if (reason === 'حفظ تلقائي كل 10 دقائق' && latest && latest.timestamp && (Date.now() - Number(latest.timestamp)) < (BACKUP_INTERVAL_MS - 15000)) {
+          return;
+        }
+
         const snapshot = {
           id: 'bkp-' + Date.now(),
           createdAt: formatNowDate(),
           timestamp: Date.now(),
           reason: reason,
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          inputs: captureCurrentFormInputs(),
+          recentEdits: {
+            lastUpdated: appState.lastUpdated,
+            casesCount: appState.cases.length,
+            pendingCount: appState.pendingContributions.length,
+            approvedCount: appState.approvedContributions.length
+          },
           state: JSON.parse(JSON.stringify(appState))
         };
         writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
-        const history = getAutoBackupHistory();
         history.unshift(snapshot);
-        if (history.length > MAX_BACKUP_SNAPSHOTS) {
-          history.length = MAX_BACKUP_SNAPSHOTS;
+        let evictedSnapshot = null;
+        while (history.length > MAX_BACKUP_SNAPSHOTS) {
+          evictedSnapshot = history.pop();
+        }
+        if (evictedSnapshot) {
+          snapshot.evictedReason = `حُذفت الأقدم (${evictedSnapshot.createdAt}) ضمن دورة الـ 10 نسخ`;
         }
         writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(history));
         updateBackupAdminUI();
       } catch (e) {}
     }
 
+    function selectBackupSlot(snapshotId) {
+      const selectEl = document.getElementById('backup-history-select');
+      if (selectEl && snapshotId) {
+        selectEl.value = snapshotId;
+      }
+      updateBackupAdminUI();
+    }
+
+    function onBackupHistorySelectChange() {
+      updateBackupAdminUI();
+    }
+
     function updateBackupAdminUI() {
       const infoEl = document.getElementById('backup-last-snapshot-info');
       const badgeEl = document.getElementById('backup-count-badge');
       const selectEl = document.getElementById('backup-history-select');
+      const trackEl = document.getElementById('backup-track-strip');
+      const selectedSummaryEl = document.getElementById('backup-selected-summary');
       const restoreSelBtn = document.getElementById('restore-selected-backup-btn');
       const restoreLastBtn = document.getElementById('restore-backup-btn');
       const history = getAutoBackupHistory();
+      const activeId = selectEl?.value || history[0]?.id || '';
 
       if (badgeEl) {
-        badgeEl.textContent = `${history.length} نسخ محفوظة`;
+        badgeEl.textContent = `${history.length} / ${MAX_BACKUP_SNAPSHOTS} نسخ`;
+      }
+
+      if (trackEl) {
+        trackEl.innerHTML = Array.from({ length: MAX_BACKUP_SNAPSHOTS }, (_, idx) => {
+          const item = history[idx];
+          if (item) {
+            const isSelected = item.id === activeId;
+            return `
+              <button
+                type="button"
+                onclick="selectBackupSlot('${escapeHtml(item.id)}')"
+                ondblclick="applyRestoredState(getAutoBackupHistory()[${idx}])"
+                title="نسخة #${idx + 1} (${escapeHtml(item.createdAt)}) — ${escapeHtml(item.reason)}"
+                class="snap-start shrink-0 w-36 rounded-2xl p-2.5 text-right border transition cursor-pointer flex flex-col justify-between gap-1 ${
+                  isSelected
+                    ? 'bg-emerald-800 text-white border-amber-400 ring-2 ring-amber-300 shadow-sm'
+                    : 'bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 border-emerald-200'
+                }"
+              >
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${isSelected ? 'bg-amber-400 text-emerald-950' : 'bg-emerald-700 text-white'}">#${idx + 1}</span>
+                  <span class="text-[10px] font-bold opacity-85" dir="ltr">${escapeHtml(formatNumericTimeAmPm(item.timestamp || item.createdAt))}</span>
+                </div>
+                <p class="text-[11px] font-black truncate mt-0.5">${escapeHtml(item.reason)}</p>
+                <p class="text-[10px] font-bold opacity-80 truncate">${escapeHtml(item.lang || 'ar')} • ${(item.state?.approvedContributions || []).length} قيد</p>
+              </button>
+            `;
+          }
+          return `
+            <div class="snap-start shrink-0 w-36 rounded-2xl p-2.5 border border-dashed border-slate-300 bg-slate-50/70 text-slate-400 flex flex-col justify-between gap-1">
+              <span class="text-[11px] font-black">#${idx + 1}</span>
+              <span class="text-[10px] font-bold">فارغ (كل 10 د)</span>
+            </div>
+          `;
+        }).join('');
       }
 
       if (history.length > 0) {
         const latest = history[0];
+        const chosen = history.find(x => x.id === activeId) || latest;
         if (infoEl) {
-          infoEl.textContent = `يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • آخر نسخة: ${latest.createdAt} (${latest.reason})`;
+          const cycleNote = latest.evictedReason ? ` • ${latest.evictedReason}` : '';
+          infoEl.textContent = `دورة من 10 نسخ كل 10 دقائق (حذف الأقدم تلقائياً عند اكتمال 10) • آخر نسخة: ${latest.createdAt} (${latest.reason})${cycleNote}`;
         }
         if (selectEl) {
+          const currentVal = activeId || latest.id;
           selectEl.innerHTML = history.map((item, idx) => `
-            <option value="${escapeHtml(item.id)}">${idx === 0 ? '★ ' : ''}${escapeHtml(item.createdAt)} — ${escapeHtml(item.reason)} (${(item.state?.cases || []).length} حالات / ${(item.state?.approvedContributions || []).length} قيود)</option>
+            <option value="${escapeHtml(item.id)}" ${item.id === currentVal ? 'selected' : ''}>#${idx + 1} ${escapeHtml(item.createdAt)} — ${escapeHtml(item.reason)} (${escapeHtml(item.lang || 'ar')} • ${(item.state?.cases || []).length} حالات / ${(item.state?.approvedContributions || []).length} قيود)</option>
           `).join('');
+        }
+        if (selectedSummaryEl) {
+          selectedSummaryEl.textContent = `المحددة: ${chosen.createdAt} — ${chosen.reason}`;
         }
         if (restoreSelBtn) restoreSelBtn.disabled = false;
         if (restoreLastBtn) restoreLastBtn.disabled = false;
       } else {
         if (infoEl) {
-          infoEl.textContent = 'يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد';
+          infoEl.textContent = 'مسار من 10 نسخ محفوظة كل 10 دقائق ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد';
         }
         if (selectEl) {
           selectEl.innerHTML = '<option value="">لا توجد نسخ زمنية محفوظة بعد...</option>';
+        }
+        if (selectedSummaryEl) {
+          selectedSummaryEl.textContent = 'اختر نسخة لاستردادها';
         }
         if (restoreSelBtn) restoreSelBtn.disabled = true;
         if (restoreLastBtn) restoreLastBtn.disabled = true;
@@ -997,7 +1128,7 @@
     function createManualBackupSnapshot() {
       if (!isAdminMode) return;
       saveAutoBackupSnapshot('نسخة يدوية فورية');
-      showToast('تم حفظ نسخة احتياطية جديدة بنجاح.');
+      showToast('تم حفظ نسخة احتياطية جديدة ضمن مسار الـ 10 نسخ.');
     }
 
     function restoreLatestAutoBackup() {
@@ -1024,12 +1155,17 @@
     }
 
     function applyRestoredState(snapshot) {
+      if (!snapshot || !snapshot.state) return;
+      if (snapshot.lang) document.documentElement.lang = snapshot.lang;
+      if (snapshot.dir) document.documentElement.dir = snapshot.dir;
       appState = normalizeState(snapshot.state);
       appState.lastUpdated = formatNowDate();
       writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
       renderAll();
+      applyRestoredFormInputs(snapshot.inputs);
+      renderLedger();
       pushStateToFirebase();
-      showToast(`تمت استعادة النسخة المحفوظة بتاريخ ${snapshot.createdAt} بنجاح.`);
+      showToast(`تمت استعادة النسخة (${snapshot.createdAt}) شاملة البيانات واللغة والمدخلات والتعديلات.`);
     }
 
     function downloadBackupJsonFile() {
@@ -1038,13 +1174,17 @@
         const payload = {
           exportedAt: formatNowDate(),
           platform: 'صندوق التكافل الاجتماعي - قبيلة الصيعان',
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          inputs: captureCurrentFormInputs(),
+          history: getAutoBackupHistory(),
           state: appState
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sayaan-takaful-backup-${Date.now()}.json`;
+        a.download = `sayaan-takaful-backup-10slots-${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1058,8 +1198,8 @@
     function startAutoBackupTimer() {
       if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
       autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('حفظ تلقائي كل دقيقة');
-      }, 60000);
+        saveAutoBackupSnapshot('حفظ تلقائي كل 10 دقائق');
+      }, BACKUP_INTERVAL_MS);
     }
 
     /* =====================================================================
@@ -1982,12 +2122,12 @@
         return `
           <article class="bg-slate-50/70 rounded-3xl p-5 border ${isCompleted ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'} flex flex-col justify-between gap-4">
             <div class="space-y-3">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="text-xs font-black px-3 py-1 rounded-full ${isCatDiyah ? 'bg-amber-100 text-amber-950' : 'bg-emerald-100 text-emerald-900'}">
+              <div class="flex items-center justify-center gap-1.5 w-full">
+                <span class="text-center text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 ${isCatDiyah ? 'bg-amber-100 text-amber-950' : 'bg-emerald-100 text-emerald-900'}">
                   ${escapeHtml(c.category)}
                 </span>
-                <span class="text-xs font-black px-3 py-1 rounded-full ${isCompleted ? 'bg-emerald-700 text-white' : (c.closed ? 'bg-slate-600 text-white' : 'bg-white border border-slate-200 text-slate-700')}">
-                  ${isCompleted ? 'مكتملة التغطية' : (c.closed ? 'مغلقة' : 'مفتوحة للتصويت والدعم')}
+                <span class="text-center text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap shrink-0 status-badge-glow ${isCompleted ? 'bg-gradient-to-l from-orange-500 via-amber-400 to-yellow-300 text-slate-950' : (c.closed ? 'bg-gradient-to-l from-orange-600 via-amber-500 to-yellow-400 text-slate-950' : 'bg-gradient-to-l from-orange-400 via-amber-300 to-yellow-200 text-amber-950')}">
+                  ${isCompleted ? 'مكتملة التغطية' : (c.closed ? 'مغلقة' : 'يتم الجمع')}
                 </span>
               </div>
 
