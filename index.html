@@ -60,15 +60,17 @@
     }
     @keyframes donorHonorGlow {
       0%, 100% {
-        box-shadow: 0 0 10px rgba(245, 158, 11, 0.55), 0 0 20px rgba(16, 185, 129, 0.35);
+        text-shadow: 0 0 8px rgba(245, 158, 11, 0.7), 0 0 16px rgba(234, 88, 12, 0.45);
       }
       50% {
-        box-shadow: 0 0 16px rgba(251, 191, 36, 0.9), 0 0 28px rgba(249, 115, 22, 0.6);
+        text-shadow: 0 0 13px rgba(251, 191, 36, 0.95), 0 0 22px rgba(245, 158, 11, 0.75);
       }
     }
     .donor-honor-badge {
       animation: donorHonorGlow 2.2s ease-in-out infinite;
-      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 55%, #d1fae5 100%);
+      color: #b45309;
+      background: transparent;
+      box-shadow: none;
     }
   </style>
 </head>
@@ -2693,7 +2695,7 @@
       }
 
       listEl.innerHTML = appState.pendingContributions.map(item => `
-        <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-xs flex flex-col gap-3">
           <div class="space-y-1">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-black text-sm text-slate-900">${escapeHtml(item.contributorName)}</span>
@@ -2705,11 +2707,13 @@
             ${item.note ? `<p class="text-xs text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
             <p class="text-[11px] text-slate-400">${escapeHtml(item.createdAt)}</p>
           </div>
-          <div class="grid grid-cols-2 sm:flex sm:flex-nowrap items-stretch gap-2.5 shrink-0 w-full sm:w-auto">
-            ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 w-full sm:w-36 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">عرض الإيصال</button>` : ''}
-            <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 w-full sm:w-36 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">تعديل</button>
-            <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 w-full sm:w-36 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">اعتماد ونشر</button>
-            <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 w-full sm:w-36 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">حذف</button>
+          <div class="w-full overflow-x-auto pb-1">
+            <div class="flex flex-nowrap items-center justify-center gap-2.5 min-w-max mx-auto">
+              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[132px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">عرض الإيصال</button>` : ''}
+              <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[132px] px-4 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">تعديل</button>
+              <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[132px] px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">اعتماد ونشر</button>
+              <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[132px] px-4 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">حذف</button>
+            </div>
           </div>
         </div>
       `).join('');
@@ -2810,14 +2814,14 @@
         const hasHonorBadge = !isDisb && qualifiesForHonorBadge(contributorStat);
         const honorReason = hasHonorBadge
           ? (contributorStat.count > 3
-            ? `${contributorStat.count} مساهمات • يستحق التقدير`
-            : `3 مساهمات (${formatCurrency(contributorStat.totalAmount)}) • يستحق التقدير`)
+            ? `${contributorStat.count} مساهمات`
+            : `3 مساهمات • ${formatCurrency(contributorStat.totalAmount)}`)
           : '';
         const honorBadgeHtml = hasHonorBadge
-          ? `<div class="mt-2 inline-flex flex-wrap items-center gap-1.5 donor-honor-badge border border-amber-400 text-amber-950 px-3 py-1 rounded-2xl text-[11px] font-black">
-              <span class="text-amber-600">✦</span>
+          ? `<div class="mt-1 inline-flex items-center gap-1 donor-honor-badge text-[10px] font-black leading-tight">
+              <span class="text-amber-500">✦</span>
               <span>مساهم مهم ويستحق التقدير</span>
-              <span class="bg-emerald-800 text-amber-300 px-2 py-0.5 rounded-full text-[10px]">${escapeHtml(honorReason)}</span>
+              <span class="text-amber-700/80">(${escapeHtml(honorReason)})</span>
             </div>`
           : '';
 
