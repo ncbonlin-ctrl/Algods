@@ -1,0 +1,2742 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>صندوق التكافل الاجتماعي - قبيلة الصيعان</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f3f7f4;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .header-gradient {
+      background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+    }
+    .quran-banner {
+      background: linear-gradient(135deg, #065f46 0%, #047857 50%, #064e3b 100%);
+    }
+    @keyframes timelineShimmer {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+    .glowing-timeline-bar {
+      background-image: linear-gradient(
+        90deg,
+        rgba(16, 185, 129, 0.85) 0%,
+        rgba(251, 191, 36, 0.95) 28%,
+        rgba(255, 255, 255, 0.95) 50%,
+        rgba(251, 191, 36, 0.95) 72%,
+        rgba(5, 150, 105, 0.9) 100%
+      );
+      background-size: 240% 100%;
+      animation: timelineShimmer 3.2s ease-in-out infinite;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.55), 0 0 24px rgba(16, 185, 129, 0.35);
+    }
+    .completed-timeline-glow {
+      background: linear-gradient(90deg, #059669 0%, #10b981 50%, #047857 100%);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.55);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-200 selection:text-emerald-950">
+  <!-- الشريط العلوي -->
+  <header class="header-gradient text-white border-b-4 border-amber-400 shadow-lg sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-3.5 sm:py-4">
+      <div class="flex items-center justify-between gap-3">
+        <!-- أيقونة الشعار -->
+        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-amber-400 bg-emerald-950/50 flex items-center justify-center shrink-0 shadow-inner">
+          <svg class="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+          </svg>
+        </div>
+
+        <!-- العنوان الرئيسي -->
+        <div class="flex-1 text-center">
+          <h1 class="text-xl sm:text-3xl font-black tracking-tight text-white">صندوق التكافل الاجتماعي</h1>
+          <p class="text-xs sm:text-sm font-extrabold text-amber-300 mt-0.5">قبيلة الصيعان - للأورام والدية فقط</p>
+        </div>
+
+        <!-- توازن بصري للشاشات الكبيرة -->
+        <div class="w-12 sm:w-14 hidden sm:block"></div>
+      </div>
+
+      <!-- أزرار الإجراءات العلوية -->
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 mt-3.5 max-w-xl mx-auto">
+        <button type="button" id="contribute-top-btn" onclick="scrollToContributeSection('general')" class="bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-white font-black text-sm sm:text-base py-3 px-4 rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg leading-none">+</span>
+          <span>ساهم الآن</span>
+        </button>
+        <button type="button" id="admin-toggle-btn" onclick="handleAdminHeaderClick()" class="bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-emerald-950 font-black text-sm sm:text-base py-3 px-4 rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+          </svg>
+          <span id="admin-toggle-label">وضع الإدارة</span>
+        </button>
+      </div>
+
+      <!-- شارة الاتصال بقاعدة البيانات -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mt-2 pr-1">
+        <span id="cloud-status-badge" class="inline-flex items-center gap-1.5 bg-emerald-950/65 border border-emerald-400/30 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit">
+          <span id="cloud-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
+          <span id="cloud-status-text">جاري الاتصال بقاعدة بيانات sirf-dgv...</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+    <!-- لافتة الآية الكريمة والتعريف -->
+    <section class="quran-banner text-white rounded-3xl p-6 sm:p-8 text-center shadow-lg border border-emerald-600/40 space-y-4">
+      <span class="inline-block bg-emerald-950/60 border border-amber-400/40 text-amber-300 text-xs font-extrabold px-4 py-1 rounded-full">
+        بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+      </span>
+      <h2 class="text-xl sm:text-3xl font-black leading-relaxed text-white">
+        «وَتَعَاوَنُوا عَلَى الْبِرِّ وَالتَّقْوَى وَلَا تَعَاوَنُوا عَلَى الْإِثْمِ وَالْعُدْوَانِ»
+      </h2>
+      <p class="text-xs sm:text-sm text-emerald-100 font-semibold max-w-2xl mx-auto leading-relaxed">
+        منصة التكافل الاجتماعي لقبيلة الصيعان مخصصة حصراً لدعم <span class="text-amber-300 font-extrabold">علاج مرضى الأورام</span> و<span class="text-amber-300 font-extrabold">دفع الدية</span> بشفافية تامة ومراقبة فورية.
+      </p>
+      <div>
+        <button type="button" onclick="scrollToContributeSection('general')" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black px-6 py-3 rounded-2xl text-sm sm:text-base shadow-md transition cursor-pointer">
+          ساهم في الصندوق الآن
+        </button>
+      </div>
+    </section>
+
+    <!-- بطاقات الإحصائيات المالية -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-extrabold text-slate-500">إجمالي المساهمات المعتمدة</p>
+          <p id="stat-total-contributions" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          <p id="stat-contributions-count" class="text-xs font-extrabold text-emerald-700 mt-1">عدد المساهمات: 0</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-2xl shrink-0">+</div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-extrabold text-slate-500">إجمالي المساعدات المصروفة</p>
+          <p id="stat-total-disbursed" class="text-2xl font-black text-rose-600 mt-1">0</p>
+          <p id="stat-disbursed-summary" class="text-xs font-extrabold text-slate-500 mt-1">حالات مسددة / مصروفة 0 من 0</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-black text-2xl shrink-0">-</div>
+      </div>
+
+      <div class="bg-emerald-50/90 rounded-3xl p-5 shadow-sm border border-emerald-200 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-extrabold text-emerald-900">الرصيد المتاح حالياً بالصندوق</p>
+          <p id="stat-available-balance" class="text-2xl font-black text-emerald-800 mt-1">0</p>
+          <p id="stat-last-updated" class="text-xs font-bold text-emerald-700 mt-1">آخر تحديث: الآن</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-700 text-amber-300 flex items-center justify-center text-xl shrink-0">★</div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between gap-2">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-extrabold text-slate-600">نسبة تغطية الحالات</p>
+          <span id="stat-cases-badge" class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">0 حالات</span>
+        </div>
+        <p id="stat-coverage-text" class="text-sm font-black text-slate-900">0% من 0 د.ل</p>
+        <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+          <div id="stat-coverage-bar" class="h-full bg-gradient-to-l from-amber-400 to-emerald-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <p class="text-[11px] font-bold text-slate-400">مؤشر التغطية الإجمالي</p>
+      </div>
+    </section>
+
+    <!-- لوحة مراجعة المساهمات وأدوات المشرف (مخفية افتراضياً وتظهر فقط في وضع الإدارة) -->
+    <section id="admin-pending-panel" class="hidden bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 pb-3">
+        <div>
+          <h3 class="text-lg font-black text-amber-950">طلبات المساهمات بانتظار الاعتماد</h3>
+          <p class="text-xs font-bold text-amber-800">يمكنك تعديل الطلب أو حذفه أو نشره (اعتماده) لإضافته إلى رصيد الصندوق أو الحالة ومزامنة السجل فوراً.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <button type="button" id="open-firebase-modal-btn" onclick="openFirebaseConfigModal()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
+            إعدادات Firebase
+          </button>
+          <span id="pending-count-badge" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-amber-500 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl inline-flex items-center justify-center">0 طلبات</span>
+        </div>
+      </div>
+
+      <div id="pending-contributions-list" class="space-y-3"></div>
+
+      <!-- شريط النسخة الاحتياطية التلقائية للمشرف فقط -->
+      <div id="admin-backup-bar" class="bg-white/95 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية للمنصة (حفظ تلقائي كل دقيقة)</p>
+            </div>
+            <p id="backup-last-snapshot-info" class="text-xs font-bold text-slate-600">يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد.</p>
+          </div>
+          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">0 نسخ محفوظة</span>
+        </div>
+
+        <!-- قائمة النسخ الزمنية المحفوظة (كل دقيقة / عند التعديل) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-center">
+          <select id="backup-history-select" class="sm:col-span-2 w-full h-11 bg-slate-50 border border-slate-300 rounded-2xl px-4 text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:border-emerald-600 outline-none">
+            <option value="">لا توجد نسخ زمنية محفوظة بعد...</option>
+          </select>
+          <button type="button" id="restore-selected-backup-btn" onclick="restoreSelectedBackupSnapshot()" class="w-full h-11 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
+            استعادة النسخة المختارة
+          </button>
+        </div>
+
+        <!-- أزرار النسخ الاحتياطي بنفس الطول والحجم والشكل لأزرار Firebase والطلبات -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button type="button" id="restore-backup-btn" onclick="restoreLatestAutoBackup()" class="w-full min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
+            استعادة آخر نسخة
+          </button>
+          <button type="button" onclick="createManualBackupSnapshot()" class="w-full min-w-[145px] h-11 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
+            حفظ نسخة الآن
+          </button>
+          <button type="button" onclick="downloadBackupJsonFile()" class="w-full min-w-[145px] h-11 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
+            تنزيل نسخة JSON
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- قسم الحالات المعروضة للتصويت -->
+    <section class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900">الحالات المعروضة للتصويت</h2>
+          <p class="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">الدية والأورام</p>
+        </div>
+        <div class="w-full sm:w-auto flex justify-center">
+          <button type="button" id="admin-add-case-btn" onclick="openAddCaseModal()" class="hidden bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm px-6 py-3 rounded-2xl shadow-md transition cursor-pointer">
+            + إضافة حالة جديدة
+          </button>
+        </div>
+      </div>
+
+      <div id="cases-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- قسم تسجيل مساهمة أو تبرع جديد -->
+    <section id="contribute-section" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-5">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-black text-slate-900">تسجيل مساهمة أو تبرع جديد</h2>
+        <p class="text-xs sm:text-sm font-bold text-slate-500 mt-1">تُراجع المساهمة من إدارة الصندوق، وتُضاف فوراً للرصيد والسجل العام بعد الاعتماد.</p>
+      </div>
+
+      <form id="new-contribution-form" onsubmit="handleNewContributionSubmit(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="contrib-name" class="block text-xs font-extrabold text-slate-800 mb-1.5">اسم المساهم / المتبرع *</label>
+            <input type="text" id="contrib-name" required placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+          </div>
+          <div>
+            <label for="contrib-branch" class="block text-xs font-extrabold text-slate-800 mb-1.5">اللحمة / فرع *</label>
+            <select id="contrib-branch" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+              <option value="الهمايلة">الهمايلة</option>
+              <option value="أولاد سلام">أولاد سلام</option>
+              <option value="أولاد إمحمد">أولاد إمحمد</option>
+              <option value="أولاد شرادة">أولاد شرادة</option>
+              <option value="أولاد طالب">أولاد طالب</option>
+              <option value="متبرع من خارج القبيلة">متبرع من خارج القبيلة</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="contrib-amount" class="block text-xs font-extrabold text-slate-800 mb-1.5 text-right">المبلغ (د.ل) *</label>
+            <input type="number" id="contrib-amount" min="1" step="any" required placeholder="100" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 text-right focus:bg-white focus:border-emerald-600 outline-none transition" />
+          </div>
+          <div>
+            <label for="contrib-target" class="block text-xs font-extrabold text-slate-800 mb-1.5">وجهة التبرع *</label>
+            <select id="contrib-target" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="contrib-method" class="block text-xs font-extrabold text-slate-800 mb-1.5">طريقة الدفع (المصرف / النقال) *</label>
+            <select id="contrib-method" required onchange="toggleNewPaymentFields()" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+              <option value="">... اختر طريقة الدفع</option>
+              <option value="المصرف (تحويل مصرفي)">المصرف (تحويل مصرفي)</option>
+              <option value="النقال (تحويل رصيد)">النقال (تحويل رصيد)</option>
+            </select>
+          </div>
+          <div>
+            <label for="contrib-note" class="block text-xs font-extrabold text-slate-800 mb-1.5">ملاحظة</label>
+            <input type="text" id="contrib-note" placeholder="ملاحظة إضافية (اختياري)..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+          </div>
+        </div>
+
+        <div id="new-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-2">
+          <label for="contrib-receipt" class="block text-xs font-extrabold text-emerald-950">صورة إيصال التحويل المصرفي *</label>
+          <input type="file" id="contrib-receipt" accept="image/*,.pdf" onchange="handleNewReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
+          <p id="contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
+        </div>
+
+        <div id="new-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2">
+          <label for="contrib-phone" class="block text-xs font-extrabold text-amber-950">رقم الهاتف المرسل منه الرصيد (10 أرقام) *</label>
+          <input type="tel" id="contrib-phone" maxlength="10" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
+        </div>
+
+        <div class="pt-1">
+          <button type="submit" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-600 active:scale-[0.99] text-white font-black px-8 py-3.5 rounded-2xl text-sm sm:text-base shadow-md transition cursor-pointer">
+            إرسال المساهمة للمراجعة
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- سجل المساهمات والصرف المعتمد -->
+    <section id="ledger-section" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900">سجل المساهمات والصرف المعتمد</h2>
+          <p class="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">سجل شفاف ومزامن لجميع المساهمات المعتمدة وعمليات الصرف من الصندوق.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="search" id="ledger-search-input" oninput="renderLedger()" placeholder="بحث بالاسم أو الفرع أو الحالة..." class="bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none" />
+          <select id="ledger-filter-select" onchange="renderLedger()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none">
+            <option value="all">كل القيود</option>
+            <option value="general">مساهمات عامة</option>
+            <option value="case">مساهمات حالات</option>
+            <option value="disbursement">عمليات الصرف</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-slate-200">
+        <table class="w-full text-right border-collapse">
+          <thead class="bg-slate-100 text-slate-700 text-xs font-black border-b border-slate-200">
+            <tr>
+              <th class="py-3.5 px-5 min-w-[240px] sm:min-w-[300px] w-2/5">المساهم / البيان</th>
+              <th class="py-3.5 px-3 text-center">النوع</th>
+              <th class="py-3.5 px-3 text-center">القيمة</th>
+              <th class="py-3.5 px-5 min-w-[210px] sm:min-w-[260px] text-left">التاريخ والإجراء</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- شريط الإشعارات السفلي -->
+  <div id="toast-box" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l from-emerald-700 via-emerald-600 to-teal-600 text-white border-2 border-amber-300 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-2xl max-w-[92vw] text-center"></div>
+
+  <!-- نافذة معاينة الإيصال -->
+  <div id="receipt-viewer-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <h3 id="receipt-viewer-title" class="text-base sm:text-lg font-black text-slate-900">معاينة إيصال المساهمة</h3>
+        <button type="button" onclick="closeReceiptViewerModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <div id="receipt-viewer-body" class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center max-h-[70vh] overflow-auto"></div>
+      <div class="flex justify-end">
+        <button type="button" onclick="closeReceiptViewerModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black rounded-xl text-xs sm:text-sm transition cursor-pointer">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة إعدادات Firebase -->
+  <div id="firebase-config-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-emerald-900">ربط قاعدة بيانات Firebase للمزامنة اللحظية</h3>
+        <button type="button" onclick="closeFirebaseConfigModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <p class="text-xs font-bold text-slate-600 leading-relaxed bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+        المنصة متصلة بقاعدة بيانات <span class="font-black text-emerald-900">sirf-dgv</span> عبر <code dir="ltr" class="bg-white px-1.5 py-0.5 rounded border">https://sirf-dgv-default-rtdb.firebaseio.com</code> لمزامنة الحالات والمساهمات والتصويت لحظياً.
+      </p>
+      <form onsubmit="handleFirebaseConfigSubmit(event)" class="space-y-3">
+        <div>
+          <label for="firebase-db-url-input" class="block text-xs font-extrabold text-slate-700 mb-1">رابط Realtime Database URL</label>
+          <input type="url" id="firebase-db-url-input" dir="ltr" placeholder="https://sirf-dgv-default-rtdb.firebaseio.com" class="w-full font-mono bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div>
+          <label for="firebase-auth-secret-input" class="block text-xs font-extrabold text-slate-700 mb-1">Auth Token / رمز الأمان (اختياري)</label>
+          <input type="text" id="firebase-auth-secret-input" dir="ltr" placeholder="اتركه فارغاً إذا كانت القواعد تسمح بالوصول" class="w-full font-mono bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-2">
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 px-4 rounded-xl text-sm transition cursor-pointer">حفظ والاتصال الآن</button>
+          <button type="button" onclick="disconnectFirebaseCloud()" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black py-2.5 px-3.5 rounded-xl text-xs transition cursor-pointer">فصل الربط</button>
+          <button type="button" onclick="closeFirebaseConfigModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إغلاق</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة تسجيل دخول الإدارة (بريد إلكتروني وكلمة مرور فقط) -->
+  <div id="admin-login-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900">دخول وضع الإدارة</h3>
+        <button type="button" onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <form id="admin-login-form" onsubmit="handleAdminLoginSubmit(event)" class="space-y-3">
+        <div>
+          <label for="admin-email-input" onclick="focusLoginField('admin-email-input')" class="block text-xs font-extrabold text-slate-700 mb-1 cursor-pointer">البريد الإلكتروني للمشرف</label>
+          <input type="email" id="admin-email-input" required autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" ontouchstart="prepareMobileKeyboardFocus(this)" onclick="prepareMobileKeyboardFocus(this)" placeholder="admin@example.com" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 focus:bg-white" dir="ltr" />
+        </div>
+        <div>
+          <label for="admin-pass-input" onclick="focusLoginField('admin-pass-input')" class="block text-xs font-extrabold text-slate-700 mb-1 cursor-pointer">كلمة المرور</label>
+          <input type="password" id="admin-pass-input" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" ontouchstart="prepareMobileKeyboardFocus(this)" onclick="prepareMobileKeyboardFocus(this)" placeholder="........" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 focus:bg-white" dir="ltr" />
+        </div>
+        <p id="admin-login-error" class="hidden text-xs font-black text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.</p>
+        <div class="flex items-center gap-2 pt-2">
+          <button type="submit" id="admin-login-submit-btn" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">دخول</button>
+          <button type="button" onclick="closeAdminLoginModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة سبب عدم الموافقة على حالة -->
+  <div id="reject-vote-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-rose-700">توضيح سبب عدم الموافقة</h3>
+        <button type="button" onclick="closeRejectVoteModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <form onsubmit="handleRejectVoteSubmit(event)" class="space-y-3">
+        <div>
+          <label for="reject-reason-input" class="block text-xs font-extrabold text-slate-700 mb-1">سبب الرفض *</label>
+          <textarea id="reject-reason-input" rows="3" required placeholder="اكتب ملاحظتك أو سبب التحفظ بوضوح..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-rose-500"></textarea>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">تأكيد الرفض</button>
+          <button type="button" onclick="closeRejectVoteModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة تعديل سبب الرفض (للإدارة) -->
+  <div id="edit-rejection-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900">تعديل سبب الرفض</h3>
+        <button type="button" onclick="closeEditRejectionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <form onsubmit="handleEditRejectionSubmit(event)" class="space-y-3">
+        <input type="hidden" id="edit-rej-case-id" />
+        <input type="hidden" id="edit-rej-item-id" />
+        <div>
+          <label for="edit-rej-input" class="block text-xs font-extrabold text-slate-700 mb-1">نص السبب / الملاحظة *</label>
+          <textarea id="edit-rej-input" rows="3" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600"></textarea>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ</button>
+          <button type="button" onclick="closeEditRejectionModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة إضافة / تعديل حالة للإدارة -->
+  <div id="case-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="case-editor-title" class="text-lg font-black text-slate-900">إضافة حالة جديدة</h3>
+        <button type="button" onclick="closeCaseEditorModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <form onsubmit="handleCaseEditorSubmit(event)" class="space-y-3">
+        <input type="hidden" id="editor-case-id" />
+        <div>
+          <label for="editor-case-name" class="block text-xs font-extrabold text-slate-700 mb-1">عنوان الحالة *</label>
+          <input type="text" id="editor-case-name" required placeholder="مثال: علاج مرضى الأورام - متابعة جلسات علاجية" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="editor-case-category" class="block text-xs font-extrabold text-slate-700 mb-1">التصنيف *</label>
+            <select id="editor-case-category" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
+              <option value="علاج مرضى الأورام">علاج مرضى الأورام</option>
+              <option value="دية">دية</option>
+            </select>
+          </div>
+          <div>
+            <label for="editor-case-required" class="block text-xs font-extrabold text-slate-700 mb-1">المبلغ المطلوب (د.ل) *</label>
+            <input type="number" id="editor-case-required" min="1" step="any" required placeholder="10000" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+          </div>
+        </div>
+        <div>
+          <label for="editor-case-desc" class="block text-xs font-extrabold text-slate-700 mb-1">وصف الحالة *</label>
+          <textarea id="editor-case-desc" rows="3" required placeholder="تفاصيل الحالة والاحتياج..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600"></textarea>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ الحالة</button>
+          <button type="button" onclick="closeCaseEditorModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة الصرف من الصندوق للإدارة -->
+  <div id="disburse-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-emerald-900">صرف مساعدة من الصندوق</h3>
+        <button type="button" onclick="closeDisburseModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <p id="disburse-case-label" class="text-xs font-extrabold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3"></p>
+      <div id="disburse-remaining-box" class="bg-amber-50/90 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs font-black">
+        <span class="text-amber-950">القيمة المتبقية على الحالة:</span>
+        <div class="flex items-center gap-2">
+          <span id="disburse-case-remaining" data-copy-value="0" class="bg-amber-500 text-emerald-950 px-2.5 py-1 rounded-lg">0</span>
+          <button type="button" onclick="copyDisburseRemainingValue()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[11px] transition cursor-pointer">نسخ القيمة</button>
+        </div>
+      </div>
+      <div id="disburse-zero-alert" class="hidden text-xs font-black text-rose-700 bg-rose-50 border border-rose-300 rounded-xl p-3">
+        تنبيه: رصيد الصندوق حالياً صفر (0) د.ل، لا يمكن تنفيذ عملية صرف قبل توفر رصيد كاف.
+      </div>
+      <form onsubmit="handleDisburseSubmit(event)" class="space-y-3">
+        <div>
+          <label for="disburse-amount-input" class="block text-xs font-extrabold text-slate-700 mb-1">قيمة الصرف (د.ل) *</label>
+          <input type="number" id="disburse-amount-input" min="0.01" step="any" required placeholder="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div>
+          <label for="disburse-note-input" class="block text-xs font-extrabold text-slate-700 mb-1">بيان / ملاحظة الصرف</label>
+          <input type="text" id="disburse-note-input" placeholder="مثال: دفعة علاج أو صلح..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="submit" id="disburse-submit-btn" class="flex-1 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">تأكيد الصرف</button>
+          <button type="button" onclick="closeDisburseModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة تعديل قيد الصرف للإدارة -->
+  <div id="admin-disbursement-edit-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900">تعديل قيد الصرف</h3>
+        <button type="button" onclick="closeAdminDisbursementEditModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <form onsubmit="handleAdminDisbursementEditSubmit(event)" class="space-y-3">
+        <input type="hidden" id="edit-disb-entry-id" />
+        <div>
+          <label for="edit-disb-amount" class="block text-xs font-extrabold text-slate-700 mb-1">قيمة الصرف (د.ل) *</label>
+          <input type="number" id="edit-disb-amount" min="0" step="any" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div>
+          <label for="edit-disb-note" class="block text-xs font-extrabold text-slate-700 mb-1">البيان / الملاحظة</label>
+          <input type="text" id="edit-disb-note" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ التعديل</button>
+          <button type="button" onclick="closeAdminDisbursementEditModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة تعديل المساهمة (لصاحب المساهمة حتى مرتين أو للإدارة) -->
+  <div id="edit-contribution-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto">
+      <div class="flex items-center justify-between gap-2">
+        <h3 class="text-lg font-black text-slate-900">تعديل المساهمة</h3>
+        <span id="edit-contrib-attempts-badge" class="bg-amber-100 text-amber-950 text-xs font-black px-3 py-1 rounded-full">المحاولات المتبقية: 2/2</span>
+        <button type="button" onclick="closeEditContributionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <p class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
+        تنبيه: يُسمح للمساهم بتعديل مساهمته مرتين كحد أقصى (2/2) ويُغلق التعديل تلقائياً بعد المحاولة الثانية، وتتم مزامنة أي زيادة أو نقص في القيمة مع رصيد الصندوق والحالة فوراً.
+      </p>
+      <form onsubmit="handleEditContributionSubmit(event)" class="space-y-3">
+        <input type="hidden" id="edit-contrib-id" />
+        <input type="hidden" id="edit-contrib-scope" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="edit-contrib-name" class="block text-xs font-extrabold text-slate-700 mb-1">اسم المساهم / المتبرع *</label>
+            <input type="text" id="edit-contrib-name" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+          </div>
+          <div>
+            <label for="edit-contrib-branch" class="block text-xs font-extrabold text-slate-700 mb-1">اللحمة / فرع *</label>
+            <select id="edit-contrib-branch" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
+              <option value="الهمايلة">الهمايلة</option>
+              <option value="أولاد سلام">أولاد سلام</option>
+              <option value="أولاد إمحمد">أولاد إمحمد</option>
+              <option value="أولاد شرادة">أولاد شرادة</option>
+              <option value="أولاد طالب">أولاد طالب</option>
+              <option value="متبرع من خارج القبيلة">متبرع من خارج القبيلة</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="edit-contrib-amount" class="block text-xs font-extrabold text-slate-700 mb-1 text-right">المبلغ (د.ل) *</label>
+            <input type="number" id="edit-contrib-amount" min="0" step="any" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-right outline-none focus:border-emerald-600" />
+          </div>
+          <div>
+            <label for="edit-contrib-target" class="block text-xs font-extrabold text-slate-700 mb-1">وجهة التبرع *</label>
+            <select id="edit-contrib-target" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="edit-contrib-method" class="block text-xs font-extrabold text-slate-700 mb-1">طريقة الدفع *</label>
+            <select id="edit-contrib-method" required onchange="toggleEditPaymentFields()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
+              <option value="المصرف (تحويل مصرفي)">المصرف (تحويل مصرفي)</option>
+              <option value="النقال (تحويل رصيد)">النقال (تحويل رصيد)</option>
+            </select>
+          </div>
+          <div>
+            <label for="edit-contrib-note" class="block text-xs font-extrabold text-slate-700 mb-1">ملاحظة</label>
+            <input type="text" id="edit-contrib-note" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+          </div>
+        </div>
+        <div id="edit-contrib-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
+          <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث صورة الإيصال (اختياري)</label>
+          <input type="file" id="edit-contrib-receipt" accept="image/*,.pdf" onchange="handleEditReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
+          <p id="edit-contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
+          <div id="edit-contrib-receipt-preview" class="hidden pt-1">
+            <img id="edit-contrib-receipt-img" src="" alt="معاينة الإيصال" class="max-h-32 rounded-xl border border-emerald-200 object-contain bg-white p-1" />
+          </div>
+        </div>
+        <div id="edit-contrib-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-2">
+          <label for="edit-contrib-phone" class="block text-xs font-extrabold text-amber-950">رقم الهاتف (10 أرقام) *</label>
+          <input type="tel" id="edit-contrib-phone" maxlength="10" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
+        </div>
+        <div class="flex items-center gap-2 pt-2">
+          <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ التعديلات</button>
+          <button type="button" onclick="closeEditContributionModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* =====================================================================
+       الثوابت ومفاتيح التخزين والإعدادات الافتراضية
+       ===================================================================== */
+    const STORAGE_KEY = 'sayaan_takaful_platform_v7';
+    const TOMBSTONE_KEY = 'sayaan_takaful_deleted_ids_v7';
+    const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v7';
+    const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contributions_v7';
+    const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v7';
+    const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_v7';
+    const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v7';
+    const MAX_BACKUP_SNAPSHOTS = 60;
+    const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
+
+    // بيانات دخول المشرف (بريد إلكتروني وكلمة مرور فقط)
+    const ADMIN_EMAIL = 'Ncbonlin@gmail.com';
+    const ADMIN_PASS = '756$$Gd70';
+
+    /* =====================================================================
+       دوال المساعدة والتنسيق والتخزين الآمن
+       ===================================================================== */
+    function formatNowDate() {
+      try {
+        return new Date().toLocaleString('ar-LY', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return new Date().toISOString().slice(0, 16).replace('T', ' ');
+      }
+    }
+
+    function formatFullArabicDateTime(rawDate) {
+      try {
+        const parsed = rawDate ? new Date(rawDate) : new Date();
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toLocaleString('ar-LY', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+      } catch (e) {}
+      return String(rawDate || formatNowDate());
+    }
+
+    function formatCurrency(num) {
+      const val = Number(num) || 0;
+      return `${val.toLocaleString('ar-LY', { maximumFractionDigits: 2 })} د.ل`;
+    }
+
+    function formatNumericDateOnly(rawDate) {
+      try {
+        const parsed = rawDate ? new Date(rawDate) : new Date();
+        if (!Number.isNaN(parsed.getTime())) {
+          const day = String(parsed.getDate()).padStart(2, '0');
+          const month = String(parsed.getMonth() + 1).padStart(2, '0');
+          const year = parsed.getFullYear();
+          return `${day}/${month}/${year}`;
+        }
+      } catch (e) {}
+      const str = String(rawDate || '');
+      const match = str.match(/(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})/);
+      if (match) return match[0];
+      const now = new Date();
+      return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    }
+
+    function formatNumericTimeAmPm(rawDate) {
+      try {
+        const parsed = rawDate ? new Date(rawDate) : new Date();
+        if (!Number.isNaN(parsed.getTime())) {
+          const hours24 = parsed.getHours();
+          const minutes = String(parsed.getMinutes()).padStart(2, '0');
+          const period = hours24 < 12 ? 'صباحاً' : 'مساءً';
+          const hours12 = String(hours24 % 12 || 12).padStart(2, '0');
+          return `${hours12}:${minutes} ${period}`;
+        }
+      } catch (e) {}
+      const now = new Date();
+      const h24 = now.getHours();
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const per = h24 < 12 ? 'صباحاً' : 'مساءً';
+      const h12 = String(h24 % 12 || 12).padStart(2, '0');
+      return `${h12}:${min} ${per}`;
+    }
+
+    // تأمين النصوص من أي رموز HTML لتفادي أخطاء العرض أو الحقن
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function readStorageSafe(key) {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage.getItem(key);
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function writeStorageSafe(key, value) {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(key, value);
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    function getInitialState() {
+      return {
+        lastUpdated: formatNowDate(),
+        cases: [
+          {
+            id: 'case-1',
+            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            category: 'علاج مرضى الأورام',
+            requiredAmount: 12000,
+            disbursedAmount: 0,
+            closed: false,
+            description: 'دعم تكاليف الفحوصات المتقدمة وجلسات العلاج الكيميائي والموجه لمصاب من القبيلة.',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          },
+          {
+            id: 'case-2',
+            title: 'مساهمة في إتمام صلح ودية',
+            category: 'دية',
+            requiredAmount: 25000,
+            disbursedAmount: 0,
+            closed: false,
+            description: 'المساهمة في استكمال مبلغ الدية وإصلاح ذات البين وفق الضوابط المعتمدة للصندوق.',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          }
+        ],
+        pendingContributions: [],
+        approvedContributions: [
+          {
+            id: 'app-init-1',
+            type: 'general',
+            contributorName: 'صندوق البداية التأسيسي',
+            branch: 'الهمايلة',
+            amount: 5000,
+            target: 'general',
+            targetLabel: 'رصيد الصندوق العام',
+            method: 'المصرف (تحويل مصرفي)',
+            note: 'رصيد افتتاحي للصندوق',
+            receiptData: '',
+            receiptName: '',
+            phone: '',
+            createdAt: formatNowDate(),
+            userEditUsed: false,
+            userEditCount: 0
+          }
+        ]
+      };
+    }
+
+    let appState = getInitialState();
+    let isAdminMode = false;
+    let pendingRejectCaseId = null;
+    let currentDisburseCaseId = null;
+    let newReceiptDataUrl = '';
+    let newReceiptFileName = '';
+    let editReceiptDataUrl = '';
+    let editReceiptFileName = '';
+    let toastTimer = null;
+    let firebasePollTimer = null;
+    let autoBackupMinuteTimer = null;
+    let lastSyncedFingerprint = '';
+
+    const memoryStore = {
+      deletedIds: [],
+      deviceVotes: {},
+      myContributions: {}
+    };
+
+    function getDeletedIds() {
+      try {
+        const raw = readStorageSafe(TOMBSTONE_KEY);
+        const parsed = raw ? JSON.parse(raw) : memoryStore.deletedIds;
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch (e) {
+        return Array.isArray(memoryStore.deletedIds) ? memoryStore.deletedIds : [];
+      }
+    }
+
+    function addDeletedId(id) {
+      if (!id) return;
+      const current = new Set(getDeletedIds());
+      current.add(String(id));
+      const list = Array.from(current);
+      memoryStore.deletedIds = list;
+      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(list));
+    }
+
+    function showToast(message) {
+      const box = document.getElementById('toast-box');
+      if (!box) return;
+      box.textContent = message;
+      box.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 3400);
+    }
+
+    /* =====================================================================
+       إدارة النسخ الاحتياطي التلقائي كل دقيقة وعند التعديل
+       ===================================================================== */
+    function getAutoBackupHistory() {
+      try {
+        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية') {
+      try {
+        const snapshot = {
+          id: 'bkp-' + Date.now(),
+          createdAt: formatNowDate(),
+          timestamp: Date.now(),
+          reason,
+          state: JSON.parse(JSON.stringify(appState))
+        };
+        writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
+        const history = getAutoBackupHistory();
+        history.unshift(snapshot);
+        if (history.length > MAX_BACKUP_SNAPSHOTS) {
+          history.length = MAX_BACKUP_SNAPSHOTS;
+        }
+        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(history));
+        updateBackupAdminUI();
+      } catch (e) {}
+    }
+
+    function updateBackupAdminUI() {
+      const infoEl = document.getElementById('backup-last-snapshot-info');
+      const badgeEl = document.getElementById('backup-count-badge');
+      const selectEl = document.getElementById('backup-history-select');
+      const restoreSelBtn = document.getElementById('restore-selected-backup-btn');
+      const restoreLastBtn = document.getElementById('restore-backup-btn');
+      const history = getAutoBackupHistory();
+
+      if (badgeEl) badgeEl.textContent = `${history.length} نسخ محفوظة`;
+
+      if (history.length > 0) {
+        const latest = history[0];
+        if (infoEl) {
+          infoEl.textContent = `يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • آخر نسخة: ${latest.createdAt} (${latest.reason})`;
+        }
+        if (selectEl) {
+          selectEl.innerHTML = history
+            .map(
+              (item, idx) =>
+                `<option value="${escapeHtml(item.id)}">${idx === 0 ? '★ ' : ''}${escapeHtml(item.createdAt)} — ${escapeHtml(item.reason)} (${(item.state?.cases || []).length} حالات / ${(item.state?.approvedContributions || []).length} قيود)</option>`
+            )
+            .join('');
+        }
+        if (restoreSelBtn) restoreSelBtn.disabled = false;
+        if (restoreLastBtn) restoreLastBtn.disabled = false;
+      } else {
+        if (infoEl) {
+          infoEl.textContent = 'يتم إنشاء نسخة احتياطية كل دقيقة ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد.';
+        }
+        if (selectEl) {
+          selectEl.innerHTML = '<option value="">لا توجد نسخ زمنية محفوظة بعد...</option>';
+        }
+        if (restoreSelBtn) restoreSelBtn.disabled = true;
+        if (restoreLastBtn) restoreLastBtn.disabled = true;
+      }
+    }
+
+    function createManualBackupSnapshot() {
+      if (!isAdminMode) return;
+      saveAutoBackupSnapshot('نسخة يدوية فورية');
+      showToast('تم حفظ نسخة احتياطية جديدة بنجاح.');
+    }
+
+    function restoreLatestAutoBackup() {
+      if (!isAdminMode) return;
+      const history = getAutoBackupHistory();
+      if (!history.length) {
+        showToast('لا توجد نسخة احتياطية محفوظة للاستعادة.');
+        return;
+      }
+      applyRestoredState(history[0]);
+    }
+
+    function restoreSelectedBackupSnapshot() {
+      if (!isAdminMode) return;
+      const selectEl = document.getElementById('backup-history-select');
+      const selectedId = selectEl ? selectEl.value : '';
+      const history = getAutoBackupHistory();
+      const found = history.find((item) => item.id === selectedId) || history[0];
+      if (!found || !found.state) {
+        showToast('يرجى اختيار نسخة صالحة للاستعادة.');
+        return;
+      }
+      applyRestoredState(found);
+    }
+
+    function applyRestoredState(snapshot) {
+      appState = normalizeState(snapshot.state);
+      appState.lastUpdated = formatNowDate();
+      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+      renderAll();
+      pushStateToFirebase();
+      showToast(`تمت استعادة النسخة المحفوظة بتاريخ ${snapshot.createdAt} بنجاح.`);
+    }
+
+    function downloadBackupJsonFile() {
+      if (!isAdminMode) return;
+      try {
+        const payload = {
+          exportedAt: formatNowDate(),
+          platform: 'صندوق التكافل الاجتماعي - قبيلة الصيعان',
+          state: appState
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: 'application/json;charset=utf-8'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sayaan-takaful-backup-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('تم تنزيل ملف النسخة الاحتياطية JSON.');
+      } catch (e) {
+        showToast('تعذر تنزيل الملف على هذا المتصفح.');
+      }
+    }
+
+    function startAutoBackupTimer() {
+      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
+      autoBackupMinuteTimer = setInterval(() => {
+        saveAutoBackupSnapshot('حفظ تلقائي كل دقيقة');
+      }, 60000);
+    }
+
+    /* =====================================================================
+       تطبيع الحالة وحفظها محلياً وسحابياً
+       ===================================================================== */
+    function normalizeState(raw) {
+      const base = getInitialState();
+      if (!raw || typeof raw !== 'object') return base;
+      const deletedSet = new Set(getDeletedIds());
+
+      const cases = Array.isArray(raw.cases)
+        ? raw.cases
+            .filter((c) => c && c.id && !deletedSet.has(String(c.id)))
+            .map((c) => ({
+              id: String(c.id),
+              title: String(c.title || 'حالة بدون عنوان'),
+              category: String(c.category || 'علاج مرضى الأورام'),
+              requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
+              disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
+              closed: Boolean(c.closed),
+              description: String(c.description || ''),
+              votes: {
+                approve: Math.max(0, Number(c.votes?.approve) || 0),
+                reject: Math.max(0, Number(c.votes?.reject) || 0)
+              },
+              rejections: Array.isArray(c.rejections)
+                ? c.rejections.map((r, i) => ({
+                    id: String(r.id || `rej-${c.id}-${i}`),
+                    reason: String(r.reason || ''),
+                    createdAt: String(r.createdAt || formatNowDate())
+                  }))
+                : []
+            }))
+        : base.cases;
+
+      const normalizeContrib = (item, fallbackType = 'general') => {
+        const usedCount = Math.min(
+          2,
+          Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0))
+        );
+        return {
+          id: String(item.id || `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`),
+          type: String(item.type || fallbackType || 'general'),
+          contributorName: String(item.contributorName || 'فاعل خير'),
+          branch: String(item.branch || 'الهمايلة'),
+          amount: Math.max(0, Number(item.amount) || 0),
+          target: String(item.target || 'general'),
+          targetLabel: String(item.targetLabel || 'رصيد الصندوق العام'),
+          method: String(item.method || 'المصرف (تحويل مصرفي)'),
+          note: String(item.note || ''),
+          receiptData: String(item.receiptData || ''),
+          receiptName: String(item.receiptName || ''),
+          phone: String(item.phone || ''),
+          createdAt: String(item.createdAt || formatNowDate()),
+          userEditUsed: usedCount >= 2,
+          userEditCount: usedCount
+        };
+      };
+
+      const pendingContributions = Array.isArray(raw.pendingContributions)
+        ? raw.pendingContributions
+            .filter((p) => p && p.id && !deletedSet.has(String(p.id)))
+            .map((p) => normalizeContrib(p, p.target === 'general' ? 'general' : 'case'))
+        : [];
+
+      const approvedContributions = Array.isArray(raw.approvedContributions)
+        ? raw.approvedContributions
+            .filter((a) => a && a.id && !deletedSet.has(String(a.id)))
+            .map((a) => normalizeContrib(a, a.type || (a.target === 'general' ? 'general' : 'case')))
+        : base.approvedContributions;
+
+      return {
+        lastUpdated: String(raw.lastUpdated || formatNowDate()),
+        cases,
+        pendingContributions,
+        approvedContributions
+      };
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = readStorageSafe(STORAGE_KEY);
+        if (raw) {
+          appState = normalizeState(JSON.parse(raw));
+        } else {
+          appState = getInitialState();
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+        }
+      } catch (e) {
+        appState = getInitialState();
+      }
+    }
+
+    function saveAppState(reason = 'تحديث البيانات') {
+      appState.lastUpdated = formatNowDate();
+      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+      saveAutoBackupSnapshot(reason);
+      pushStateToFirebase();
+    }
+
+    /* =====================================================================
+       مزامنة قاعدة بيانات Firebase (sirf-dgv)
+       ===================================================================== */
+    function getFirebaseConfig() {
+      try {
+        const raw = readStorageSafe(FIREBASE_CFG_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            dbUrl: (parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, ''),
+            authSecret: parsed.authSecret || '',
+            disabled: Boolean(parsed.disabled)
+          };
+        }
+      } catch (e) {}
+      return {
+        dbUrl: DEFAULT_FIREBASE_DB_URL,
+        authSecret: '',
+        disabled: false
+      };
+    }
+
+    function buildFirebaseEndpoint() {
+      const cfg = getFirebaseConfig();
+      if (cfg.disabled || !cfg.dbUrl) return '';
+      const base = `${cfg.dbUrl}/sayaan_takaful_state.json`;
+      return cfg.authSecret ? `${base}?auth=${encodeURIComponent(cfg.authSecret)}` : base;
+    }
+
+    function updateCloudStatusBadge(stateType, text) {
+      const badge = document.getElementById('cloud-status-badge');
+      const dot = document.getElementById('cloud-status-dot');
+      const label = document.getElementById('cloud-status-text');
+      if (!badge || !dot || !label) return;
+      label.textContent = text;
+
+      if (stateType === 'connected') {
+        badge.className =
+          'inline-flex items-center gap-1.5 bg-emerald-950/75 border border-emerald-400/50 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+      } else if (stateType === 'error') {
+        badge.className =
+          'inline-flex items-center gap-1.5 bg-rose-950/80 border border-rose-400/60 text-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
+      } else {
+        badge.className =
+          'inline-flex items-center gap-1.5 bg-emerald-950/65 border border-amber-400/40 text-amber-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse';
+      }
+    }
+
+    async function pullStateFromFirebase(isInitial = false) {
+      const endpoint = buildFirebaseEndpoint();
+      if (!endpoint) {
+        updateCloudStatusBadge('error', 'الربط السحابي مفصول حالياً (وضع محلي)');
+        return;
+      }
+      try {
+        const res = await fetch(endpoint, { method: 'GET', cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const remoteData = await res.json();
+        if (
+          remoteData &&
+          typeof remoteData === 'object' &&
+          (Array.isArray(remoteData.cases) || Array.isArray(remoteData.approvedContributions))
+        ) {
+          const normalized = normalizeState(remoteData);
+          const fp = JSON.stringify(normalized);
+          if (fp !== lastSyncedFingerprint) {
+            lastSyncedFingerprint = fp;
+            appState = normalized;
+            writeStorageSafe(STORAGE_KEY, fp);
+            renderAll();
+          }
+        } else if (isInitial) {
+          await pushStateToFirebase();
+        }
+        updateCloudStatusBadge('connected', 'متصل ومتزامن مع قاعدة بيانات sirf-dgv');
+      } catch (err) {
+        updateCloudStatusBadge('error', 'وضع محلي نشط • تعذر الوصول السحابي المباشر');
+      }
+    }
+
+    async function pushStateToFirebase() {
+      const endpoint = buildFirebaseEndpoint();
+      if (!endpoint) return;
+      try {
+        const payload = JSON.stringify(appState);
+        lastSyncedFingerprint = payload;
+        const res = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        updateCloudStatusBadge('connected', 'متصل ومتزامن مع قاعدة بيانات sirf-dgv');
+      } catch (err) {
+        updateCloudStatusBadge('error', 'محفوظ محلياً • تعذر المزامنة السحابية الفورية');
+      }
+    }
+
+    function startFirebasePolling() {
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      pullStateFromFirebase(true);
+      firebasePollTimer = setInterval(() => {
+        pullStateFromFirebase(false);
+      }, 6000);
+    }
+
+    function openFirebaseConfigModal() {
+      if (!isAdminMode) {
+        openAdminLoginModal();
+        return;
+      }
+      const cfg = getFirebaseConfig();
+      const urlInput = document.getElementById('firebase-db-url-input');
+      const authInput = document.getElementById('firebase-auth-secret-input');
+      if (urlInput) urlInput.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
+      if (authInput) authInput.value = cfg.authSecret || '';
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleFirebaseConfigSubmit(e) {
+      e.preventDefault();
+      const urlVal = (
+        document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_DB_URL
+      )
+        .trim()
+        .replace(/\/+$/, '');
+      const authVal = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
+      writeStorageSafe(
+        FIREBASE_CFG_KEY,
+        JSON.stringify({
+          dbUrl: urlVal || DEFAULT_FIREBASE_DB_URL,
+          authSecret: authVal,
+          disabled: false
+        })
+      );
+      closeFirebaseConfigModal();
+      updateCloudStatusBadge('syncing', 'جاري الاتصال بقاعدة بيانات Firebase...');
+      startFirebasePolling();
+      showToast('تم حفظ إعدادات Firebase وجاري المزامنة.');
+    }
+
+    function disconnectFirebaseCloud() {
+      writeStorageSafe(
+        FIREBASE_CFG_KEY,
+        JSON.stringify({
+          dbUrl: DEFAULT_FIREBASE_DB_URL,
+          authSecret: '',
+          disabled: true
+        })
+      );
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      closeFirebaseConfigModal();
+      updateCloudStatusBadge('error', 'الربط السحابي مفصول حالياً (وضع محلي)');
+      showToast('تم فصل الربط السحابي والاكتفاء بالحفظ المحلي.');
+    }
+
+    /* =====================================================================
+       المصادقة ووضع الإدارة (بريد إلكتروني وكلمة مرور فقط)
+       ===================================================================== */
+    function prepareMobileKeyboardFocus(el) {
+      if (el && typeof el.focus === 'function') {
+        setTimeout(() => el.focus(), 10);
+      }
+    }
+
+    function focusLoginField(id) {
+      const el = document.getElementById(id);
+      if (el) el.focus();
+    }
+
+    function handleAdminHeaderClick() {
+      if (isAdminMode) {
+        isAdminMode = false;
+        updateAdminUI();
+        renderAll();
+        showToast('تم الخروج من وضع الإدارة.');
+      } else {
+        openAdminLoginModal();
+      }
+    }
+
+    function openAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      const errEl = document.getElementById('admin-login-error');
+      if (errEl) errEl.classList.add('hidden');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      const emailEl = document.getElementById('admin-email-input');
+      if (emailEl) setTimeout(() => emailEl.focus(), 60);
+    }
+
+    function closeAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const email = (document.getElementById('admin-email-input')?.value || '').trim().toLowerCase();
+      const pass = document.getElementById('admin-pass-input')?.value || '';
+      const errEl = document.getElementById('admin-login-error');
+
+      if (email === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASS) {
+        isAdminMode = true;
+        if (errEl) errEl.classList.add('hidden');
+        const passEl = document.getElementById('admin-pass-input');
+        if (passEl) passEl.value = '';
+        closeAdminLoginModal();
+        updateAdminUI();
+        renderAll();
+        showToast('مرحباً بك في وضع الإدارة.');
+      } else {
+        if (errEl) errEl.classList.remove('hidden');
+      }
+    }
+
+    function updateAdminUI() {
+      const toggleBtn = document.getElementById('admin-toggle-btn');
+      const toggleLabel = document.getElementById('admin-toggle-label');
+      const pendingPanel = document.getElementById('admin-pending-panel');
+      const addCaseBtn = document.getElementById('admin-add-case-btn');
+
+      if (isAdminMode) {
+        if (toggleLabel) toggleLabel.textContent = 'خروج الإدارة';
+        if (toggleBtn) {
+          toggleBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'text-emerald-950');
+          toggleBtn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white');
+        }
+        if (pendingPanel) pendingPanel.classList.remove('hidden');
+        if (addCaseBtn) addCaseBtn.classList.remove('hidden');
+        updateBackupAdminUI();
+      } else {
+        if (toggleLabel) toggleLabel.textContent = 'وضع الإدارة';
+        if (toggleBtn) {
+          toggleBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500', 'text-white');
+          toggleBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-emerald-950');
+        }
+        if (pendingPanel) pendingPanel.classList.add('hidden');
+        if (addCaseBtn) addCaseBtn.classList.add('hidden');
+      }
+    }
+
+    /* =====================================================================
+       الحسابات المالية وتحديث الإحصائيات
+       ===================================================================== */
+    function computeFinancialSummary() {
+      let totalContributions = 0;
+      let contributionsCount = 0;
+      let totalDisbursed = 0;
+
+      for (const item of appState.approvedContributions) {
+        if (item.type === 'disbursement') {
+          totalDisbursed += Number(item.amount) || 0;
+        } else {
+          totalContributions += Number(item.amount) || 0;
+          contributionsCount += 1;
+        }
+      }
+
+      const availableBalance = Math.max(0, totalContributions - totalDisbursed);
+      const totalRequired = appState.cases.reduce(
+        (sum, c) => sum + (Number(c.requiredAmount) || 0),
+        0
+      );
+      const totalCaseCovered = appState.cases.reduce(
+        (sum, c) => sum + Math.min(Number(c.requiredAmount) || 0, Number(c.disbursedAmount) || 0),
+        0
+      );
+      const completedCases = appState.cases.filter(
+        (c) => (Number(c.disbursedAmount) || 0) >= (Number(c.requiredAmount) || 0) && (Number(c.requiredAmount) || 0) > 0
+      ).length;
+      const coveragePct =
+        totalRequired > 0 ? Math.min(100, Math.round((totalCaseCovered / totalRequired) * 100)) : 0;
+
+      return {
+        totalContributions,
+        contributionsCount,
+        totalDisbursed,
+        availableBalance,
+        totalRequired,
+        completedCases,
+        coveragePct
+      };
+    }
+
+    function renderStats() {
+      const s = computeFinancialSummary();
+      const elTotalContrib = document.getElementById('stat-total-contributions');
+      const elContribCount = document.getElementById('stat-contributions-count');
+      const elTotalDisb = document.getElementById('stat-total-disbursed');
+      const elDisbSummary = document.getElementById('stat-disbursed-summary');
+      const elBalance = document.getElementById('stat-available-balance');
+      const elUpdated = document.getElementById('stat-last-updated');
+      const elCasesBadge = document.getElementById('stat-cases-badge');
+      const elCoverageText = document.getElementById('stat-coverage-text');
+      const elCoverageBar = document.getElementById('stat-coverage-bar');
+
+      if (elTotalContrib) elTotalContrib.textContent = formatCurrency(s.totalContributions);
+      if (elContribCount) elContribCount.textContent = `عدد المساهمات: ${s.contributionsCount}`;
+      if (elTotalDisb) elTotalDisb.textContent = formatCurrency(s.totalDisbursed);
+      if (elDisbSummary) {
+        elDisbSummary.textContent = `حالات مسددة / مصروفة ${s.completedCases} من ${appState.cases.length}`;
+      }
+      if (elBalance) elBalance.textContent = formatCurrency(s.availableBalance);
+      if (elUpdated) elUpdated.textContent = `آخر تحديث: ${appState.lastUpdated || 'الآن'}`;
+      if (elCasesBadge) elCasesBadge.textContent = `${appState.cases.length} حالات`;
+      if (elCoverageText) {
+        elCoverageText.textContent = `${s.coveragePct}% من ${formatCurrency(s.totalRequired)}`;
+      }
+      if (elCoverageBar) elCoverageBar.style.width = `${s.coveragePct}%`;
+    }
+
+    /* =====================================================================
+       عرض الحالات والتصويت وإدارتها
+       ===================================================================== */
+    function getDeviceVotes() {
+      try {
+        const raw = readStorageSafe(DEVICE_VOTE_KEY);
+        return raw ? JSON.parse(raw) : memoryStore.deviceVotes;
+      } catch (e) {
+        return memoryStore.deviceVotes;
+      }
+    }
+
+    function setDeviceVote(caseId, voteType) {
+      const votes = getDeviceVotes();
+      votes[caseId] = voteType;
+      memoryStore.deviceVotes = votes;
+      writeStorageSafe(DEVICE_VOTE_KEY, JSON.stringify(votes));
+    }
+
+    function renderTargetSelects() {
+      const optionsHtml = [
+        '<option value="general">رصيد الصندوق العام للأورام والدية</option>',
+        ...appState.cases
+          .filter((c) => {
+            const req = Number(c.requiredAmount) || 0;
+            const disb = Number(c.disbursedAmount) || 0;
+            const isCompleted = req > 0 && disb >= req;
+            return !c.closed && !isCompleted;
+          })
+          .map(
+            (c) => `<option value="${escapeHtml(c.id)}">حالة: ${escapeHtml(c.title)}</option>`
+          )
+      ].join('');
+
+      const newTarget = document.getElementById('contrib-target');
+      const editTarget = document.getElementById('edit-contrib-target');
+
+      if (newTarget) {
+        const prev = newTarget.value;
+        newTarget.innerHTML = optionsHtml;
+        if (prev && Array.from(newTarget.options).some((o) => o.value === prev)) {
+          newTarget.value = prev;
+        }
+      }
+
+      if (editTarget) {
+        const prevEdit = editTarget.value;
+        editTarget.innerHTML = optionsHtml;
+        if (prevEdit && Array.from(editTarget.options).some((o) => o.value === prevEdit)) {
+          editTarget.value = prevEdit;
+        }
+      }
+    }
+
+    function renderCases() {
+      const container = document.getElementById('cases-container');
+      if (!container) return;
+
+      if (!appState.cases.length) {
+        container.innerHTML =
+          '<div class="col-span-full text-center py-8 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">لا توجد حالات معروضة حالياً.</div>';
+        return;
+      }
+
+      const deviceVotes = getDeviceVotes();
+
+      container.innerHTML = appState.cases
+        .map((c) => {
+          const req = Number(c.requiredAmount) || 0;
+          const disb = Number(c.disbursedAmount) || 0;
+          const remaining = Math.max(0, req - disb);
+          const pct = req > 0 ? Math.min(100, Math.round((disb / req) * 100)) : 0;
+          const isCompleted = req > 0 && disb >= req;
+          const myVote = deviceVotes[c.id] || null;
+          const isCatDiyah = c.category === 'دية';
+
+          // تجميع المساهمات المعتمدة المرتبطة بهذه الحالة لإظهار اسم المساهم وقيمته
+          const caseContributors = appState.approvedContributions.filter(
+            (item) => item.type !== 'disbursement' && item.target === c.id
+          );
+
+          // قيود الصرف المرتبطة بهذه الحالة (تمويل من الصندوق)
+          const caseDisbursements = appState.approvedContributions.filter(
+            (item) => item.type === 'disbursement' && item.target === c.id
+          );
+
+          // قائمة الجهات الدافعة للحالة (الصندوق أو المساهمون)
+          const paymentSources = [];
+          if (disb > 0) {
+            if (caseDisbursements.length) {
+              caseDisbursements.forEach((d) => {
+                paymentSources.push({
+                  sourceType: 'fund',
+                  sourceBadge: 'صرف من الصندوق',
+                  payerName: 'صندوق التكافل الاجتماعي',
+                  amount: Number(d.amount) || 0,
+                  date: d.createdAt,
+                  note: d.note
+                });
+              });
+            } else {
+              paymentSources.push({
+                sourceType: 'fund',
+                sourceBadge: 'صرف من الصندوق',
+                payerName: 'صندوق التكافل الاجتماعي',
+                amount: disb,
+                date: appState.lastUpdated,
+                note: 'تمويل وصرف معتمد من الصندوق'
+              });
+            }
+          }
+
+          caseContributors.forEach((contrib) => {
+            paymentSources.push({
+              sourceType: 'contributor',
+              sourceBadge: 'مساهم مباشر',
+              payerName: contrib.contributorName || 'فاعل خير',
+              subLabel: contrib.branch || '',
+              amount: Number(contrib.amount) || 0,
+              date: contrib.createdAt,
+              note: contrib.note
+            });
+          });
+
+          // تحديد مرحلة الشريط الزمني للحالة (قيد المعالجة / قيد الصرف / مكتملة)
+          const timelineStage = isCompleted ? 3 : disb > 0 ? 2 : 1;
+          const timelineStatusLabel = isCompleted
+            ? 'مكتمل الصرف'
+            : disb > 0
+            ? 'قيد الصرف'
+            : 'قيد المعالجة';
+          const timelineFillWidth =
+            timelineStage === 1 ? '34%' : timelineStage === 2 ? '68%' : '100%';
+
+          const processingTimelineBarHtml = `
+            <div class="bg-slate-950 text-white rounded-2xl p-3.5 border border-emerald-500/40 shadow-md space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="inline-flex items-center gap-2 text-xs font-black text-amber-300">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                  <span>الشريط الزمني للحالة: ${escapeHtml(timelineStatusLabel)}</span>
+                </span>
+                <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-900/90 text-emerald-200 border border-emerald-500/30">${escapeHtml(timelineStatusLabel)}</span>
+              </div>
+              <div class="w-full h-3.5 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-white/10">
+                <div class="h-full rounded-full transition-all duration-700 ${
+                  isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'
+                }" style="width: ${timelineFillWidth}"></div>
+              </div>
+              <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-300 px-0.5">
+                <span class="${timelineStage >= 1 ? 'text-amber-300' : 'text-slate-500'}">قيد المعالجة</span>
+                <span class="${timelineStage >= 2 ? 'text-emerald-300' : 'text-slate-500'}">قيد الصرف</span>
+                <span class="${timelineStage >= 3 ? 'text-emerald-400' : 'text-slate-500'}">مكتمل الصرف</span>
+              </div>
+            </div>
+          `;
+
+          const payersBarHtml = `
+            <div class="bg-slate-900/5 border-2 border-amber-400/70 rounded-3xl p-4 space-y-3 shadow-xs">
+              <div class="flex items-center justify-between gap-2 border-b border-amber-300/60 pb-2.5">
+                <p class="text-xs sm:text-sm font-black text-slate-950">بيان الدفع للحالة — الصندوق والمساهمون</p>
+                <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-400 text-emerald-950">بيان مهم</span>
+              </div>
+              ${
+                paymentSources.length
+                  ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto">${paymentSources
+                      .map((src) => {
+                        const isFund = src.sourceType === 'fund';
+                        const numericDate = formatNumericDateOnly(src.date);
+                        const numericTime = formatNumericTimeAmPm(src.date);
+                        return `
+                          <div class="rounded-2xl p-3 border-2 ${
+                            isFund
+                              ? 'bg-amber-50 border-amber-400'
+                              : 'bg-white border-emerald-400'
+                          } flex flex-col justify-between gap-2 text-xs shadow-2xs">
+                            <div class="flex items-center justify-between gap-1.5">
+                              <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full ${
+                                isFund
+                                  ? 'bg-amber-500 text-emerald-950'
+                                  : 'bg-emerald-700 text-white'
+                              }">${escapeHtml(src.sourceBadge)}</span>
+                              <span class="font-black text-sm px-2.5 py-0.5 rounded-xl ${
+                                isFund
+                                  ? 'bg-amber-200/80 text-amber-950'
+                                  : 'bg-emerald-100 text-emerald-900'
+                              }">${formatCurrency(src.amount)}</span>
+                            </div>
+                            <div>
+                              <p class="font-black text-slate-900 text-xs sm:text-sm break-words">${escapeHtml(src.payerName)}</p>
+                              ${
+                                src.subLabel
+                                  ? `<p class="text-[11px] font-extrabold text-slate-600">${escapeHtml(src.subLabel)}</p>`
+                                  : ''
+                              }
+                              ${
+                                src.note
+                                  ? `<p class="text-[11px] font-bold text-slate-600 mt-1 leading-relaxed break-words">البيان: ${escapeHtml(src.note)}</p>`
+                                  : ''
+                              }
+                            </div>
+                            <div class="pt-1.5 border-t border-slate-200/80 flex items-center justify-between gap-2 text-[11px] font-extrabold text-slate-600">
+                              <span dir="ltr">${escapeHtml(numericDate)}</span>
+                              <span>${escapeHtml(numericTime)}</span>
+                            </div>
+                          </div>
+                        `;
+                      })
+                      .join('')}</div>`
+                  : '<p class="text-xs font-bold text-slate-500">لم يتم تسجيل دفع لهذه الحالة من الصندوق أو من مساهم بعد.</p>'
+              }
+            </div>
+          `;
+
+          const rejectionsHtml =
+            !isCompleted && c.rejections && c.rejections.length
+              ? `
+                <div class="bg-rose-50/80 border border-rose-200 rounded-2xl p-3.5 space-y-2.5">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs font-black text-rose-800">ملاحظات وأسباب عدم الموافقة (${c.rejections.length}):</p>
+                    ${
+                      isAdminMode
+                        ? `
+                          <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                            <button type="button" onclick="resetRejectVotes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm bg-rose-200 hover:bg-rose-300 text-rose-950 transition cursor-pointer text-center">تصفير غير موافق</button>
+                            <button type="button" onclick="clearAllRejectionReasons('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm bg-slate-200 hover:bg-slate-300 text-slate-900 transition cursor-pointer text-center">حذف الكل</button>
+                          </div>
+                        `
+                        : ''
+                    }
+                  </div>
+                  <div class="space-y-2 max-h-36 overflow-y-auto">
+                    ${c.rejections
+                      .map(
+                        (r) => `
+                          <div class="bg-white rounded-2xl p-2.5 border border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div class="min-w-0 flex-1">
+                              <p class="font-bold text-slate-800 break-words">${escapeHtml(r.reason)}</p>
+                              <p class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(r.createdAt)}</p>
+                            </div>
+                            ${
+                              isAdminMode
+                                ? `
+                                  <div class="grid grid-cols-2 gap-2 w-full sm:w-auto shrink-0">
+                                    <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}','${escapeHtml(r.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm bg-amber-100 hover:bg-amber-200 text-amber-950 transition cursor-pointer text-center">تعديل السبب</button>
+                                    <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}','${escapeHtml(r.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm bg-rose-100 hover:bg-rose-200 text-rose-800 transition cursor-pointer text-center">حذف السبب</button>
+                                  </div>
+                                `
+                                : ''
+                            }
+                          </div>
+                        `
+                      )
+                      .join('')}
+                  </div>
+                </div>
+              `
+              : '';
+
+          const latestCaseDisbursement = appState.approvedContributions.find(
+            (item) => item.type === 'disbursement' && item.target === c.id
+          );
+
+          const adminControlsHtml = isAdminMode
+            ? `
+              <div class="space-y-2 pt-2 border-t border-slate-200">
+                ${
+                  !isCompleted
+                    ? `
+                      <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">صرف مساعدة</button>
+                        <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">تعديل الحالة</button>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        ${
+                          latestCaseDisbursement
+                            ? `<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(latestCaseDisbursement.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">تعديل الصرف</button>`
+                            : `<button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-sky-50 hover:bg-sky-100 text-sky-900 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">تعديل الصرف</button>`
+                        }
+                        <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">حذف</button>
+                      </div>
+                    `
+                    : `
+                      <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">تعديل الحالة</button>
+                        <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">حذف</button>
+                      </div>
+                      ${
+                        latestCaseDisbursement
+                          ? `<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(latestCaseDisbursement.id)}')" class="w-full bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">تعديل الصرف</button>`
+                          : ''
+                      }
+                    `
+                }
+              </div>
+            `
+            : '';
+
+          return `
+            <article class="bg-slate-50/70 rounded-3xl p-5 border ${
+              isCompleted ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'
+            } flex flex-col justify-between gap-4">
+              <div class="space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-xs font-black px-3 py-1 rounded-full ${
+                    isCatDiyah ? 'bg-amber-100 text-amber-950' : 'bg-emerald-100 text-emerald-900'
+                  }">${escapeHtml(c.category)}</span>
+                  <span class="text-xs font-black px-3 py-1 rounded-full ${
+                    isCompleted
+                      ? 'bg-emerald-700 text-white'
+                      : c.closed
+                      ? 'bg-slate-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700'
+                  }">${
+                    isCompleted
+                      ? 'مكتملة التغطية'
+                      : c.closed
+                      ? 'مغلقة'
+                      : 'مفتوحة للتصويت والدعم'
+                  }</span>
+                </div>
+
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900">${escapeHtml(c.title)}</h3>
+                  <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-3.5 border border-slate-200/80 space-y-2">
+                  <div class="flex items-center justify-between text-xs font-black">
+                    <span class="text-slate-500">المطلوب: <strong class="text-slate-900">${formatCurrency(req)}</strong></span>
+                    <span class="text-emerald-700">المصروف: <strong>${formatCurrency(disb)}</strong></span>
+                  </div>
+                  <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-600 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-500">
+                    <span>نسبة التغطية: ${pct}%</span>
+                    <span>المتبقي: ${formatCurrency(remaining)}</span>
+                  </div>
+                </div>
+
+                ${processingTimelineBarHtml}
+                ${payersBarHtml}
+                ${rejectionsHtml}
+              </div>
+
+              <div class="space-y-2.5">
+                ${
+                  !isCompleted
+                    ? `
+                      <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" onclick="voteApproveCase('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          myVote === 'approve'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-950'
+                        }">
+                          <span>موافق</span>
+                          <span class="px-2 py-0.5 rounded-full text-xs ${
+                            myVote === 'approve' ? 'bg-white/20 text-white' : 'bg-white text-emerald-800'
+                          }">${Number(c.votes?.approve) || 0}</span>
+                        </button>
+                        <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          myVote === 'reject'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-rose-100 hover:bg-rose-200 text-rose-950'
+                        }">
+                          <span>غير موافق</span>
+                          <span class="px-2 py-0.5 rounded-full text-xs ${
+                            myVote === 'reject' ? 'bg-white/20 text-white' : 'bg-white text-rose-700'
+                          }">${Number(c.votes?.reject) || 0}</span>
+                        </button>
+                      </div>
+                      ${
+                        myVote
+                          ? `<p class="text-[11px] font-extrabold text-center ${
+                              myVote === 'approve' ? 'text-emerald-700' : 'text-rose-700'
+                            }">تم تسجيل صوتك (${
+                              myVote === 'approve'
+                                ? 'موافق - مرة واحدة'
+                                : 'غير موافق وتم توضيح السبب - مرة واحدة'
+                            })</p>`
+                          : ''
+                      }
+                      <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm py-2.5 rounded-2xl transition cursor-pointer">
+                        دعم هذه الحالة الآن
+                      </button>
+                    `
+                    : `
+                      <button type="button" onclick="scrollToContributeSection('general')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm py-2.5 rounded-2xl transition cursor-pointer">
+                        المساهمة في الرصيد العام للصندوق
+                      </button>
+                    `
+                }
+                ${adminControlsHtml}
+              </div>
+            </article>
+          `;
+        })
+        .join('');
+    }
+
+    function voteApproveCase(caseId) {
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      const prev = getDeviceVotes()[caseId];
+      if (prev === 'approve') {
+        showToast('لقد قمت بالتصويت بـ «موافق» مسبقاً على هذه الحالة (مرة واحدة فقط).');
+        return;
+      }
+      if (prev === 'reject') {
+        showToast('لقد قمت بتسجيل صوتك بـ «غير موافق» وتوضيح السبب مسبقاً ولا يمكن تكرار التصويت.');
+        return;
+      }
+      target.votes.approve += 1;
+      setDeviceVote(caseId, 'approve');
+      saveAppState('تصويت بالموافقة');
+      renderCases();
+      showToast('تم تسجيل صوتك بـ «موافق» (مرة واحدة فقط).');
+    }
+
+    function openRejectVoteModal(caseId) {
+      const prev = getDeviceVotes()[caseId];
+      if (prev === 'reject') {
+        showToast('لقد قمت بإدراج «غير موافق» وتوضيح السبب مسبقاً لهذه الحالة (مرة واحدة فقط).');
+        return;
+      }
+      if (prev === 'approve') {
+        showToast('لقد قمت بالتصويت بـ «موافق» مسبقاً ولا يمكن تسجيل «غير موافق» بعده.');
+        return;
+      }
+      pendingRejectCaseId = caseId;
+      const input = document.getElementById('reject-reason-input');
+      if (input) input.value = '';
+      const modal = document.getElementById('reject-vote-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeRejectVoteModal() {
+      pendingRejectCaseId = null;
+      const modal = document.getElementById('reject-vote-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleRejectVoteSubmit(e) {
+      e.preventDefault();
+      if (!pendingRejectCaseId) return;
+      const prev = getDeviceVotes()[pendingRejectCaseId];
+      if (prev) {
+        closeRejectVoteModal();
+        showToast('تم تسجيل تصويتك مسبقاً على هذه الحالة ولا يُسمح بالتكرار.');
+        return;
+      }
+      const target = appState.cases.find((c) => c.id === pendingRejectCaseId);
+      const reason = (document.getElementById('reject-reason-input')?.value || '').trim();
+      if (!target || !reason) return;
+
+      target.votes.reject += 1;
+      target.rejections.unshift({
+        id: 'rej-' + Date.now(),
+        reason,
+        createdAt: formatNowDate()
+      });
+      setDeviceVote(pendingRejectCaseId, 'reject');
+      closeRejectVoteModal();
+      saveAppState('تصويت بعدم الموافقة');
+      renderCases();
+      showToast('تم تسجيل «غير موافق» وتوضيح السبب (مرة واحدة فقط).');
+    }
+
+    function openEditRejectionModal(caseId, rejId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      const item = target?.rejections?.find((r) => r.id === rejId);
+      if (!item) return;
+      document.getElementById('edit-rej-case-id').value = caseId;
+      document.getElementById('edit-rej-item-id').value = rejId;
+      document.getElementById('edit-rej-input').value = item.reason;
+      const modal = document.getElementById('edit-rejection-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeEditRejectionModal() {
+      const modal = document.getElementById('edit-rejection-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleEditRejectionSubmit(e) {
+      e.preventDefault();
+      if (!isAdminMode) return;
+      const caseId = document.getElementById('edit-rej-case-id').value;
+      const rejId = document.getElementById('edit-rej-item-id').value;
+      const newText = (document.getElementById('edit-rej-input').value || '').trim();
+      const target = appState.cases.find((c) => c.id === caseId);
+      const item = target?.rejections?.find((r) => r.id === rejId);
+      if (!item || !newText) return;
+      item.reason = newText;
+      closeEditRejectionModal();
+      saveAppState('تعديل سبب رفض');
+      renderCases();
+      showToast('تم تعديل سبب الرفض.');
+    }
+
+    function deleteRejectionReason(caseId, rejId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      target.rejections = target.rejections.filter((r) => r.id !== rejId);
+      saveAppState('حذف سبب رفض');
+      renderCases();
+      showToast('تم حذف الملاحظة.');
+    }
+
+    function clearAllRejectionReasons(caseId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      target.rejections = [];
+      saveAppState('حذف جميع أسباب الرفض');
+      renderCases();
+      showToast('تم حذف جميع أسباب الرفض للحالة.');
+    }
+
+    function resetRejectVotes(caseId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      target.votes = target.votes || { approve: 0, reject: 0 };
+      target.votes.reject = 0;
+      saveAppState('تصفير أصوات عدم الموافقة');
+      renderCases();
+      showToast('تم تصفير أصوات «غير موافق» للحالة.');
+    }
+
+    function openAddCaseModal() {
+      if (!isAdminMode) return;
+      document.getElementById('case-editor-title').textContent = 'إضافة حالة جديدة';
+      document.getElementById('editor-case-id').value = '';
+      document.getElementById('editor-case-name').value = '';
+      document.getElementById('editor-case-category').value = 'علاج مرضى الأورام';
+      document.getElementById('editor-case-required').value = '';
+      document.getElementById('editor-case-desc').value = '';
+      const modal = document.getElementById('case-editor-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function openEditCaseModal(caseId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      document.getElementById('case-editor-title').textContent = 'تعديل بيانات الحالة';
+      document.getElementById('editor-case-id').value = target.id;
+      document.getElementById('editor-case-name').value = target.title;
+      document.getElementById('editor-case-category').value = target.category;
+      document.getElementById('editor-case-required').value = target.requiredAmount;
+      document.getElementById('editor-case-desc').value = target.description;
+      const modal = document.getElementById('case-editor-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeCaseEditorModal() {
+      const modal = document.getElementById('case-editor-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleCaseEditorSubmit(e) {
+      e.preventDefault();
+      if (!isAdminMode) return;
+      const id = document.getElementById('editor-case-id').value;
+      const title = (document.getElementById('editor-case-name').value || '').trim();
+      const category = document.getElementById('editor-case-category').value;
+      const requiredAmount = Math.max(1, Number(document.getElementById('editor-case-required').value) || 0);
+      const description = (document.getElementById('editor-case-desc').value || '').trim();
+      if (!title || !description) return;
+
+      if (id) {
+        const existing = appState.cases.find((c) => c.id === id);
+        if (existing) {
+          existing.title = title;
+          existing.category = category;
+          existing.requiredAmount = requiredAmount;
+          existing.description = description;
+          saveAppState('تعديل حالة');
+          showToast('تم تحديث بيانات الحالة.');
+        }
+      } else {
+        appState.cases.unshift({
+          id: 'case-' + Date.now(),
+          title,
+          category,
+          requiredAmount,
+          disbursedAmount: 0,
+          closed: false,
+          description,
+          votes: { approve: 0, reject: 0 },
+          rejections: []
+        });
+        saveAppState('إضافة حالة جديدة');
+        showToast('تمت إضافة الحالة الجديدة ونشرها.');
+      }
+
+      closeCaseEditorModal();
+      renderAll();
+    }
+
+    function deleteCaseItem(caseId) {
+      if (!isAdminMode) return;
+      addDeletedId(caseId);
+      appState.cases = appState.cases.filter((c) => c.id !== caseId);
+      saveAppState('حذف حالة');
+      renderAll();
+      showToast('تم حذف الحالة.');
+    }
+
+    /* =====================================================================
+       صرف المساعدات من الصندوق (للإدارة)
+       ===================================================================== */
+    function openDisburseModal(caseId) {
+      if (!isAdminMode) return;
+      const target = appState.cases.find((c) => c.id === caseId);
+      if (!target) return;
+      currentDisburseCaseId = caseId;
+      const summary = computeFinancialSummary();
+      const remaining = Math.max(
+        0,
+        (Number(target.requiredAmount) || 0) - (Number(target.disbursedAmount) || 0)
+      );
+
+      document.getElementById('disburse-case-label').textContent = `الحالة المستفيدة: ${target.title} | الرصيد المتاح بالصندوق: ${formatCurrency(summary.availableBalance)}`;
+      const remEl = document.getElementById('disburse-case-remaining');
+      remEl.textContent = formatCurrency(remaining);
+      remEl.dataset.copyValue = String(remaining);
+
+      const zeroAlert = document.getElementById('disburse-zero-alert');
+      const submitBtn = document.getElementById('disburse-submit-btn');
+      const amtInput = document.getElementById('disburse-amount-input');
+      const noteInput = document.getElementById('disburse-note-input');
+      amtInput.value = remaining > 0 ? Math.min(remaining, summary.availableBalance) : '';
+      noteInput.value = '';
+
+      if (summary.availableBalance <= 0) {
+        zeroAlert.classList.remove('hidden');
+        submitBtn.disabled = true;
+      } else {
+        zeroAlert.classList.add('hidden');
+        submitBtn.disabled = false;
+      }
+
+      const modal = document.getElementById('disburse-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeDisburseModal() {
+      currentDisburseCaseId = null;
+      const modal = document.getElementById('disburse-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function copyDisburseRemainingValue() {
+      const val = document.getElementById('disburse-case-remaining')?.dataset?.copyValue || '0';
+      const input = document.getElementById('disburse-amount-input');
+      if (input) input.value = val;
+      try {
+        const temp = document.createElement('textarea');
+        temp.value = val;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+      } catch (e) {}
+      showToast(`تم نسخ وتعبئة القيمة المتبقية (${val} د.ل).`);
+    }
+
+    function handleDisburseSubmit(e) {
+      e.preventDefault();
+      if (!isAdminMode || !currentDisburseCaseId) return;
+      const target = appState.cases.find((c) => c.id === currentDisburseCaseId);
+      if (!target) return;
+      const summary = computeFinancialSummary();
+      const amount = Number(document.getElementById('disburse-amount-input')?.value) || 0;
+      const note = (document.getElementById('disburse-note-input')?.value || '').trim();
+
+      if (amount <= 0) {
+        showToast('يرجى إدخال قيمة صرف صحيحة.');
+        return;
+      }
+      if (amount > summary.availableBalance) {
+        showToast('قيمة الصرف تتجاوز الرصيد المتاح حالياً بالصندوق.');
+        return;
+      }
+
+      target.disbursedAmount = (Number(target.disbursedAmount) || 0) + amount;
+      appState.approvedContributions.unshift({
+        id: 'disb-' + Date.now(),
+        type: 'disbursement',
+        contributorName: `صرف: ${target.title}`,
+        branch: target.category,
+        amount,
+        target: target.id,
+        targetLabel: target.title,
+        method: 'صرف من الصندوق',
+        note: note || 'صرف مساعدة معتمدة',
+        receiptData: '',
+        receiptName: '',
+        phone: '',
+        createdAt: formatNowDate(),
+        userEditUsed: true,
+        userEditCount: 2
+      });
+
+      closeDisburseModal();
+      saveAppState('صرف مساعدة من الصندوق');
+      renderAll();
+      showToast(`تم صرف ${formatCurrency(amount)} للحالة بنجاح.`);
+    }
+
+    /* =====================================================================
+       تسجيل المساهمات واعتمادها وتعديلها
+       ===================================================================== */
+    function scrollToContributeSection(targetId = 'general') {
+      const targetSelect = document.getElementById('contrib-target');
+      if (targetSelect && targetId) {
+        targetSelect.value = targetId;
+      }
+      const section = document.getElementById('contribute-section');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function toggleNewPaymentFields() {
+      const method = document.getElementById('contrib-method')?.value || '';
+      const bankBox = document.getElementById('new-bank-fields');
+      const mobileBox = document.getElementById('new-mobile-fields');
+      if (method.includes('المصرف')) {
+        bankBox?.classList.remove('hidden');
+        mobileBox?.classList.add('hidden');
+      } else if (method.includes('النقال')) {
+        mobileBox?.classList.remove('hidden');
+        bankBox?.classList.add('hidden');
+      } else {
+        bankBox?.classList.add('hidden');
+        mobileBox?.classList.add('hidden');
+      }
+    }
+
+    function handleNewReceiptFileChange(input) {
+      const file = input?.files?.[0];
+      const nameEl = document.getElementById('contrib-receipt-name');
+      if (!file) {
+        newReceiptDataUrl = '';
+        newReceiptFileName = '';
+        if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+        return;
+      }
+      newReceiptFileName = file.name;
+      if (nameEl) nameEl.textContent = `الملف المختار: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = () => {
+        newReceiptDataUrl = String(reader.result || '');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function markAsMyContribution(id) {
+      try {
+        const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
+        const map = raw ? JSON.parse(raw) : memoryStore.myContributions;
+        map[id] = true;
+        memoryStore.myContributions = map;
+        writeStorageSafe(MY_CONTRIBUTIONS_KEY, JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    function isMyContribution(id) {
+      try {
+        const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
+        const map = raw ? JSON.parse(raw) : memoryStore.myContributions;
+        return Boolean(map[id]);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function handleNewContributionSubmit(e) {
+      e.preventDefault();
+      const contributorName = (document.getElementById('contrib-name')?.value || '').trim();
+      const branch = document.getElementById('contrib-branch')?.value || 'الهمايلة';
+      const amount = Number(document.getElementById('contrib-amount')?.value) || 0;
+      const target = document.getElementById('contrib-target')?.value || 'general';
+      const method = document.getElementById('contrib-method')?.value || '';
+      const note = (document.getElementById('contrib-note')?.value || '').trim();
+      const phone = (document.getElementById('contrib-phone')?.value || '').trim();
+
+      if (!contributorName || amount <= 0 || !method) {
+        showToast('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.');
+        return;
+      }
+      if (method.includes('المصرف') && !newReceiptDataUrl) {
+        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.');
+        return;
+      }
+      if (method.includes('النقال') && !/^\d{10}$/.test(phone)) {
+        showToast('يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام.');
+        return;
+      }
+
+      const targetCase = appState.cases.find((c) => c.id === target);
+      const id = 'contrib-' + Date.now();
+      appState.pendingContributions.unshift({
+        id,
+        type: target === 'general' ? 'general' : 'case',
+        contributorName,
+        branch,
+        amount,
+        target,
+        targetLabel: targetCase ? targetCase.title : 'رصيد الصندوق العام',
+        method,
+        note,
+        receiptData: newReceiptDataUrl,
+        receiptName: newReceiptFileName,
+        phone: method.includes('النقال') ? phone : '',
+        createdAt: formatNowDate(),
+        userEditUsed: false,
+        userEditCount: 0
+      });
+
+      markAsMyContribution(id);
+      document.getElementById('new-contribution-form')?.reset();
+      newReceiptDataUrl = '';
+      newReceiptFileName = '';
+      const nameEl = document.getElementById('contrib-receipt-name');
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      toggleNewPaymentFields();
+      saveAppState('تسجيل مساهمة جديدة');
+      renderAll();
+      showToast('تم إرسال مساهمتك بنجاح وهي بانتظار اعتماد إدارة الصندوق.');
+    }
+
+    function renderPendingContributions() {
+      const listEl = document.getElementById('pending-contributions-list');
+      const badgeEl = document.getElementById('pending-count-badge');
+      const count = appState.pendingContributions.length;
+      if (badgeEl) badgeEl.textContent = `${count} طلبات`;
+      if (!listEl) return;
+
+      if (!count) {
+        listEl.innerHTML =
+          '<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs sm:text-sm font-bold text-amber-900">لا توجد طلبات مساهمات معلقة حالياً.</div>';
+        return;
+      }
+
+      listEl.innerHTML = appState.pendingContributions
+        .map(
+          (item) => `
+            <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-black text-sm text-slate-900">${escapeHtml(item.contributorName)}</span>
+                  <span class="text-[11px] font-extrabold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>
+                  <span class="text-xs font-black bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">${formatCurrency(item.amount)}</span>
+                </div>
+                <p class="text-xs font-bold text-slate-600">الوجهة: <span class="text-emerald-800">${escapeHtml(item.targetLabel)}</span> — الطريقة: ${escapeHtml(item.method)}</p>
+                ${item.phone ? `<p class="text-xs font-bold text-amber-800" dir="ltr">الهاتف: ${escapeHtml(item.phone)}</p>` : ''}
+                ${item.note ? `<p class="text-xs text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
+                <p class="text-[11px] text-slate-400">${escapeHtml(item.createdAt)}</p>
+              </div>
+              <div class="grid grid-cols-2 sm:flex sm:flex-nowrap items-stretch gap-2.5 shrink-0 w-full sm:w-auto">
+                ${
+                  item.receiptData
+                    ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'pending')" class="h-12 w-full sm:w-36 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">عرض الإيصال</button>`
+                    : ''
+                }
+                <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'pending')" class="h-12 w-full sm:w-36 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">تعديل</button>
+                <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 w-full sm:w-36 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">اعتماد ونشر</button>
+                <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 w-full sm:w-36 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-sm px-3 rounded-2xl inline-flex items-center justify-center transition cursor-pointer">حذف</button>
+              </div>
+            </div>
+          `
+        )
+        .join('');
+    }
+
+    function approvePendingContribution(id) {
+      if (!isAdminMode) return;
+      const idx = appState.pendingContributions.findIndex((p) => p.id === id);
+      if (idx === -1) return;
+      const [item] = appState.pendingContributions.splice(idx, 1);
+      appState.approvedContributions.unshift(item);
+      saveAppState('اعتماد ونشر مساهمة');
+      renderAll();
+      showToast(`تم اعتماد مساهمة ${item.contributorName} وإضافتها للرصيد.`);
+    }
+
+    function deletePendingContribution(id) {
+      if (!isAdminMode) return;
+      addDeletedId(id);
+      appState.pendingContributions = appState.pendingContributions.filter((p) => p.id !== id);
+      saveAppState('حذف طلب مساهمة');
+      renderAll();
+      showToast('تم حذف طلب المساهمة.');
+    }
+
+    /* =====================================================================
+       سجل المساهمات والصرف المعتمد وتعديله
+       ===================================================================== */
+    function renderLedger() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+
+      const search = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
+      const filter = document.getElementById('ledger-filter-select')?.value || 'all';
+
+      const filtered = appState.approvedContributions.filter((item) => {
+        if (filter !== 'all' && item.type !== filter) return false;
+        if (!search) return true;
+        const hay = `${item.contributorName} ${item.branch} ${item.targetLabel} ${item.note} ${item.method}`.toLowerCase();
+        return hay.includes(search);
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-400">لا توجد قيود مطابقة للبحث أو التصفية.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered
+        .map((item) => {
+          const isDisb = item.type === 'disbursement';
+          const usedEdits = Math.min(
+            2,
+            Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0))
+          );
+          const remainingEdits = Math.max(0, 2 - usedEdits);
+          const canUserEdit = !isDisb && isMyContribution(item.id) && remainingEdits > 0;
+
+          const typeBadge = isDisb
+            ? '<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>'
+            : item.type === 'case'
+            ? '<span class="inline-block bg-amber-100 text-amber-950 text-[11px] font-black px-2.5 py-1 rounded-full">دعم حالة</span>'
+            : '<span class="inline-block bg-emerald-100 text-emerald-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>';
+
+          const actions = [];
+          if (isAdminMode) {
+            if (item.receiptData) {
+              actions.push(
+                `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer">الإيصال</button>`
+              );
+            }
+            if (isDisb) {
+              actions.push(
+                `<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 cursor-pointer">تعديل</button>`
+              );
+            } else {
+              actions.push(
+                `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 cursor-pointer">تعديل</button>`
+              );
+            }
+            actions.push(
+              `<button type="button" onclick="deleteApprovedLedgerEntry('${escapeHtml(item.id)}')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 cursor-pointer">حذف</button>`
+            );
+          } else if (canUserEdit) {
+            actions.push(
+              `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-emerald-950 cursor-pointer">تعديل مساهمتي (${remainingEdits}/2)</button>`
+            );
+          } else if (!isDisb && isMyContribution(item.id) && remainingEdits <= 0) {
+            actions.push(
+              '<span class="inline-block text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600">التعديل مغلق (0/2)</span>'
+            );
+          }
+
+          return `
+            <tr class="hover:bg-slate-50/90 transition">
+              <td class="py-3.5 px-5">
+                <p class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</p>
+                <p class="text-[11px] font-bold text-slate-500 mt-0.5">${escapeHtml(item.branch)} ← ${escapeHtml(item.targetLabel)}</p>
+                ${item.note ? `<p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(item.note)}</p>` : ''}
+              </td>
+              <td class="py-3.5 px-3 text-center">${typeBadge}</td>
+              <td class="py-3.5 px-3 text-center font-black text-xs sm:text-sm ${
+                isDisb ? 'text-rose-600' : 'text-emerald-700'
+              }">${isDisb ? '-' : '+'}${formatCurrency(item.amount)}</td>
+              <td class="py-3.5 px-5 text-left">
+                <p class="text-[11px] font-bold text-slate-500">${escapeHtml(item.createdAt)}</p>
+                ${actions.length ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">${actions.join('')}</div>` : ''}
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function deleteApprovedLedgerEntry(id) {
+      if (!isAdminMode) return;
+      const entry = appState.approvedContributions.find((a) => a.id === id);
+      if (!entry) return;
+      if (entry.type === 'disbursement' && entry.target) {
+        const targetCase = appState.cases.find((c) => c.id === entry.target);
+        if (targetCase) {
+          targetCase.disbursedAmount = Math.max(
+            0,
+            (Number(targetCase.disbursedAmount) || 0) - (Number(entry.amount) || 0)
+          );
+        }
+      }
+      addDeletedId(id);
+      appState.approvedContributions = appState.approvedContributions.filter((a) => a.id !== id);
+      saveAppState('حذف قيد من السجل');
+      renderAll();
+      showToast('تم حذف القيد وتحديث الأرصدة.');
+    }
+
+    function openAdminDisbursementEditModal(id) {
+      if (!isAdminMode) return;
+      const entry = appState.approvedContributions.find((a) => a.id === id && a.type === 'disbursement');
+      if (!entry) return;
+      document.getElementById('edit-disb-entry-id').value = entry.id;
+      document.getElementById('edit-disb-amount').value = entry.amount;
+      document.getElementById('edit-disb-note').value = entry.note || '';
+      const modal = document.getElementById('admin-disbursement-edit-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeAdminDisbursementEditModal() {
+      const modal = document.getElementById('admin-disbursement-edit-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleAdminDisbursementEditSubmit(e) {
+      e.preventDefault();
+      if (!isAdminMode) return;
+      const id = document.getElementById('edit-disb-entry-id').value;
+      const newAmount = Math.max(0, Number(document.getElementById('edit-disb-amount').value) || 0);
+      const newNote = (document.getElementById('edit-disb-note').value || '').trim();
+      const entry = appState.approvedContributions.find((a) => a.id === id && a.type === 'disbursement');
+      if (!entry) return;
+
+      const diff = newAmount - (Number(entry.amount) || 0);
+      if (entry.target) {
+        const targetCase = appState.cases.find((c) => c.id === entry.target);
+        if (targetCase) {
+          targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) + diff);
+        }
+      }
+
+      entry.amount = newAmount;
+      entry.note = newNote;
+      closeAdminDisbursementEditModal();
+      saveAppState('تعديل قيد صرف');
+      renderAll();
+      showToast('تم تعديل قيد الصرف وتحديث الرصيد.');
+    }
+
+    /* =====================================================================
+       تعديل المساهمة ومعاينة الإيصالات
+       ===================================================================== */
+    function openEditContributionModal(id, scope) {
+      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
+      const item = list.find((x) => x.id === id);
+      if (!item) return;
+
+      const usedEdits = Math.min(
+        2,
+        Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0))
+      );
+      const remainingEdits = Math.max(0, 2 - usedEdits);
+
+      if (!isAdminMode) {
+        if (!isMyContribution(id)) {
+          showToast('يمكنك تعديل المساهمات المسجلة من جهازك فقط.');
+          return;
+        }
+        if (remainingEdits <= 0) {
+          showToast('تم إغلاق التعديل بعد استنفاد محاولتي التعديل المسموحتين (2/2).');
+          return;
+        }
+      }
+
+      renderTargetSelects();
+      document.getElementById('edit-contrib-id').value = item.id;
+      document.getElementById('edit-contrib-scope').value = scope;
+      document.getElementById('edit-contrib-name').value = item.contributorName;
+      document.getElementById('edit-contrib-branch').value = item.branch;
+      document.getElementById('edit-contrib-amount').value = item.amount;
+      document.getElementById('edit-contrib-target').value = item.target || 'general';
+      document.getElementById('edit-contrib-method').value = item.method.includes('النقال')
+        ? 'النقال (تحويل رصيد)'
+        : 'المصرف (تحويل مصرفي)';
+      document.getElementById('edit-contrib-note').value = item.note || '';
+      document.getElementById('edit-contrib-phone').value = item.phone || '';
+
+      const badge = document.getElementById('edit-contrib-attempts-badge');
+      if (badge) {
+        badge.textContent = isAdminMode
+          ? 'صلاحية المشرف'
+          : `المحاولات المتبقية: ${remainingEdits}/2`;
+      }
+
+      editReceiptDataUrl = item.receiptData || '';
+      editReceiptFileName = item.receiptName || '';
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
+      const prevImg = document.getElementById('edit-contrib-receipt-img');
+      if (nameEl) {
+        nameEl.textContent = editReceiptFileName
+          ? `الملف الحالي: ${editReceiptFileName}`
+          : 'لم يتم اختيار أي ملف';
+      }
+      if (editReceiptDataUrl && editReceiptDataUrl.startsWith('data:image')) {
+        prevWrap?.classList.remove('hidden');
+        if (prevImg) prevImg.src = editReceiptDataUrl;
+      } else {
+        prevWrap?.classList.add('hidden');
+      }
+
+      toggleEditPaymentFields();
+      const modal = document.getElementById('edit-contribution-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeEditContributionModal() {
+      const modal = document.getElementById('edit-contribution-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function toggleEditPaymentFields() {
+      const method = document.getElementById('edit-contrib-method')?.value || '';
+      const bankBox = document.getElementById('edit-contrib-bank-fields');
+      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
+      if (method.includes('النقال')) {
+        mobileBox?.classList.remove('hidden');
+        bankBox?.classList.add('hidden');
+      } else {
+        bankBox?.classList.remove('hidden');
+        mobileBox?.classList.add('hidden');
+      }
+    }
+
+    function handleEditReceiptFileChange(input) {
+      const file = input?.files?.[0];
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
+      const prevImg = document.getElementById('edit-contrib-receipt-img');
+      if (!file) return;
+      editReceiptFileName = file.name;
+      if (nameEl) nameEl.textContent = `الملف الجديد: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = () => {
+        editReceiptDataUrl = String(reader.result || '');
+        if (editReceiptDataUrl.startsWith('data:image')) {
+          prevWrap?.classList.remove('hidden');
+          if (prevImg) prevImg.src = editReceiptDataUrl;
+        } else {
+          prevWrap?.classList.add('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleEditContributionSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-contrib-id').value;
+      const scope = document.getElementById('edit-contrib-scope').value;
+      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
+      const item = list.find((x) => x.id === id);
+      if (!item) return;
+
+      const prevAmount = Number(item.amount) || 0;
+      const prevTarget = item.target || 'general';
+      const name = (document.getElementById('edit-contrib-name').value || '').trim();
+      const branch = document.getElementById('edit-contrib-branch').value;
+      const amount = Math.max(0, Number(document.getElementById('edit-contrib-amount').value) || 0);
+      const target = document.getElementById('edit-contrib-target').value || 'general';
+      const method = document.getElementById('edit-contrib-method').value;
+      const note = (document.getElementById('edit-contrib-note').value || '').trim();
+      const phone = (document.getElementById('edit-contrib-phone').value || '').trim();
+
+      // إذا كانت المساهمة معتمدة، نضبط الرصيد المرتبط بالحالة عند تغير القيمة أو الوجهة
+      if (scope === 'approved' && item.type !== 'disbursement') {
+        if (prevTarget !== 'general' && prevTarget === target) {
+          const sameCase = appState.cases.find((c) => c.id === target);
+          if (sameCase) {
+            const diff = amount - prevAmount;
+            sameCase.disbursedAmount = Math.max(0, (Number(sameCase.disbursedAmount) || 0) + diff);
+          }
+        } else {
+          if (prevTarget !== 'general') {
+            const oldCase = appState.cases.find((c) => c.id === prevTarget);
+            if (oldCase) {
+              oldCase.disbursedAmount = Math.max(
+                0,
+                (Number(oldCase.disbursedAmount) || 0) - prevAmount
+              );
+            }
+          }
+          if (target !== 'general') {
+            const newCase = appState.cases.find((c) => c.id === target);
+            if (newCase) {
+              newCase.disbursedAmount = Math.max(
+                0,
+                (Number(newCase.disbursedAmount) || 0) + amount
+              );
+            }
+          }
+        }
+      }
+
+      const targetCase = appState.cases.find((c) => c.id === target);
+      item.contributorName = name || item.contributorName;
+      item.branch = branch;
+      item.amount = amount;
+      item.target = target;
+      item.targetLabel = targetCase ? targetCase.title : 'رصيد الصندوق العام';
+      item.type = target === 'general' ? 'general' : 'case';
+      item.method = method;
+      item.note = note;
+      item.phone = method.includes('النقال') ? phone : '';
+      item.receiptData = editReceiptDataUrl;
+      item.receiptName = editReceiptFileName;
+
+      if (!isAdminMode) {
+        const nextCount = Math.min(2, (Number(item.userEditCount) || 0) + 1);
+        item.userEditCount = nextCount;
+        item.userEditUsed = nextCount >= 2;
+      }
+
+      closeEditContributionModal();
+      saveAppState('تعديل مساهمة');
+      renderAll();
+      showToast('تم حفظ تعديلات المساهمة ومزامنة الرصيد والحالة.');
+    }
+
+    function openReceiptViewerModal(id, scope) {
+      if (!isAdminMode) {
+        showToast('الاطلاع على الإيصالات متاح للمشرف فقط.');
+        return;
+      }
+      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
+      const item = list.find((x) => x.id === id);
+      if (!item || !item.receiptData) return;
+
+      const titleEl = document.getElementById('receipt-viewer-title');
+      const bodyEl = document.getElementById('receipt-viewer-body');
+      if (titleEl) titleEl.textContent = `إيصال المساهمة - ${item.contributorName}`;
+      if (bodyEl) {
+        if (item.receiptData.startsWith('data:image')) {
+          bodyEl.innerHTML = `<img src="${item.receiptData}" alt="إيصال التحويل" class="max-h-[60vh] w-auto rounded-xl object-contain" />`;
+        } else {
+          bodyEl.innerHTML = `<a href="${item.receiptData}" download="${escapeHtml(item.receiptName || 'receipt.pdf')}" class="bg-emerald-700 text-white font-black text-sm px-5 py-3 rounded-xl">تنزيل ملف الإيصال (${escapeHtml(item.receiptName || 'ملف')})</a>`;
+        }
+      }
+
+      const modal = document.getElementById('receipt-viewer-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeReceiptViewerModal() {
+      const modal = document.getElementById('receipt-viewer-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    /* =====================================================================
+       التهيئة الشاملة عند تحميل الصفحة
+       ===================================================================== */
+    function renderAll() {
+      renderStats();
+      renderTargetSelects();
+      renderCases();
+      renderPendingContributions();
+      renderLedger();
+      if (isAdminMode) {
+        updateBackupAdminUI();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLocalState();
+      updateAdminUI();
+      renderAll();
+      if (!getAutoBackupHistory().length) {
+        saveAutoBackupSnapshot('نسخة بدء التشغيل');
+      }
+      startAutoBackupTimer();
+      startFirebasePolling();
+    });
+  </script>
+</body>
+</html>
