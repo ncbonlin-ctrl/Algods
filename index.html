@@ -58,6 +58,18 @@
     .status-badge-glow {
       animation: badgeGlowPulse 2.4s ease-in-out infinite;
     }
+    @keyframes donorHonorGlow {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.55), 0 0 20px rgba(16, 185, 129, 0.35);
+      }
+      50% {
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.9), 0 0 28px rgba(249, 115, 22, 0.6);
+      }
+    }
+    .donor-honor-badge {
+      animation: donorHonorGlow 2.2s ease-in-out infinite;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 55%, #d1fae5 100%);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-200 selection:text-emerald-950">
@@ -2746,11 +2758,39 @@
     /* =====================================================================
        سجل المساهمات والصرف المعتمد وتعديله
        ===================================================================== */
+    function normalizeContributorKey(name) {
+      return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function getContributorStatsMap() {
+      const statsMap = new Map();
+      for (const entry of appState.approvedContributions) {
+        if (!entry || entry.type === 'disbursement') continue;
+        const key = normalizeContributorKey(entry.contributorName);
+        if (!key) continue;
+        const amt = Number(entry.amount) || 0;
+        const prev = statsMap.get(key) || { count: 0, totalAmount: 0 };
+        statsMap.set(key, {
+          count: prev.count + 1,
+          totalAmount: prev.totalAmount + amt
+        });
+      }
+      return statsMap;
+    }
+
+    function qualifiesForHonorBadge(stat) {
+      if (!stat) return false;
+      const moreThanThreeTimes = stat.count > 3;
+      const threeTimesOverFiveThousand = stat.count === 3 && stat.totalAmount > 5000;
+      return moreThanThreeTimes || threeTimesOverFiveThousand;
+    }
+
     function renderLedger() {
       const tbody = document.getElementById('ledger-table-body');
       if (!tbody) return;
       const search = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
       const filter = document.getElementById('ledger-filter-select')?.value || 'all';
+      const contributorStatsMap = getContributorStatsMap();
 
       const filtered = appState.approvedContributions.filter(item => {
         if (filter !== 'all' && item.type !== filter) return false;
@@ -2766,6 +2806,21 @@
 
       tbody.innerHTML = filtered.map(item => {
         const isDisb = item.type === 'disbursement';
+        const contributorStat = !isDisb ? contributorStatsMap.get(normalizeContributorKey(item.contributorName)) : null;
+        const hasHonorBadge = !isDisb && qualifiesForHonorBadge(contributorStat);
+        const honorReason = hasHonorBadge
+          ? (contributorStat.count > 3
+            ? `${contributorStat.count} مساهمات • يستحق التقدير`
+            : `3 مساهمات (${formatCurrency(contributorStat.totalAmount)}) • يستحق التقدير`)
+          : '';
+        const honorBadgeHtml = hasHonorBadge
+          ? `<div class="mt-2 inline-flex flex-wrap items-center gap-1.5 donor-honor-badge border border-amber-400 text-amber-950 px-3 py-1 rounded-2xl text-[11px] font-black">
+              <span class="text-amber-600">✦</span>
+              <span>مساهم مهم ويستحق التقدير</span>
+              <span class="bg-emerald-800 text-amber-300 px-2 py-0.5 rounded-full text-[10px]">${escapeHtml(honorReason)}</span>
+            </div>`
+          : '';
+
         const usedEdits = Math.min(2, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0)));
         const remainingEdits = Math.max(0, 2 - usedEdits);
         const canUserEdit = !isDisb && isMyContribution(item.id) && remainingEdits > 0;
@@ -2798,6 +2853,7 @@
               <p class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</p>
               <p class="text-[11px] font-bold text-slate-500 mt-0.5">${escapeHtml(item.branch)} — ${escapeHtml(item.targetLabel)}</p>
               ${item.note ? `<p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(item.note)}</p>` : ''}
+              ${honorBadgeHtml}
             </td>
             <td class="py-3.5 px-3 text-center">${typeBadge}</td>
             <td class="py-3.5 px-3 text-center font-black text-xs sm:text-sm ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
