@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -196,11 +196,10 @@
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          <button type="button" id="register-biometric-btn" onclick="registerAdminBiometric()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-slate-900 hover:bg-slate-800 text-amber-300 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-2 cursor-pointer">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <button type="button" id="register-biometric-btn" aria-label="البصمة" onclick="registerAdminBiometric()" class="w-14 sm:w-16 h-11 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/50 rounded-2xl shadow-xs transition inline-flex items-center justify-center shrink-0 cursor-pointer">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
             </svg>
-            <span id="register-biometric-label">تفعيل البصمة</span>
           </button>
           <button type="button" id="open-firebase-modal-btn" onclick="openFirebaseConfigModal()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
             إعدادات Firebase
@@ -230,32 +229,9 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between text-[11px] font-black text-slate-600 px-1">
             <span>مسار النسخ الاحتياطية (10 نسخ — بيانات، لغة، مدخلات، وتعديلات)</span>
-            <span id="backup-selected-summary" class="text-emerald-800">اختر نسخة لاستردادها</span>
+            <span id="backup-selected-summary" class="text-emerald-800">اضغط على أي نسخة لاستردادها</span>
           </div>
           <div id="backup-track-strip" class="flex items-stretch gap-2 overflow-x-auto pb-2 pt-0.5 snap-x"></div>
-        </div>
-
-        <!-- قائمة النسخ الزمنية المحفوظة (كل 10 دقائق / عند التعديل) -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-center">
-          <select id="backup-history-select" onchange="onBackupHistorySelectChange()" class="sm:col-span-2 w-full h-11 bg-slate-50 border border-slate-300 rounded-2xl px-4 text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:border-emerald-600 outline-none">
-            <option value="">لا توجد نسخ زمنية محفوظة بعد...</option>
-          </select>
-          <button type="button" id="restore-selected-backup-btn" onclick="restoreSelectedBackupSnapshot()" class="w-full h-11 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
-            استعادة النسخة المختارة
-          </button>
-        </div>
-
-        <!-- أزرار النسخ الاحتياطي بنفس الطول والحجم والشكل لأزرار Firebase والطلبات -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <button type="button" id="restore-backup-btn" onclick="restoreLatestAutoBackup()" class="w-full min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
-            استعادة آخر نسخة
-          </button>
-          <button type="button" onclick="createManualBackupSnapshot()" class="w-full min-w-[145px] h-11 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
-            حفظ نسخة الآن
-          </button>
-          <button type="button" onclick="downloadBackupJsonFile()" class="w-full min-w-[145px] h-11 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
-            تنزيل نسخة JSON
-          </button>
         </div>
       </div>
     </section>
@@ -436,6 +412,27 @@
 
   <!-- شريط الإشعارات السفلي -->
   <div id="toast-box" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l from-emerald-700 via-emerald-600 to-teal-600 text-white border-2 border-amber-300 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-2xl max-w-[92vw] text-center"></div>
+
+  <!-- نافذة تأكيد استرداد النسخة الاحتياطية (نعم / لا) -->
+  <div id="restore-confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-emerald-950">استرداد النسخة</h3>
+        <button type="button" onclick="closeRestoreConfirmModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
+      </div>
+      <p id="restore-confirm-details" class="text-xs sm:text-sm font-bold text-slate-700 bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 leading-relaxed">
+        هل تريد استرداد هذه النسخة الاحتياطية بالكامل (البيانات، اللغة، المدخلات، والتعديلات)؟
+      </p>
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button type="button" id="restore-confirm-yes-btn" onclick="confirmRestorePendingSnapshot()" class="h-12 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl shadow-sm transition cursor-pointer">
+          نعم
+        </button>
+        <button type="button" id="restore-confirm-no-btn" onclick="closeRestoreConfirmModal()" class="h-12 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm rounded-2xl transition cursor-pointer">
+          لا
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- نافذة معاينة الإيصال -->
   <div id="receipt-viewer-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs items-center justify-center p-4">
@@ -909,6 +906,7 @@
     let firebasePollTimer = null;
     let autoBackupMinuteTimer = null;
     let lastSyncedFingerprint = '';
+    let pendingRestoreSnapshotId = null;
 
     const memoryStore = {
       deletedIds: [],
@@ -1045,11 +1043,45 @@
     }
 
     function selectBackupSlot(snapshotId) {
-      const selectEl = document.getElementById('backup-history-select');
-      if (selectEl && snapshotId) {
-        selectEl.value = snapshotId;
+      if (!snapshotId) return;
+      const history = getAutoBackupHistory();
+      const target = history.find(item => item.id === snapshotId);
+      if (!target || !target.state) {
+        showToast('تعذر العثور على بيانات النسخة المحددة.');
+        return;
       }
-      updateBackupAdminUI();
+      pendingRestoreSnapshotId = snapshotId;
+      const detailsEl = document.getElementById('restore-confirm-details');
+      if (detailsEl) {
+        detailsEl.textContent = `استرداد النسخة (${target.createdAt} — ${target.reason}) شاملة البيانات واللغة والمدخلات والتعديلات؟`;
+      }
+      const modal = document.getElementById('restore-confirm-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeRestoreConfirmModal() {
+      pendingRestoreSnapshotId = null;
+      const modal = document.getElementById('restore-confirm-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function confirmRestorePendingSnapshot() {
+      const targetId = pendingRestoreSnapshotId;
+      closeRestoreConfirmModal();
+      if (!targetId) return;
+      const history = getAutoBackupHistory();
+      const found = history.find(item => item.id === targetId);
+      if (!found || !found.state) {
+        showToast('تعذر استرداد النسخة المختارة.');
+        return;
+      }
+      applyRestoredState(found);
     }
 
     function onBackupHistorySelectChange() {
@@ -1059,13 +1091,9 @@
     function updateBackupAdminUI() {
       const infoEl = document.getElementById('backup-last-snapshot-info');
       const badgeEl = document.getElementById('backup-count-badge');
-      const selectEl = document.getElementById('backup-history-select');
       const trackEl = document.getElementById('backup-track-strip');
       const selectedSummaryEl = document.getElementById('backup-selected-summary');
-      const restoreSelBtn = document.getElementById('restore-selected-backup-btn');
-      const restoreLastBtn = document.getElementById('restore-backup-btn');
       const history = getAutoBackupHistory();
-      const activeId = selectEl?.value || history[0]?.id || '';
 
       if (badgeEl) {
         badgeEl.textContent = `${history.length} / ${MAX_BACKUP_SNAPSHOTS} نسخ`;
@@ -1075,21 +1103,15 @@
         trackEl.innerHTML = Array.from({ length: MAX_BACKUP_SNAPSHOTS }, (_, idx) => {
           const item = history[idx];
           if (item) {
-            const isSelected = item.id === activeId;
             return `
               <button
                 type="button"
                 onclick="selectBackupSlot('${escapeHtml(item.id)}')"
-                ondblclick="applyRestoredState(getAutoBackupHistory()[${idx}])"
                 title="نسخة #${idx + 1} (${escapeHtml(item.createdAt)}) — ${escapeHtml(item.reason)}"
-                class="snap-start shrink-0 w-36 rounded-2xl p-2.5 text-right border transition cursor-pointer flex flex-col justify-between gap-1 ${
-                  isSelected
-                    ? 'bg-emerald-800 text-white border-amber-400 ring-2 ring-amber-300 shadow-sm'
-                    : 'bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 border-emerald-200'
-                }"
+                class="snap-start shrink-0 w-36 rounded-2xl p-2.5 text-right border transition cursor-pointer flex flex-col justify-between gap-1 bg-emerald-50/85 hover:bg-emerald-100 active:scale-[0.99] text-emerald-950 border-emerald-300 shadow-2xs"
               >
                 <div class="flex items-center justify-between gap-1">
-                  <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${isSelected ? 'bg-amber-400 text-emerald-950' : 'bg-emerald-700 text-white'}">#${idx + 1}</span>
+                  <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-700 text-white">#${idx + 1}</span>
                   <span class="text-[10px] font-bold opacity-85" dir="ltr">${escapeHtml(formatNumericTimeAmPm(item.timestamp || item.createdAt))}</span>
                 </div>
                 <p class="text-[11px] font-black truncate mt-0.5">${escapeHtml(item.reason)}</p>
@@ -1108,474 +1130,19 @@
 
       if (history.length > 0) {
         const latest = history[0];
-        const chosen = history.find(x => x.id === activeId) || latest;
         if (infoEl) {
           const cycleNote = latest.evictedReason ? ` • ${latest.evictedReason}` : '';
           infoEl.textContent = `دورة من 10 نسخ كل 10 دقائق (حذف الأقدم تلقائياً عند اكتمال 10) • آخر نسخة: ${latest.createdAt} (${latest.reason})${cycleNote}`;
         }
-        if (selectEl) {
-          const currentVal = activeId || latest.id;
-          selectEl.innerHTML = history.map((item, idx) => `
-            <option value="${escapeHtml(item.id)}" ${item.id === currentVal ? 'selected' : ''}>#${idx + 1} ${escapeHtml(item.createdAt)} — ${escapeHtml(item.reason)} (${escapeHtml(item.lang || 'ar')} • ${(item.state?.cases || []).length} حالات / ${(item.state?.approvedContributions || []).length} قيود)</option>
-          `).join('');
-        }
         if (selectedSummaryEl) {
-          selectedSummaryEl.textContent = `المحددة: ${chosen.createdAt} — ${chosen.reason}`;
+          selectedSummaryEl.textContent = `آخر نسخة: ${latest.createdAt}`;
         }
-        if (restoreSelBtn) restoreSelBtn.disabled = false;
-        if (restoreLastBtn) restoreLastBtn.disabled = false;
       } else {
         if (infoEl) {
           infoEl.textContent = 'مسار من 10 نسخ محفوظة كل 10 دقائق ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد';
         }
-        if (selectEl) {
-          selectEl.innerHTML = '<option value="">لا توجد نسخ زمنية محفوظة بعد...</option>';
-        }
         if (selectedSummaryEl) {
-          selectedSummaryEl.textContent = 'اختر نسخة لاستردادها';
-        }
-        if (restoreSelBtn) restoreSelBtn.disabled = true;
-        if (restoreLastBtn) restoreLastBtn.disabled = true;
-      }
-    }
-
-    function createManualBackupSnapshot() {
-      if (!isAdminMode) return;
-      saveAutoBackupSnapshot('نسخة يدوية فورية');
-      showToast('تم حفظ نسخة احتياطية جديدة ضمن مسار الـ 10 نسخ.');
-    }
-
-    function restoreLatestAutoBackup() {
-      if (!isAdminMode) return;
-      const history = getAutoBackupHistory();
-      if (!history.length) {
-        showToast('لا توجد نسخة احتياطية محفوظة للاستعادة.');
-        return;
-      }
-      applyRestoredState(history[0]);
-    }
-
-    function restoreSelectedBackupSnapshot() {
-      if (!isAdminMode) return;
-      const selectEl = document.getElementById('backup-history-select');
-      const selectedId = selectEl ? selectEl.value : '';
-      const history = getAutoBackupHistory();
-      const found = history.find(item => item.id === selectedId) || history[0];
-      if (!found || !found.state) {
-        showToast('يرجى اختيار نسخة صالحة للاستعادة.');
-        return;
-      }
-      applyRestoredState(found);
-    }
-
-    function applyRestoredState(snapshot) {
-      if (!snapshot || !snapshot.state) return;
-      if (snapshot.lang) document.documentElement.lang = snapshot.lang;
-      if (snapshot.dir) document.documentElement.dir = snapshot.dir;
-      appState = normalizeState(snapshot.state);
-      appState.lastUpdated = formatNowDate();
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-      renderAll();
-      applyRestoredFormInputs(snapshot.inputs);
-      renderLedger();
-      pushStateToFirebase();
-      showToast(`تمت استعادة النسخة (${snapshot.createdAt}) شاملة البيانات واللغة والمدخلات والتعديلات.`);
-    }
-
-    function downloadBackupJsonFile() {
-      if (!isAdminMode) return;
-      try {
-        const payload = {
-          exportedAt: formatNowDate(),
-          platform: 'صندوق التكافل الاجتماعي - قبيلة الصيعان',
-          lang: document.documentElement.lang || 'ar',
-          dir: document.documentElement.dir || 'rtl',
-          inputs: captureCurrentFormInputs(),
-          history: getAutoBackupHistory(),
-          state: appState
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sayaan-takaful-backup-10slots-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('تم تنزيل ملف النسخة الاحتياطية JSON.');
-      } catch (e) {
-        showToast('تعذر تنزيل الملف على هذا المتصفح.');
-      }
-    }
-
-    function startAutoBackupTimer() {
-      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
-      autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('حفظ تلقائي كل 10 دقائق');
-      }, BACKUP_INTERVAL_MS);
-    }
-
-    /* =====================================================================
-       تطبيع الحالة وحفظها محلياً وسحابياً
-       ===================================================================== */
-    function normalizeState(raw) {
-      const base = getInitialState();
-      if (!raw || typeof raw !== 'object') return base;
-
-      const deletedSet = new Set(getDeletedIds());
-
-      const cases = Array.isArray(raw.cases)
-        ? raw.cases
-            .filter(c => c && c.id && !deletedSet.has(String(c.id)))
-            .map(c => ({
-              id: String(c.id),
-              title: String(c.title || 'حالة بدون عنوان'),
-              category: String(c.category || 'علاج مرضى الأورام'),
-              requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
-              disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
-              closed: Boolean(c.closed),
-              description: String(c.description || ''),
-              votes: {
-                approve: Math.max(0, Number(c.votes?.approve) || 0),
-                reject: Math.max(0, Number(c.votes?.reject) || 0)
-              },
-              rejections: Array.isArray(c.rejections)
-                ? c.rejections.map((r, i) => ({
-                    id: String(r.id || `rej-${c.id}-${i}`),
-                    reason: String(r.reason || ''),
-                    createdAt: String(r.createdAt || '')
-                  }))
-                : []
-            }))
-        : base.cases;
-
-      const normalizeContrib = (item, fallbackType) => ({
-        id: String(item.id || ('item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
-        type: String(item.type || fallbackType || 'general'),
-        contributorName: String(item.contributorName || 'فاعل خير'),
-        branch: String(item.branch || 'الهمايلة'),
-        amount: Math.max(0, Number(item.amount) || 0),
-        target: String(item.target || 'general'),
-        targetLabel: String(item.targetLabel || 'رصيد الصندوق العام'),
-        method: String(item.method || 'المصرف (تحويل مصرفي)'),
-        note: String(item.note || ''),
-        receiptData: String(item.receiptData || ''),
-        receiptName: String(item.receiptName || ''),
-        phone: String(item.phone || ''),
-        createdAt: String(item.createdAt || formatNowDate()),
-        userEditUsed: Boolean(item.userEditUsed),
-        userEditCount: Math.min(2, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0)))
-      });
-
-      const pendingContributions = Array.isArray(raw.pendingContributions)
-        ? raw.pendingContributions
-            .filter(p => p && p.id && !deletedSet.has(String(p.id)))
-            .map(p => normalizeContrib(p, p.target === 'general' ? 'general' : 'case'))
-        : [];
-
-      const approvedContributions = Array.isArray(raw.approvedContributions)
-        ? raw.approvedContributions
-            .filter(a => a && a.id && !deletedSet.has(String(a.id)))
-            .map(a => normalizeContrib(a, a.type || (a.target === 'general' ? 'general' : 'case')))
-        : base.approvedContributions;
-
-      return {
-        lastUpdated: String(raw.lastUpdated || formatNowDate()),
-        cases,
-        pendingContributions,
-        approvedContributions
-      };
-    }
-
-    function loadLocalState() {
-      try {
-        const raw = readStorageSafe(STORAGE_KEY);
-        if (raw) {
-          appState = normalizeState(JSON.parse(raw));
-        } else {
-          appState = getInitialState();
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        }
-      } catch (e) {
-        appState = getInitialState();
-      }
-    }
-
-    function saveAppState(reason = 'تحديث البيانات') {
-      appState.lastUpdated = formatNowDate();
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-      saveAutoBackupSnapshot(reason);
-      pushStateToFirebase();
-    }
-
-    /* =====================================================================
-       مزامنة قاعدة بيانات Firebase (sirf-dgv)
-       ===================================================================== */
-    function getFirebaseConfig() {
-      try {
-        const raw = readStorageSafe(FIREBASE_CFG_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return {
-            dbUrl: (parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, ''),
-            authSecret: parsed.authSecret || '',
-            disabled: Boolean(parsed.disabled)
-          };
-        }
-      } catch (e) {}
-      return {
-        dbUrl: DEFAULT_FIREBASE_DB_URL,
-        authSecret: '',
-        disabled: false
-      };
-    }
-
-    function buildFirebaseEndpoint() {
-      const cfg = getFirebaseConfig();
-      if (cfg.disabled || !cfg.dbUrl) return '';
-      const base = `${cfg.dbUrl}/sayaan_takaful_state.json`;
-      return cfg.authSecret ? `${base}?auth=${encodeURIComponent(cfg.authSecret)}` : base;
-    }
-
-    function updateCloudStatusBadge(stateType, text) {
-      const badge = document.getElementById('cloud-status-badge');
-      const dot = document.getElementById('cloud-status-dot');
-      const label = document.getElementById('cloud-status-text');
-      if (!badge || !dot || !label) return;
-      label.textContent = stateType === 'connected' ? 'متصل ومتزامن' : text;
-      if (stateType === 'connected') {
-        badge.className = 'inline-flex items-center gap-1.5 bg-emerald-950/75 border border-amber-400/50 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]';
-      } else if (stateType === 'error') {
-        badge.className = 'inline-flex items-center gap-1.5 bg-rose-950/80 border border-rose-400/60 text-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
-      } else {
-        badge.className = 'inline-flex items-center gap-1.5 bg-emerald-950/65 border border-amber-400/40 text-amber-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit';
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]';
-      }
-    }
-
-    async function pullStateFromFirebase(isInitial = false) {
-      const endpoint = buildFirebaseEndpoint();
-      if (!endpoint) {
-        updateCloudStatusBadge('error', 'الربط السحابي مفصول حالياً (وضع محلي)');
-        return;
-      }
-      try {
-        const res = await fetch(endpoint, { method: 'GET', cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const remoteData = await res.json();
-        if (remoteData && typeof remoteData === 'object' && (Array.isArray(remoteData.cases) || Array.isArray(remoteData.approvedContributions))) {
-          const normalized = normalizeState(remoteData);
-          const fp = JSON.stringify(normalized);
-          if (fp !== lastSyncedFingerprint) {
-            lastSyncedFingerprint = fp;
-            appState = normalized;
-            writeStorageSafe(STORAGE_KEY, fp);
-            renderAll();
-          }
-        } else if (isInitial) {
-          await pushStateToFirebase();
-        }
-        updateCloudStatusBadge('connected', 'متصل ومتزامن مع قاعدة بيانات sirf-dgv');
-      } catch (err) {
-        updateCloudStatusBadge('error', 'وضع محلي نشط • تعذر الوصول السحابي المباشر');
-      }
-    }
-
-    async function pushStateToFirebase() {
-      const endpoint = buildFirebaseEndpoint();
-      if (!endpoint) return;
-      try {
-        const payload = JSON.stringify(appState);
-        lastSyncedFingerprint = payload;
-        const res = await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: payload
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        updateCloudStatusBadge('connected', 'متصل ومتزامن مع قاعدة بيانات sirf-dgv');
-      } catch (err) {
-        updateCloudStatusBadge('error', 'محفوظ محلياً • تعذر المزامنة السحابية الفورية');
-      }
-    }
-
-    function startFirebasePolling() {
-      if (firebasePollTimer) clearInterval(firebasePollTimer);
-      pullStateFromFirebase(true);
-      firebasePollTimer = setInterval(() => {
-        pullStateFromFirebase(false);
-      }, 6000);
-    }
-
-    function openFirebaseConfigModal() {
-      if (!isAdminMode) {
-        openAdminLoginModal();
-        return;
-      }
-      const cfg = getFirebaseConfig();
-      const urlInput = document.getElementById('firebase-db-url-input');
-      const authInput = document.getElementById('firebase-auth-secret-input');
-      if (urlInput) urlInput.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
-      if (authInput) authInput.value = cfg.authSecret || '';
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleFirebaseConfigSubmit(e) {
-      e.preventDefault();
-      const urlVal = (document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, '');
-      const authVal = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({
-        dbUrl: urlVal || DEFAULT_FIREBASE_DB_URL,
-        authSecret: authVal,
-        disabled: false
-      }));
-      closeFirebaseConfigModal();
-      updateCloudStatusBadge('syncing', 'جاري الاتصال بقاعدة بيانات Firebase...');
-      startFirebasePolling();
-      showToast('تم حفظ إعدادات Firebase وجاري المزامنة.');
-    }
-
-    function disconnectFirebaseCloud() {
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({
-        dbUrl: DEFAULT_FIREBASE_DB_URL,
-        authSecret: '',
-        disabled: true
-      }));
-      if (firebasePollTimer) clearInterval(firebasePollTimer);
-      closeFirebaseConfigModal();
-      updateCloudStatusBadge('error', 'الربط السحابي مفصول حالياً (وضع محلي)');
-      showToast('تم فصل الربط السحابي والاكتفاء بالحفظ المحلي.');
-    }
-
-    /* =====================================================================
-       المصادقة ووضع الإدارة (بريد إلكتروني وكلمة مرور وبصمة)
-       ===================================================================== */
-    function getSavedBiometricCredential() {
-      try {
-        const raw = readStorageSafe(ADMIN_BIOMETRIC_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function bufferToBase64Url(buffer) {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    function base64UrlToUint8Array(base64Url) {
-      const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
-      const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
-      const rawData = atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-    }
-
-    function updateBiometricButtonsUI() {
-      const saved = getSavedBiometricCredential();
-      const regLabel = document.getElementById('register-biometric-label');
-      const regBtn = document.getElementById('register-biometric-btn');
-      const loginBioBtn = document.getElementById('admin-biometric-login-btn');
-
-      if (regLabel && regBtn) {
-        if (saved && saved.credId) {
-          regLabel.textContent = 'البصمة مفعّلة ✓';
-        } else {
-          regLabel.textContent = 'البصمة مفعّلة (تحديث)';
-        }
-        regBtn.disabled = false;
-        regBtn.classList.remove('opacity-50', 'opacity-70', 'bg-slate-900', 'hover:bg-slate-800', 'text-amber-300');
-        regBtn.classList.add('bg-emerald-950', 'hover:bg-emerald-900', 'text-emerald-300', 'border', 'border-emerald-500/50');
-      }
-
-      if (loginBioBtn) {
-        loginBioBtn.disabled = false;
-        loginBioBtn.classList.remove('opacity-50', 'opacity-70');
-      }
-    }
-
-    async function createBiometricCredentialOnDevice() {
-      if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
-        throw new Error('UNSUPPORTED');
-      }
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode(ADMIN_EMAIL);
-
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge,
-          rp: {
-            name: 'صندوق التكافل الاجتماعي - قبيلة الصيعان'
-          },
-          user: {
-            id: userId,
-            name: ADMIN_EMAIL,
-            displayName: 'مشرف صندوق التكافل'
-          },
-          pubKeyCredParams: [
-            { type: 'public-key', alg: -7 },
-            { type: 'public-key', alg: -257 }
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required'
-          },
-          timeout: 60000,
-          attestation: 'none'
-        }
-      });
-
-      if (credential && credential.rawId) {
-        const credId = bufferToBase64Url(credential.rawId);
-        writeStorageSafe(ADMIN_BIOMETRIC_KEY, JSON.stringify({
-          credId,
-          email: ADMIN_EMAIL,
-          registeredAt: formatNowDate()
-        }));
-        updateBiometricButtonsUI();
-        return credId;
-      }
-      throw new Error('NO_CREDENTIAL');
-    }
-
-    async function registerAdminBiometric() {
-      if (!isAdminMode) {
-        openAdminLoginModal();
-        return;
-      }
-
-      try {
-        await createBiometricCredentialOnDevice();
-        showToast('تم تفعيل وتحديث البصمة بنجاح! يمكنك الدخول بالبصمة دائماً.');
-      } catch (err) {
-        if (err && err.message === 'UNSUPPORTED') {
-          showToast('متصفحك الحالي لا يدعم المصادقة بالبصمة (WebAuthn).');
-        } else {
-          showToast('تم إلغاء عملية البصمة أو تعذر التحقق من مستشعر الجهاز.');
+          selectedSummaryEl.textContent = 'اضغط على أي نسخة لاستردادها';
         }
       }
     }
@@ -1621,18 +1188,115 @@
         if (authenticated) {
           isAdminMode = true;
           if (errEl) errEl.classList.add('hidden');
-          const passEl = document.getElementById('admin-pass-input');
-          if (passEl) passEl.value = '';
           closeAdminLoginModal();
           updateAdminUI();
           renderAll();
-          showToast('تمت المصادقة بالبصمة بنجاح. مرحباً بك في وضع الإدارة.');
+          showToast('تم تسجيل الدخول بالبصمة بنجاح.');
+        } else if (errEl) {
+          errEl.textContent = 'لم يتم التحقق من البصمة.';
+          errEl.classList.remove('hidden');
         }
       } catch (err) {
         if (errEl) {
-          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على الجهاز أو تم إلغاء الطلب.';
+          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على هذا الجهاز.';
           errEl.classList.remove('hidden');
         }
+      }
+    }
+
+    function getSavedBiometricCredential() {
+      try {
+        const raw = readStorageSafe(ADMIN_BIOMETRIC_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function base64UrlToUint8Array(base64Url) {
+      const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+      const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const out = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        out[i] = rawData.charCodeAt(i);
+      }
+      return out;
+    }
+
+    function uint8ArrayToBase64Url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function createBiometricCredentialOnDevice() {
+      if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
+        throw new Error('WebAuthn not supported');
+      }
+      const challenge = new Uint8Array(32);
+      const userId = new Uint8Array(16);
+      window.crypto.getRandomValues(challenge);
+      window.crypto.getRandomValues(userId);
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: {
+            name: 'صندوق التكافل الاجتماعي - قبيلة الصيعان'
+          },
+          user: {
+            id: userId,
+            name: ADMIN_EMAIL,
+            displayName: 'مشرف الصندوق'
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 }
+          ],
+          authenticatorSelection: {
+            userVerification: 'required'
+          },
+          timeout: 60000
+        }
+      });
+      if (!cred || !cred.rawId) return '';
+      const credId = uint8ArrayToBase64Url(cred.rawId);
+      writeStorageSafe(ADMIN_BIOMETRIC_KEY, JSON.stringify({ credId, registeredAt: formatNowDate() }));
+      return credId;
+    }
+
+    async function registerAdminBiometric() {
+      if (!isAdminMode) {
+        showToast('تسجيل البصمة متاح داخل وضع الإدارة فقط.');
+        return;
+      }
+      try {
+        const credId = await createBiometricCredentialOnDevice();
+        if (credId) {
+          updateBiometricButtonsUI();
+          showToast('تم تسجيل وتفعيل البصمة بنجاح على هذا الجهاز.');
+        }
+      } catch (e) {
+        showToast('تعذر تسجيل البصمة على هذا الجهاز.');
+      }
+    }
+
+    function updateBiometricButtonsUI() {
+      const regBtn = document.getElementById('register-biometric-btn');
+      const loginBioBtn = document.getElementById('admin-biometric-login-btn');
+
+      if (regBtn) {
+        regBtn.disabled = false;
+        regBtn.classList.remove('opacity-50', 'opacity-70', 'bg-slate-900', 'hover:bg-slate-800', 'text-amber-300');
+        regBtn.classList.add('bg-emerald-950', 'hover:bg-emerald-900', 'text-emerald-300', 'border', 'border-emerald-500/50');
+      }
+
+      if (loginBioBtn) {
+        loginBioBtn.disabled = false;
+        loginBioBtn.classList.remove('opacity-50', 'opacity-70');
       }
     }
 
@@ -3160,6 +2824,224 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
+    }
+
+    /* =====================================================================
+       حفظ البيانات محلياً واستعادتها ومزامنتها مع Firebase
+       ===================================================================== */
+    function sanitizeStateData(rawState) {
+      const base = getInitialState();
+      if (!rawState || typeof rawState !== 'object') return base;
+      const deleted = new Set(getDeletedIds());
+
+      const cases = Array.isArray(rawState.cases)
+        ? rawState.cases
+            .filter(c => c && c.id && !deleted.has(String(c.id)))
+            .map(c => ({
+              id: String(c.id),
+              title: String(c.title || 'حالة بدون عنوان'),
+              category: c.category === 'دية' ? 'دية' : 'علاج مرضى الأورام',
+              requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
+              disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
+              closed: Boolean(c.closed),
+              description: String(c.description || ''),
+              votes: {
+                approve: Math.max(0, Number(c.votes?.approve) || 0),
+                reject: Math.max(0, Number(c.votes?.reject) || 0)
+              },
+              rejections: Array.isArray(c.rejections) ? c.rejections : []
+            }))
+        : base.cases;
+
+      const pendingContributions = Array.isArray(rawState.pendingContributions)
+        ? rawState.pendingContributions.filter(p => p && p.id && !deleted.has(String(p.id)))
+        : [];
+
+      const approvedContributions = Array.isArray(rawState.approvedContributions)
+        ? rawState.approvedContributions.filter(a => a && a.id && !deleted.has(String(a.id)))
+        : base.approvedContributions;
+
+      return {
+        lastUpdated: String(rawState.lastUpdated || formatNowDate()),
+        cases,
+        pendingContributions,
+        approvedContributions
+      };
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = readStorageSafe(STORAGE_KEY);
+        if (raw) {
+          appState = sanitizeStateData(JSON.parse(raw));
+        } else {
+          appState = getInitialState();
+        }
+      } catch (e) {
+        appState = getInitialState();
+      }
+    }
+
+    function applyRestoredState(snapshot) {
+      try {
+        if (!snapshot || !snapshot.state) return;
+        appState = sanitizeStateData(snapshot.state);
+        appState.lastUpdated = formatNowDate();
+        if (snapshot.lang) document.documentElement.lang = snapshot.lang;
+        if (snapshot.dir) document.documentElement.dir = snapshot.dir;
+        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+        applyRestoredFormInputs(snapshot.inputs);
+        renderAll();
+        pushStateToFirebase(true);
+        showToast(`تم استرداد النسخة (${snapshot.createdAt}) بالكامل.`);
+      } catch (e) {
+        showToast('حدث خطأ أثناء استرداد النسخة.');
+      }
+    }
+
+    function saveAppState(reason = 'تحديث البيانات') {
+      try {
+        appState.lastUpdated = formatNowDate();
+        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+        saveAutoBackupSnapshot(reason);
+        pushStateToFirebase(false);
+      } catch (e) {}
+    }
+
+    function startAutoBackupTimer() {
+      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
+      autoBackupMinuteTimer = setInterval(() => {
+        saveAutoBackupSnapshot('حفظ تلقائي كل 10 دقائق');
+      }, 60 * 1000);
+    }
+
+    function getFirebaseConfig() {
+      try {
+        const raw = readStorageSafe(FIREBASE_CFG_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+          dbUrl: String(parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, ''),
+          authSecret: String(parsed.authSecret || '').trim()
+        };
+      } catch (e) {
+        return { dbUrl: DEFAULT_FIREBASE_DB_URL, authSecret: '' };
+      }
+    }
+
+    function setCloudStatus(connected, labelText) {
+      const dot = document.getElementById('cloud-status-dot');
+      const textEl = document.getElementById('cloud-status-text');
+      if (dot) {
+        dot.classList.toggle('bg-emerald-400', Boolean(connected));
+        dot.classList.toggle('bg-amber-400', !connected);
+      }
+      if (textEl) {
+        textEl.textContent = labelText || (connected ? 'متصل ومتزامن' : 'وضع محلي');
+      }
+    }
+
+    function buildFirebaseEndpoint(cfg) {
+      const baseUrl = (cfg?.dbUrl || DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, '');
+      const authParam = cfg?.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${baseUrl}/sayaanTakafulState.json${authParam}`;
+    }
+
+    async function pushStateToFirebase(force = false) {
+      try {
+        const cfg = getFirebaseConfig();
+        if (!cfg.dbUrl) return;
+        const payload = {
+          updatedAt: Date.now(),
+          state: appState
+        };
+        const fingerprint = JSON.stringify(appState);
+        if (!force && fingerprint === lastSyncedFingerprint) return;
+
+        const res = await fetch(buildFirebaseEndpoint(cfg), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          lastSyncedFingerprint = fingerprint;
+          setCloudStatus(true, 'متصل ومتزامن');
+        }
+      } catch (e) {
+        setCloudStatus(false, 'متصل محلياً');
+      }
+    }
+
+    async function pullStateFromFirebase() {
+      try {
+        const cfg = getFirebaseConfig();
+        if (!cfg.dbUrl) return;
+        const res = await fetch(buildFirebaseEndpoint(cfg), { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.state && typeof data.state === 'object') {
+          const remoteFingerprint = JSON.stringify(data.state);
+          const localFingerprint = JSON.stringify(appState);
+          if (remoteFingerprint !== localFingerprint) {
+            appState = sanitizeStateData(data.state);
+            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+            lastSyncedFingerprint = JSON.stringify(appState);
+            renderAll();
+          }
+          setCloudStatus(true, 'متصل ومتزامن');
+        }
+      } catch (e) {
+        setCloudStatus(false, 'متصل محلياً');
+      }
+    }
+
+    function startFirebasePolling() {
+      pullStateFromFirebase();
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      firebasePollTimer = setInterval(() => {
+        pullStateFromFirebase();
+      }, 15000);
+    }
+
+    function openFirebaseConfigModal() {
+      if (!isAdminMode) return;
+      const cfg = getFirebaseConfig();
+      const urlInput = document.getElementById('firebase-db-url-input');
+      const secretInput = document.getElementById('firebase-auth-secret-input');
+      if (urlInput) urlInput.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
+      if (secretInput) secretInput.value = cfg.authSecret || '';
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleFirebaseConfigSubmit(e) {
+      e.preventDefault();
+      if (!isAdminMode) return;
+      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, '');
+      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
+      closeFirebaseConfigModal();
+      pushStateToFirebase(true);
+      pullStateFromFirebase();
+      showToast('تم حفظ إعدادات Firebase وتحديث الاتصال.');
+    }
+
+    function disconnectFirebaseCloud() {
+      if (!isAdminMode) return;
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
+      closeFirebaseConfigModal();
+      setCloudStatus(false, 'وضع محلي');
+      showToast('تم فصل المزامنة السحابية.');
     }
 
     /* =====================================================================
