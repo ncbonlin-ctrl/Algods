@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -243,29 +243,33 @@
 
       <div id="pending-contributions-list" class="space-y-3"></div>
 
-      <!-- شريط النسخة الاحتياطية التلقائية للمشرف فقط -->
-      <div id="admin-backup-bar" class="bg-white/95 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-4">
+      <!-- مربع واحد شامل للنسخ الاحتياطي التلقائي كل 10 دقائق -->
+      <div id="admin-backup-bar" class="bg-white/95 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
               <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية للمنصة (حفظ تلقائي كل 10 دقائق — حد أقصى 10 نسخ)</p>
+              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية الشاملة للمنصة (تحديث تلقائي كل 10 دقائق)</p>
             </div>
             <p id="backup-last-snapshot-info" class="text-xs font-bold text-slate-600">
-              يتم الاحتفاظ بـ 10 نسخ في مسار واحد كل 10 دقائق ومتزامنة مع التعديلات • لا توجد نسخة محفوظة بعد
+              يتم حفظ نسخة كاملة كل 10 دقائق تشمل البيانات، المدخلات، المخرجات، الرصيد، والأزرار والشيفرة • لا توجد نسخة بعد
             </p>
           </div>
-          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">0 / 10 نسخ</span>
+          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">كل 10 دقائق</span>
         </div>
 
-        <!-- مسار واحد من 10 نسخ احتياطية للاسترداد الفوري -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-[11px] font-black text-slate-600 px-1">
-            <span>مسار النسخ الاحتياطية (10 نسخ — بيانات، لغة، مدخلات، وتعديلات)</span>
-            <span id="backup-selected-summary" class="text-emerald-800">اضغط على أي نسخة لاستردادها</span>
+        <button
+          type="button"
+          id="single-backup-slot-btn"
+          onclick="openSingleBackupRestorePrompt()"
+          class="w-full rounded-2xl p-4 text-right border-2 border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100/90 active:scale-[0.99] text-emerald-950 transition cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+        >
+          <div class="space-y-1 min-w-0">
+            <p id="single-backup-title" class="text-sm font-black truncate">النسخة الاحتياطية الكاملة للمنصة</p>
+            <p id="single-backup-meta" class="text-xs font-bold text-slate-600 truncate">اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)</p>
           </div>
-          <div id="backup-track-strip" class="flex items-stretch gap-2 overflow-x-auto pb-2 pt-0.5 snap-x"></div>
-        </div>
+          <span id="single-backup-time" dir="ltr" class="shrink-0 text-xs font-black bg-emerald-700 text-white px-3 py-1.5 rounded-xl">--:--</span>
+        </button>
       </div>
     </section>
 
@@ -996,11 +1000,207 @@
        ===================================================================== */
     function getAutoBackupHistory() {
       try {
-        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.slice(0, MAX_BACKUP_SNAPSHOTS) : [];
+        const rawLatest = readStorageSafe(AUTO_BACKUP_KEY);
+        if (rawLatest) {
+          const parsedLatest = JSON.parse(rawLatest);
+          if (parsedLatest && parsedLatest.state) return [parsedLatest];
+        }
+        const rawHist = readStorageSafe(BACKUP_HISTORY_KEY);
+        const parsedHist = rawHist ? JSON.parse(rawHist) : [];
+        return Array.isArray(parsedHist) && parsedHist.length ? [parsedHist[0]] : [];
       } catch (e) {
         return [];
+      }
+    }
+
+    function captureCurrentFormInputs() {
+      const buttonsState = Array.from(document.querySelectorAll('button')).map((btn, idx) => ({
+        index: idx,
+        id: btn.id || '',
+        text: (btn.textContent || '').trim(),
+        disabled: Boolean(btn.disabled),
+        hidden: btn.classList.contains('hidden')
+      }));
+
+      const sectionsText = {
+        totalContributions: document.getElementById('stat-total-contributions')?.textContent || '',
+        contributionsCount: document.getElementById('stat-contributions-count')?.textContent || '',
+        totalDisbursed: document.getElementById('stat-total-disbursed')?.textContent || '',
+        availableBalance: document.getElementById('stat-available-balance')?.textContent || '',
+        coverageText: document.getElementById('stat-coverage-text')?.textContent || '',
+        pendingCount: document.getElementById('pending-count-badge')?.textContent || '',
+        ledgerRowCount: document.querySelectorAll('#ledger-table-body tr').length
+      };
+
+      let platformSourceCode = '';
+      try {
+        platformSourceCode = document.documentElement.outerHTML || '';
+      } catch (e) {}
+
+      return {
+        contribName: document.getElementById('contrib-name')?.value || '',
+        contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
+        contribAmount: document.getElementById('contrib-amount')?.value || '',
+        contribTarget: document.getElementById('contrib-target')?.value || 'general',
+        contribMethod: document.getElementById('contrib-method')?.value || '',
+        contribNote: document.getElementById('contrib-note')?.value || '',
+        contribPhone: document.getElementById('contrib-phone')?.value || '',
+        ledgerSearch: document.getElementById('ledger-search-input')?.value || '',
+        ledgerFilter: document.getElementById('ledger-filter-select')?.value || 'all',
+        outputs: sectionsText,
+        buttonsState,
+        platformSourceCode
+      };
+    }
+
+    function applyRestoredFormInputs(inputs) {
+      if (!inputs || typeof inputs !== 'object') return;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined && val !== null) el.value = val;
+      };
+      setVal('contrib-name', inputs.contribName);
+      setVal('contrib-branch', inputs.contribBranch);
+      setVal('contrib-amount', inputs.contribAmount);
+      renderTargetSelects();
+      setVal('contrib-target', inputs.contribTarget);
+      setVal('contrib-method', inputs.contribMethod);
+      setVal('contrib-note', inputs.contribNote);
+      setVal('contrib-phone', inputs.contribPhone);
+      setVal('ledger-search-input', inputs.ledgerSearch);
+      setVal('ledger-filter-select', inputs.ledgerFilter);
+      toggleNewPaymentFields();
+    }
+
+    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية كل 10 دقائق', forceSave = false) {
+      try {
+        const history = getAutoBackupHistory();
+        const latest = history[0];
+        if (!forceSave && reason === 'نسخة تلقائية كل 10 دقائق' && latest && latest.timestamp && (Date.now() - Number(latest.timestamp)) < (BACKUP_INTERVAL_MS - 1000)) {
+          return;
+        }
+
+        const snapshot = {
+          id: 'bkp-single-latest',
+          createdAt: formatNowDate(),
+          timestamp: Date.now(),
+          reason: reason,
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          inputs: captureCurrentFormInputs(),
+          recentEdits: {
+            lastUpdated: appState.lastUpdated,
+            casesCount: appState.cases.length,
+            pendingCount: appState.pendingContributions.length,
+            approvedCount: appState.approvedContributions.length
+          },
+          state: JSON.parse(JSON.stringify(appState))
+        };
+
+        const serialized = JSON.stringify(snapshot);
+        writeStorageSafe(AUTO_BACKUP_KEY, serialized);
+        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([snapshot]));
+        updateBackupAdminUI();
+      } catch (e) {}
+    }
+
+    function openSingleBackupRestorePrompt() {
+      const history = getAutoBackupHistory();
+      const target = history[0];
+      if (!target || !target.state) {
+        saveAutoBackupSnapshot('نسخة فورية عند الطلب', true);
+      }
+      const latest = getAutoBackupHistory()[0];
+      if (!latest || !latest.state) {
+        showToast('تعذر العثور على بيانات النسخة الاحتياطية.');
+        return;
+      }
+      selectBackupSlot(latest.id);
+    }
+
+    function selectBackupSlot(snapshotId) {
+      const history = getAutoBackupHistory();
+      const target = history.find(item => item.id === snapshotId) || history[0];
+      if (!target || !target.state) {
+        showToast('تعذر العثور على بيانات النسخة المحددة.');
+        return;
+      }
+      pendingRestoreSnapshotId = target.id;
+      const detailsEl = document.getElementById('restore-confirm-details');
+      if (detailsEl) {
+        const balText = target.inputs?.outputs?.availableBalance || '';
+        const totText = target.inputs?.outputs?.totalContributions || '';
+        const summaryLine = (balText || totText) ? ` • الإجمالي: ${totText} • الرصيد: ${balText}` : '';
+        detailsEl.textContent = `استرداد النسخة (${target.createdAt} — ${target.reason})${summaryLine} شاملة البيانات، المدخلات، المخرجات، والأزرار والشيفرة؟`;
+      }
+      const modal = document.getElementById('restore-confirm-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeRestoreConfirmModal() {
+      pendingRestoreSnapshotId = null;
+      const modal = document.getElementById('restore-confirm-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function confirmRestorePendingSnapshot() {
+      const targetId = pendingRestoreSnapshotId;
+      closeRestoreConfirmModal();
+      const history = getAutoBackupHistory();
+      const found = history.find(item => item.id === targetId) || history[0];
+      if (!found || !found.state) {
+        showToast('تعذر استرداد النسخة المختارة.');
+        return;
+      }
+      applyRestoredState(found);
+    }
+
+    function onBackupHistorySelectChange() {
+      updateBackupAdminUI();
+    }
+
+    function updateBackupAdminUI() {
+      const infoEl = document.getElementById('backup-last-snapshot-info');
+      const badgeEl = document.getElementById('backup-count-badge');
+      const titleEl = document.getElementById('single-backup-title');
+      const metaEl = document.getElementById('single-backup-meta');
+      const timeEl = document.getElementById('single-backup-time');
+      const history = getAutoBackupHistory();
+      const latest = history[0];
+
+      if (badgeEl) {
+        badgeEl.textContent = 'كل 10 دقائق';
+      }
+
+      if (latest) {
+        const out = latest.inputs?.outputs || {};
+        const btnsCount = Array.isArray(latest.inputs?.buttonsState) ? latest.inputs.buttonsState.length : 0;
+        const codeSizeKb = latest.inputs?.platformSourceCode ? Math.max(1, Math.round(latest.inputs.platformSourceCode.length / 1024)) : 0;
+        if (infoEl) {
+          infoEl.textContent = `آخر تحديث تلقائي كل 10 دقائق: ${latest.createdAt} (${latest.reason}) • يشمل البيانات، المدخلات، المخرجات، ${btnsCount} زر، والشيفرة (${codeSizeKb} KB)`;
+        }
+        if (titleEl) {
+          titleEl.textContent = `نسخة شاملة: ${out.totalContributions || '0 د.ل'} إجمالي • الرصيد: ${out.availableBalance || '0 د.ل'}`;
+        }
+        if (metaEl) {
+          metaEl.textContent = `قيود السجل: ${out.ledgerRowCount ?? (latest.state?.approvedContributions?.length || 0)} • أزرار: ${btnsCount} • شيفرة: ${codeSizeKb} KB — اضغط للاسترداد (نعم / لا)`;
+        }
+        if (timeEl) {
+          timeEl.textContent = formatNumericTimeAmPm(latest.timestamp || latest.createdAt);
+        }
+      } else {
+        if (infoEl) {
+          infoEl.textContent = 'يتم حفظ نسخة كاملة كل 10 دقائق تشمل البيانات، المدخلات، المخرجات، الرصيد، والأزرار والشيفرة • جاري التهيئة';
+        }
+        if (titleEl) titleEl.textContent = 'النسخة الاحتياطية الكاملة للمنصة';
+        if (metaEl) metaEl.textContent = 'اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)';
+        if (timeEl) timeEl.textContent = '--:--';
       }
     }
 
@@ -2963,9 +3163,16 @@
       try {
         appState.lastUpdated = formatNowDate();
         writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        saveAutoBackupSnapshot(reason);
+        saveAutoBackupSnapshot(reason, true);
         pushStateToFirebase(false);
       } catch (e) {}
+    }
+
+    function startAutoBackupTimer() {
+      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
+      autoBackupMinuteTimer = setInterval(() => {
+        saveAutoBackupSnapshot('نسخة تلقائية كل 10 دقائق', true);
+      }, BACKUP_INTERVAL_MS);
     }
 
     function startAutoBackupTimer() {
@@ -3122,9 +3329,7 @@
       loadLocalState();
       updateAdminUI();
       renderAll();
-      if (!getAutoBackupHistory().length) {
-        saveAutoBackupSnapshot('نسخة بدء التشغيل');
-      }
+      saveAutoBackupSnapshot('نسخة بدء التشغيل', true);
       startAutoBackupTimer();
       startFirebasePolling();
     });
