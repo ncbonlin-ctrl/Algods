@@ -245,17 +245,12 @@
 
       <!-- مربع واحد شامل للنسخ الاحتياطي التلقائي كل 10 دقائق -->
       <div id="admin-backup-bar" class="bg-white/95 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <p class="text-sm sm:text-base font-black text-emerald-950">النسخة الاحتياطية الشاملة للمنصة (تحديث تلقائي كل 10 دقائق)</p>
-            </div>
-            <p id="backup-last-snapshot-info" class="text-xs font-bold text-slate-600">
-              يتم حفظ نسخة كاملة كل 10 دقائق تشمل البيانات، المدخلات، المخرجات، الرصيد، والأزرار والشيفرة • لا توجد نسخة بعد
-            </p>
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+            <p class="text-sm sm:text-base font-black text-emerald-950">نسخة احتياطية</p>
           </div>
-          <span id="backup-count-badge" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full self-start sm:self-center">كل 10 دقائق</span>
+          <span id="backup-count-badge" dir="ltr" class="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full">--:--</span>
         </div>
 
         <button
@@ -265,7 +260,7 @@
           class="w-full rounded-2xl p-4 text-right border-2 border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100/90 active:scale-[0.99] text-emerald-950 transition cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
         >
           <div class="space-y-1 min-w-0">
-            <p id="single-backup-title" class="text-sm font-black truncate">النسخة الاحتياطية الكاملة للمنصة</p>
+            <p id="single-backup-title" class="text-sm font-black truncate">نسخة احتياطية</p>
             <p id="single-backup-meta" class="text-xs font-bold text-slate-600 truncate">اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)</p>
           </div>
           <span id="single-backup-time" dir="ltr" class="shrink-0 text-xs font-black bg-emerald-700 text-white px-3 py-1.5 rounded-xl">--:--</span>
@@ -278,7 +273,7 @@
             onclick="createManualFullBackup()"
             class="h-11 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>حفظ نسخة يدوياً الآن</span>
+            <span>حفظ النسخة مع المزامنة</span>
           </button>
 
           <button
@@ -1127,15 +1122,17 @@
       }
     }
 
-    function createManualFullBackup() {
+    async function createManualFullBackup() {
       if (!isAdminMode) {
         showToast('الحفظ اليدوي متاح داخل وضع الإدارة فقط.');
         return;
       }
-      const snap = saveAutoBackupSnapshot('حفظ يدوي كامل من المشرف', true);
+      const snap = saveAutoBackupSnapshot('حفظ النسخة مع المزامنة', true);
       if (snap) {
+        await pushStateToFirebase(true);
+        await pushBackupToFirebase(snap);
         const sizeLabel = formatByteSize(snap.sizeBytes || 0);
-        showToast(`تم حفظ النسخة الكاملة يدوياً بنجاح (${sizeLabel}).`);
+        showToast(`تم حفظ النسخة ومزامنتها مع Firebase (${snap.createdAt} • ${sizeLabel}).`);
       } else {
         showToast('تعذر حفظ النسخة اليدوية.');
       }
@@ -1300,7 +1297,6 @@
     }
 
     function updateBackupAdminUI() {
-      const infoEl = document.getElementById('backup-last-snapshot-info');
       const badgeEl = document.getElementById('backup-count-badge');
       const titleEl = document.getElementById('single-backup-title');
       const metaEl = document.getElementById('single-backup-meta');
@@ -1308,34 +1304,28 @@
       const history = getAutoBackupHistory();
       const latest = history[0];
 
-      if (badgeEl) {
-        badgeEl.textContent = 'كل 10 دقائق';
-      }
-
       if (latest) {
         const out = latest.inputs?.outputs || {};
-        const btnsCount = Array.isArray(latest.inputs?.buttonsState) ? latest.inputs.buttonsState.length : 0;
         const rawBytes = Number(latest.sizeBytes) || new Blob([JSON.stringify(latest)]).size;
         const readableSize = formatByteSize(rawBytes);
-        if (infoEl) {
-          infoEl.textContent = `آخر تحديث تلقائي كل 10 دقائق: ${latest.createdAt} (${latest.reason}) • الحجم الفعلي للنسخة: ${readableSize} (محفوظة محلياً وسحابياً)`;
+        const savedDateTime = String(latest.createdAt || formatNowDate());
+        if (badgeEl) {
+          badgeEl.textContent = savedDateTime;
         }
         if (titleEl) {
-          titleEl.textContent = `نسخة فعلية (${readableSize}): ${out.totalContributions || '0 د.ل'} إجمالي • الرصيد: ${out.availableBalance || '0 د.ل'}`;
+          titleEl.textContent = `نسخة احتياطية (${readableSize})`;
         }
         if (metaEl) {
-          metaEl.textContent = `قيود السجل: ${out.ledgerRowCount ?? (latest.state?.approvedContributions?.length || 0)} • أزرار: ${btnsCount} • الحجم: ${readableSize} — اضغط للاسترداد (نعم / لا)`;
+          metaEl.textContent = `الإجمالي: ${out.totalContributions || '0 د.ل'} • الرصيد: ${out.availableBalance || '0 د.ل'} • متزامنة مع Firebase`;
         }
         if (timeEl) {
-          timeEl.textContent = formatNumericTimeAmPm(latest.timestamp || latest.createdAt);
+          timeEl.textContent = savedDateTime;
         }
       } else {
-        if (infoEl) {
-          infoEl.textContent = 'يتم حفظ نسخة كاملة كل 10 دقائق تشمل البيانات، المدخلات، المخرجات، الرصيد، والأزرار والشيفرة • جاري التهيئة';
-        }
-        if (titleEl) titleEl.textContent = 'النسخة الاحتياطية الكاملة للمنصة';
+        if (badgeEl) badgeEl.textContent = formatNowDate();
+        if (titleEl) titleEl.textContent = 'نسخة احتياطية';
         if (metaEl) metaEl.textContent = 'اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)';
-        if (timeEl) timeEl.textContent = '--:--';
+        if (timeEl) timeEl.textContent = formatNowDate();
       }
     }
 
