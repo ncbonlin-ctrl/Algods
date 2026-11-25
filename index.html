@@ -780,7 +780,7 @@
         <button type="button" onclick="closeEditContributionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
       </div>
       <p class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
-        تنبيه: يُسمح للمساهم بتعديل مساهمته مرة واحدة فقط (1/1) ويُغلق التعديل تلقائياً بعد هذه المحاولة، وعند حفظ التعديل تُعاد المساهمة تلقائياً إلى الإدارة لمراجعتها واعتماد نشرها من جديد.
+        تنبيه: يُسمح للمساهم بتعديل مساهمته مرتين كحد أقصى (2/2) ويُغلق التعديل تلقائياً بعد المحاولة الثانية، وعند حفظ التعديل تُعاد المساهمة تلقائياً إلى الإدارة لمراجعتها واعتماد نشرها من جديد.
       </p>
       <form onsubmit="handleEditContributionSubmit(event)" class="space-y-3">
         <input type="hidden" id="edit-contrib-id" />
@@ -1648,11 +1648,8 @@
       let totalCaseContributionsTransferred = 0;
       let totalSurplusReturnedToFund = 0;
 
-      const approvedList = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
-      const casesList = Array.isArray(appState.cases) ? appState.cases : [];
-
-      for (const item of approvedList) {
-        if (!item) continue;
+      // حساب إجمالي المساهمات المعتمدة، وعمليات الصرف، والتحويلات الموجهة للحالات
+      for (const item of appState.approvedContributions) {
         const amt = Number(item.amount) || 0;
         if (item.type === 'disbursement') {
           totalDisbursed += amt;
@@ -1665,12 +1662,13 @@
         }
       }
 
-      for (const c of casesList) {
-        if (!c) continue;
+      // احتساب الفائض العائد إلى رصيد الصندوق من كل حالة تتجاوز مساهماتها المبلغ المطلوب
+      // مع اعتبار الدفعات السابقة (مثل الصرف من الصندوق) جزءاً من تغطية الحالة أولاً
+      for (const c of appState.cases) {
         const req = Number(c.requiredAmount) || 0;
         const disb = Number(c.disbursedAmount) || 0;
-        const caseContribs = approvedList
-          .filter(item => item && item.type !== 'disbursement' && item.target === c.id)
+        const caseContribs = appState.approvedContributions
+          .filter(item => item.type !== 'disbursement' && item.target === c.id)
           .slice()
           .reverse();
         const caseContribsTotal = caseContribs.reduce((s, x) => s + (Number(x.amount) || 0), 0);
@@ -1680,25 +1678,27 @@
         }
       }
 
+      // معادلة الصندوق:
+      // الرصيد المتاح = إجمالي المساهمات المعتمدة - الصرف من الصندوق - التحويلات الموجهة للحالات + الفائض العائد للصندوق
       const availableBalance = Math.max(
         0,
         totalContributions - totalDisbursed - totalCaseContributionsTransferred + totalSurplusReturnedToFund
       );
-      const totalRequired = casesList.reduce((sum, c) => sum + (Number(c.requiredAmount) || 0), 0);
-      const totalCaseCovered = casesList.reduce((sum, c) => {
+      const totalRequired = appState.cases.reduce((sum, c) => sum + (Number(c.requiredAmount) || 0), 0);
+      const totalCaseCovered = appState.cases.reduce((sum, c) => {
         const req = Number(c.requiredAmount) || 0;
         const disb = Number(c.disbursedAmount) || 0;
-        const caseContribs = approvedList
-          .filter(item => item && item.type !== 'disbursement' && item.target === c.id)
+        const caseContribs = appState.approvedContributions
+          .filter(item => item.type !== 'disbursement' && item.target === c.id)
           .reduce((s, x) => s + (Number(x.amount) || 0), 0);
         const funded = disb + caseContribs;
         return sum + Math.min(req, funded);
       }, 0);
-      const completedCases = casesList.filter(c => {
+      const completedCases = appState.cases.filter(c => {
         const req = Number(c.requiredAmount) || 0;
         const disb = Number(c.disbursedAmount) || 0;
-        const caseContribs = approvedList
-          .filter(item => item && item.type !== 'disbursement' && item.target === c.id)
+        const caseContribs = appState.approvedContributions
+          .filter(item => item.type !== 'disbursement' && item.target === c.id)
           .reduce((s, x) => s + (Number(x.amount) || 0), 0);
         const funded = disb + caseContribs;
         return req > 0 && funded >= req;
@@ -1733,7 +1733,7 @@
       if (elTotalDisb) elTotalDisb.textContent = formatCurrency(s.totalDisbursed);
       if (elDisbSummary) elDisbSummary.textContent = `حالات مسددة / مصروفة: ${s.completedCases} من ${appState.cases.length}`;
       if (elBalance) elBalance.textContent = formatCurrency(s.availableBalance);
-      if (elUpdated) elUpdated.textContent = `آخر تحديث: ${appState.lastUpdated || formatNowDate()}`;
+      if (elUpdated) elUpdated.textContent = `آخر تحديث: ${appState.lastUpdated || 'الآن'}`;
       if (elCasesBadge) elCasesBadge.textContent = `${appState.cases.length} حالات`;
       if (elCoverageText) elCoverageText.textContent = `${s.coveragePct}% من ${formatCurrency(s.totalRequired)}`;
       if (elCoverageBar) elCoverageBar.style.width = `${s.coveragePct}%`;
@@ -2754,8 +2754,8 @@
           ? `<span class="recipient-tri-glow">${escapeHtml(item.targetLabel)}</span>`
           : `<span>${escapeHtml(item.targetLabel)}</span>`;
 
-        const usedEdits = Math.min(1, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 1 : 0)));
-        const remainingEdits = Math.max(0, 1 - usedEdits);
+        const usedEdits = Math.min(2, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0)));
+        const remainingEdits = Math.max(0, 2 - usedEdits);
         const canUserEdit = !isDisb && isMyContribution(item.id) && remainingEdits > 0;
         const typeBadge = isDisb
           ? '<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>'
@@ -2775,9 +2775,9 @@
           }
           actions.push(`<button type="button" onclick="deleteApprovedLedgerEntry('${escapeHtml(item.id)}')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 cursor-pointer">حذف</button>`);
         } else if (canUserEdit) {
-          actions.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-emerald-950 cursor-pointer">تعديل مساهمتي (${remainingEdits}/1)</button>`);
+          actions.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-emerald-950 cursor-pointer">تعديل مساهمتي (${remainingEdits}/2)</button>`);
         } else if (!isDisb && isMyContribution(item.id) && remainingEdits <= 0) {
-          actions.push(`<span class="inline-block text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600">التعديل مغلق (0/1)</span>`);
+          actions.push(`<span class="inline-block text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600">التعديل مغلق (0/2)</span>`);
         }
 
         return `
@@ -2881,8 +2881,8 @@
       const item = list.find(x => x.id === id);
       if (!item) return;
 
-      const usedEdits = Math.min(1, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 1 : 0)));
-      const remainingEdits = Math.max(0, 1 - usedEdits);
+      const usedEdits = Math.min(2, Math.max(0, Number(item.userEditCount) || (item.userEditUsed ? 2 : 0)));
+      const remainingEdits = Math.max(0, 2 - usedEdits);
 
       if (!isAdminMode) {
         if (!isMyContribution(id)) {
@@ -2890,7 +2890,7 @@
           return;
         }
         if (remainingEdits <= 0) {
-          showToast('تم إغلاق التعديل بعد استنفاد محاولة التعديل المسموحة (1/1).');
+          showToast('تم إغلاق التعديل بعد استنفاد محاولتي التعديل المسموحتين (2/2).');
           return;
         }
       }
@@ -2908,7 +2908,7 @@
 
       const badge = document.getElementById('edit-contrib-attempts-badge');
       if (badge) {
-        badge.textContent = isAdminMode ? 'صلاحية المشرف' : `المحاولات المتبقية: ${remainingEdits}/1`;
+        badge.textContent = isAdminMode ? 'صلاحية المشرف' : `المحاولات المتبقية: ${remainingEdits}/2`;
       }
 
       editReceiptDataUrl = item.receiptData || '';
@@ -3030,9 +3030,9 @@
       item.receiptName = editReceiptFileName;
 
       if (!isAdminMode) {
-        const nextCount = Math.min(1, (Number(item.userEditCount) || 0) + 1);
+        const nextCount = Math.min(2, (Number(item.userEditCount) || 0) + 1);
         item.userEditCount = nextCount;
-        item.userEditUsed = nextCount >= 1;
+        item.userEditUsed = nextCount >= 2;
 
         // إعادة تدوير المساهمة المعتمدة إلى قائمة مراجعة الإدارة بعد التعديل
         if (scope === 'approved' && item.type !== 'disbursement') {
@@ -3171,8 +3171,7 @@
       try {
         appState.lastUpdated = formatNowDate();
         writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        // تحديث خفيف وسريع للنسخة المحلية دون إرسال نسخة ثقيلة للشبكة عند كل تعديل صغير
-        saveAutoBackupSnapshot(reason, false);
+        saveAutoBackupSnapshot(reason, true);
         pushStateToFirebase(false);
       } catch (e) {}
     }
@@ -3180,7 +3179,7 @@
     function startAutoBackupTimer() {
       if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
       autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('نسخة تلقائية كل 10 دقائق', false);
+        saveAutoBackupSnapshot('نسخة تلقائية كل 10 دقائق', true);
       }, BACKUP_INTERVAL_MS);
     }
 
@@ -3230,13 +3229,12 @@
         };
 
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
 
         const res = await fetch(buildFirebaseEndpoint(cfg), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
-          keepalive: true,
           signal: controller ? controller.signal : undefined
         });
         if (timeoutId) clearTimeout(timeoutId);
@@ -3259,7 +3257,7 @@
         isPullingFirebase = true;
 
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
 
         const res = await fetch(buildFirebaseEndpoint(cfg), {
           cache: 'no-store',
@@ -3292,7 +3290,7 @@
       firebasePollTimer = setInterval(() => {
         if (typeof document !== 'undefined' && document.hidden) return;
         pullStateFromFirebase();
-      }, 10000);
+      }, 25000);
     }
 
     function openFirebaseConfigModal() {
@@ -3647,7 +3645,7 @@
         saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
         startAutoBackupTimer();
         startFirebasePolling();
-      }, 100);
+      }, 250);
     });
   </script>
 </body>
