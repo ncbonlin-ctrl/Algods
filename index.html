@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -269,6 +270,39 @@
           </div>
           <span id="single-backup-time" dir="ltr" class="shrink-0 text-xs font-black bg-emerald-700 text-white px-3 py-1.5 rounded-xl">--:--</span>
         </button>
+
+        <!-- أزرار الحفظ اليدوي وتصدير/استيراد ملف النسخة الشاملة -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          <button
+            type="button"
+            onclick="createManualFullBackup()"
+            class="h-11 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>حفظ نسخة يدوياً الآن</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="exportManualBackupFile()"
+            class="h-11 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>تنزيل ملف النسخة الكاملة</span>
+          </button>
+
+          <label
+            for="manual-backup-file-input"
+            class="h-11 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>استعادة من ملف محفوظ</span>
+          </label>
+          <input
+            type="file"
+            id="manual-backup-file-input"
+            accept=".json,application/json"
+            onchange="handleManualBackupFileImport(this)"
+            class="hidden"
+          />
+        </div>
       </div>
     </section>
 
@@ -1087,7 +1121,98 @@
         writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([snapshot]));
         pushBackupToFirebase(snapshot);
         updateBackupAdminUI();
-      } catch (e) {}
+        return snapshot;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function createManualFullBackup() {
+      if (!isAdminMode) {
+        showToast('الحفظ اليدوي متاح داخل وضع الإدارة فقط.');
+        return;
+      }
+      const snap = saveAutoBackupSnapshot('حفظ يدوي كامل من المشرف', true);
+      if (snap) {
+        const sizeLabel = formatByteSize(snap.sizeBytes || 0);
+        showToast(`تم حفظ النسخة الكاملة يدوياً بنجاح (${sizeLabel}).`);
+      } else {
+        showToast('تعذر حفظ النسخة اليدوية.');
+      }
+    }
+
+    function exportManualBackupFile() {
+      if (!isAdminMode) {
+        showToast('تصدير ملف النسخة متاح داخل وضع الإدارة فقط.');
+        return;
+      }
+      const snap = saveAutoBackupSnapshot('تصدير ملف نسخة كاملة', true) || getAutoBackupHistory()[0];
+      if (!snap) {
+        showToast('لا توجد بيانات نسخة لتنزيلها.');
+        return;
+      }
+      try {
+        const fileContent = JSON.stringify(snap, null, 2);
+        const blob = new Blob([fileContent], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = formatNowDate().replace(/[:\s]/g, '-');
+        a.href = url;
+        a.download = `sayaan-platform-full-backup-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        showToast(`تم تنزيل ملف النسخة الكاملة (${formatByteSize(blob.size)}).`);
+      } catch (e) {
+        showToast('تعذر تنزيل ملف النسخة.');
+      }
+    }
+
+    function handleManualBackupFileImport(input) {
+      if (!isAdminMode) {
+        showToast('استعادة النسخة متاحة داخل وضع الإدارة فقط.');
+        return;
+      }
+      const file = input?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          const candidateSnapshot = parsed && parsed.state
+            ? parsed
+            : (parsed && parsed.cases && parsed.approvedContributions
+                ? {
+                    id: 'bkp-imported-' + Date.now(),
+                    createdAt: formatNowDate(),
+                    timestamp: Date.now(),
+                    reason: 'استعادة من ملف خارجي',
+                    lang: 'ar',
+                    dir: 'rtl',
+                    inputs: {},
+                    state: parsed
+                  }
+                : null);
+
+          if (!candidateSnapshot || !candidateSnapshot.state) {
+            showToast('الملف المختار لا يحتوي على نسخة صالحة للمنصة.');
+            return;
+          }
+
+          const serialized = JSON.stringify(candidateSnapshot);
+          candidateSnapshot.sizeBytes = new Blob([serialized]).size;
+          writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(candidateSnapshot));
+          writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([candidateSnapshot]));
+          applyRestoredState(candidateSnapshot);
+          updateBackupAdminUI();
+        } catch (err) {
+          showToast('تعذر قراءة ملف النسخة، يرجى التأكد من سلامة الملف.');
+        } finally {
+          input.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
     }
 
     async function pushBackupToFirebase(snapshot) {
