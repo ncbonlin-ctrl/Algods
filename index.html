@@ -1081,10 +1081,37 @@
         };
 
         const serialized = JSON.stringify(snapshot);
-        writeStorageSafe(AUTO_BACKUP_KEY, serialized);
+        const actualBytes = new Blob([serialized]).size;
+        snapshot.sizeBytes = actualBytes;
+        const finalSerialized = JSON.stringify(snapshot);
+        writeStorageSafe(AUTO_BACKUP_KEY, finalSerialized);
         writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([snapshot]));
+        pushBackupToFirebase(snapshot);
         updateBackupAdminUI();
       } catch (e) {}
+    }
+
+    async function pushBackupToFirebase(snapshot) {
+      try {
+        const cfg = getFirebaseConfig();
+        if (!cfg.dbUrl || !snapshot) return;
+        const baseUrl = cfg.dbUrl.replace(/\/+$/, '');
+        const authParam = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+        await fetch(`${baseUrl}/sayaanTakafulBackup.json${authParam}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapshot)
+        });
+      } catch (e) {}
+    }
+
+    function formatByteSize(bytes) {
+      const b = Number(bytes) || 0;
+      if (b <= 0) return '0 بايت';
+      if (b < 1024) return `${b} بايت`;
+      const kb = b / 1024;
+      if (kb < 1024) return `${kb.toFixed(1)} KB`;
+      return `${(kb / 1024).toFixed(2)} MB`;
     }
 
     function openSingleBackupRestorePrompt() {
@@ -1164,15 +1191,16 @@
       if (latest) {
         const out = latest.inputs?.outputs || {};
         const btnsCount = Array.isArray(latest.inputs?.buttonsState) ? latest.inputs.buttonsState.length : 0;
-        const codeSizeKb = latest.inputs?.platformSourceCode ? Math.max(1, Math.round(latest.inputs.platformSourceCode.length / 1024)) : 0;
+        const rawBytes = Number(latest.sizeBytes) || new Blob([JSON.stringify(latest)]).size;
+        const readableSize = formatByteSize(rawBytes);
         if (infoEl) {
-          infoEl.textContent = `آخر تحديث تلقائي كل 10 دقائق: ${latest.createdAt} (${latest.reason}) • يشمل البيانات، المدخلات، المخرجات، ${btnsCount} زر، والشيفرة (${codeSizeKb} KB)`;
+          infoEl.textContent = `آخر تحديث تلقائي كل 10 دقائق: ${latest.createdAt} (${latest.reason}) • الحجم الفعلي للنسخة: ${readableSize} (محفوظة محلياً وسحابياً)`;
         }
         if (titleEl) {
-          titleEl.textContent = `نسخة شاملة: ${out.totalContributions || '0 د.ل'} إجمالي • الرصيد: ${out.availableBalance || '0 د.ل'}`;
+          titleEl.textContent = `نسخة فعلية (${readableSize}): ${out.totalContributions || '0 د.ل'} إجمالي • الرصيد: ${out.availableBalance || '0 د.ل'}`;
         }
         if (metaEl) {
-          metaEl.textContent = `قيود السجل: ${out.ledgerRowCount ?? (latest.state?.approvedContributions?.length || 0)} • أزرار: ${btnsCount} • شيفرة: ${codeSizeKb} KB — اضغط للاسترداد (نعم / لا)`;
+          metaEl.textContent = `قيود السجل: ${out.ledgerRowCount ?? (latest.state?.approvedContributions?.length || 0)} • أزرار: ${btnsCount} • الحجم: ${readableSize} — اضغط للاسترداد (نعم / لا)`;
         }
         if (timeEl) {
           timeEl.textContent = formatNumericTimeAmPm(latest.timestamp || latest.createdAt);
