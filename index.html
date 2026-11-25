@@ -2612,10 +2612,17 @@
 
       // النزول التلقائي المباشر إلى قسم سجل المساهمات والصرف المعتمد
       const ledgerSection = document.getElementById('ledger-section');
-      if (ledgerSection) {
+      const firstRow = document.querySelector('#ledger-table-body tr');
+      if (firstRow) {
+        firstRow.classList.add('bg-emerald-100/80');
         setTimeout(() => {
-          ledgerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 60);
+          firstRow.classList.remove('bg-emerald-100/80');
+        }, 2200);
+      }
+      if (ledgerSection) {
+        const headerOffset = document.querySelector('header')?.offsetHeight || 90;
+        const targetY = Math.max(0, ledgerSection.getBoundingClientRect().top + window.scrollY - headerOffset - 12);
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
       }
 
       showToast(toastMsg);
@@ -3015,6 +3022,12 @@
       }
 
       closeEditContributionModal();
+      const editModalEl = document.getElementById('edit-contribution-modal');
+      if (editModalEl) {
+        editModalEl.classList.add('hidden');
+        editModalEl.classList.remove('flex');
+        editModalEl.style.display = 'none';
+      }
       saveAppState(!isAdminMode ? 'تعديل مساهمة وإعادتها لمراجعة الإدارة' : 'تعديل مساهمة من الإدارة');
       renderAll();
       showToast(
