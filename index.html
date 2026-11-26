@@ -1048,261 +1048,24 @@
     let ledgerSearchTimer = null;
     let autoBackupMinuteTimer = null;
     let firebasePollTimer = null;
+    let firebaseEventSource = null;
     let firebasePushDebounceTimer = null;
     let isPushingFirebase = false;
     let isPullingFirebase = false;
+    let needsFollowupPush = false;
     let lastSyncedFingerprint = '';
     let hasLocalStateStored = false;
     let hasUnsyncedLocalChanges = false;
-    let renderAllFrameId = null;
-    let isRenderingNow = false;
-
-    const memoryStore = {
-      deviceVotes: {},
-      myContributions: {},
-      deletedIds: []
-    };
-
-    function showToast(msg, type = 'info') {
-      const box = document.getElementById('toast-box');
-      const txt = document.getElementById('toast-text');
-      const icon = document.getElementById('toast-icon');
-      if (!box || !txt) return;
-      txt.textContent = msg;
-      if (icon) {
-        icon.textContent = type === 'success' ? '✓' : type === 'warning' ? '!' : 'i';
-      }
-      box.classList.remove('hidden');
-      box.classList.add('flex', 'toast-animate-in');
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        box.classList.add('hidden');
-        box.classList.remove('flex', 'toast-animate-in');
-      }, 3200);
-    }
-
-    function copyPaymentDetail(val, label) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(val).catch(() => {});
-        }
-      } catch (e) {}
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = val;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      } catch (e) {}
-      showToast(`تم نسخ ${label}: ${val}`, 'success');
-    }
-
-    function getDeletedIds() {
-      const set = new Set((memoryStore.deletedIds || []).map(String));
-      try {
-        const raw = readStorageSafe(TOMBSTONE_KEY);
-        if (raw) {
-          const arr = JSON.parse(raw);
-          if (Array.isArray(arr)) arr.forEach(id => set.add(String(id)));
-        }
-      } catch (e) {}
-      if (Array.isArray(appState.deletedIds)) {
-        appState.deletedIds.forEach(id => set.add(String(id)));
-      }
-      return Array.from(set);
-    }
-
-    function setDeletedIdsList(idsArr) {
-      const clean = Array.from(new Set((Array.isArray(idsArr) ? idsArr : []).map(String).filter(Boolean)));
-      memoryStore.deletedIds = clean;
-      appState.deletedIds = clean;
-      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(clean));
-    }
-
-    function addDeletedId(id) {
-      if (!id) return;
-      const next = Array.from(new Set([...getDeletedIds(), String(id)]));
-      setDeletedIdsList(next);
-    }
-
-    function getDeviceVotes() {
-      try {
-        const raw = readStorageSafe(DEVICE_VOTE_KEY);
-        if (raw) return JSON.parse(raw) || {};
-      } catch (e) {}
-      return memoryStore.deviceVotes || {};
-    }
-
-    function setDeviceVote(caseId, voteType) {
-      const votes = getDeviceVotes();
-      votes[String(caseId)] = voteType;
-      memoryStore.deviceVotes = votes;
-      writeStorageSafe(DEVICE_VOTE_KEY, JSON.stringify(votes));
-    }
-
-    function getMyContributionsMap() {
-      try {
-        const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
-        if (raw) return JSON.parse(raw) || {};
-      } catch (e) {}
-      return memoryStore.myContributions || {};
-    }
-
-    function markAsMyContribution(id) {
-      if (!id) return;
-      const map = getMyContributionsMap();
-      map[String(id)] = true;
-      memoryStore.myContributions = map;
-      writeStorageSafe(MY_CONTRIBUTIONS_KEY, JSON.stringify(map));
-    }
-
-    function isMyContribution(id) {
-      return Boolean(getMyContributionsMap()[String(id)]);
-    }
-
-    function getAutoBackupHistory() {
-      try {
-        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch (e) {}
-      return [];
-    }
-
-    function isSameLogicalContribution(a, b) {
-      if (!a || !b) return false;
-      if (String(a.id) === String(b.id)) return true;
-      return (
-        String(a.contributorName || '').trim() === String(b.contributorName || '').trim() &&
-        Number(a.amount || 0) === Number(b.amount || 0) &&
-        String(a.target || 'general') === String(b.target || 'general') &&
-        String(a.createdAt || '').trim() === String(b.createdAt || '').trim()
-      );
-    }
-
-    function deduplicateContributionsList(list) {
-      if (!Array.isArray(list)) return [];
-      const seenIds = new Set();
-      const result = [];
-      for (const item of list) {
-        if (!item || !item.id) continue;
-        const idStr = String(item.id);
-        if (seenIds.has(idStr)) continue;
-        if (result.some(existing => isSameLogicalContribution(existing, item))) continue;
-        seenIds.add(idStr);
-        result.push(item);
-      }
-      return result;
-    }
-
-    function sanitizeStateData(rawState) {
-      const base = getInitialState();
-      if (!rawState || typeof rawState !== 'object') return base;
-      const deletedSet = new Set([
-        ...getDeletedIds().map(String),
-        ...(Array.isArray(rawState.deletedIds) ? rawState.deletedIds.map(String) : [])
-      ]);
-
-      const cases = (Array.isArray(rawState.cases) ? rawState.cases : [])
-        .filter(c => c && c.id && !deletedSet.has(String(c.id)))
-        .map(c => ({
-          id: String(c.id),
-          title: String(c.title || 'حالة تكافل'),
-          category: String(c.category || 'علاج مرضى الأورام'),
-          description: String(c.description || ''),
-          requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
-          disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
-          closed: Boolean(c.closed),
-          votesYes: Math.max(0, Number(c.votesYes) || 0),
-          votesNo: Math.max(0, Number(c.votesNo) || 0),
-          rejections: Array.isArray(c.rejections)
-            ? c.rejections.map((r, idx) => ({
-                id: String(r?.id || `rej_${idx}`),
-                reason: String(r?.reason ?? ''),
-                createdAt: String(r?.createdAt || '')
-              }))
-            : []
-        }));
-
-      const pendingContributions = deduplicateContributionsList(
-        (Array.isArray(rawState.pendingContributions) ? rawState.pendingContributions : [])
-          .filter(p => p && p.id && !deletedSet.has(String(p.id)))
-      );
-
-      const approvedContributions = deduplicateContributionsList(
-        (Array.isArray(rawState.approvedContributions) ? rawState.approvedContributions : [])
-          .filter(a => a && a.id && !deletedSet.has(String(a.id)))
-      );
-
-      return {
-        lastUpdated: String(rawState.lastUpdated || formatNowDate()),
-        updatedAtMs: Number(rawState.updatedAtMs) || Date.now(),
-        deletedIds: Array.from(deletedSet),
-        cases,
-        pendingContributions,
-        approvedContributions
-      };
-    }
-
-    function computeStateSyncFingerprint(stateObj) {
-      try {
-        const s = stateObj || appState;
-        return JSON.stringify({
-          del: (s.deletedIds || []).slice().sort(),
-          c: (s.cases || []).map(x => [
-            x.id,
-            x.title,
-            x.category,
-            x.description,
-            Number(x.requiredAmount) || 0,
-            Number(x.disbursedAmount) || 0,
-            Boolean(x.closed),
-            Number(x.votesYes) || 0,
-            Number(x.votesNo) || 0,
-            (x.rejections || []).map(r => [r.id, r.reason || '', r.createdAt || ''])
-          ]),
-          p: (s.pendingContributions || []).map(x => [
-            x.id,
-            x.contributorName,
-            x.branch,
-            Number(x.amount) || 0,
-            x.target,
-            x.method,
-            x.note || '',
-            x.createdAt || ''
-          ]),
-          a: (s.approvedContributions || []).map(x => [
-            x.id,
-            x.type,
-            x.contributorName,
-            x.branch,
-            Number(x.amount) || 0,
-            x.target,
-            x.method,
-            x.note || '',
-            Boolean(x.pendingAdminReapproval),
-            x.editedAt || '',
-            x.approvedAt || ''
-          ])
-        });
-      } catch (e) {
-        return '';
-      }
-    }
+    let renderScheduled = false;
 
     function getFirebaseConfig() {
       try {
         const raw = readStorageSafe(FIREBASE_CFG_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object') {
+          if (parsed && parsed.dbUrl) {
             return {
-              dbUrl: String(parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).trim(),
+              dbUrl: String(parsed.dbUrl).trim().replace(/\/+$/, ''),
               authSecret: String(parsed.authSecret || '').trim()
             };
           }
@@ -1313,72 +1076,124 @@
 
     function buildFirebaseEndpoint(cfg) {
       const base = (cfg && cfg.dbUrl ? cfg.dbUrl : DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, '');
-      const auth = cfg && cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-      return `${base}/sayaanTakafulState.json${auth}`;
+      const secret = cfg && cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${base}/sayaanTakafulState.json${secret}`;
     }
 
     function setCloudStatus(connected, label) {
       const dot = document.getElementById('cloud-status-dot');
-      const txt = document.getElementById('cloud-status-text');
-      if (txt && label) txt.textContent = label;
+      const text = document.getElementById('cloud-status-text');
+      if (text && label) text.textContent = label;
       if (dot) {
-        dot.classList.toggle('bg-emerald-400', Boolean(connected));
-        dot.classList.toggle('bg-amber-400', !connected);
+        dot.className = connected
+          ? 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]'
+          : 'w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]';
       }
     }
 
-    function openFirebaseConfigModal() {
-      if (!isAdminMode) {
-        openAdminLoginModal();
-        return;
-      }
-      const cfg = getFirebaseConfig();
-      const urlInp = document.getElementById('firebase-db-url-input');
-      const secInp = document.getElementById('firebase-auth-secret-input');
-      if (urlInp) urlInp.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
-      if (secInp) secInp.value = cfg.authSecret || '';
-      const m = document.getElementById('firebase-config-modal');
-      if (m) {
-        m.classList.remove('hidden');
-        m.classList.add('flex');
+    function getDeletedIds() {
+      try {
+        const raw = readStorageSafe(TOMBSTONE_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.map(String) : [];
+      } catch (e) {
+        return [];
       }
     }
 
-    function closeFirebaseConfigModal() {
-      const m = document.getElementById('firebase-config-modal');
-      if (m) {
-        m.classList.add('hidden');
-        m.classList.remove('flex');
+    function setDeletedIdsList(ids) {
+      const unique = Array.from(new Set((ids || []).filter(Boolean).map(String)));
+      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(unique));
+      return unique;
+    }
+
+    function addDeletedId(id) {
+      if (!id) return;
+      const current = getDeletedIds();
+      current.push(String(id));
+      setDeletedIdsList(current);
+    }
+
+    function deduplicateContributionsList(list) {
+      const map = new Map();
+      (Array.isArray(list) ? list : []).forEach((item, idx) => {
+        if (!item || typeof item !== 'object') return;
+        const id = String(item.id || `contrib_${idx}_${Date.now()}`);
+        map.set(id, { ...item, id });
+      });
+      return Array.from(map.values());
+    }
+
+    function sanitizeStateData(rawState) {
+      const base = rawState && typeof rawState === 'object' ? rawState : {};
+      const deletedSet = new Set([
+        ...getDeletedIds(),
+        ...(Array.isArray(base.deletedIds) ? base.deletedIds.map(String) : [])
+      ]);
+      const cleanCases = (Array.isArray(base.cases) ? base.cases : [])
+        .filter(c => c && typeof c === 'object' && !deletedSet.has(String(c.id)))
+        .map((c, idx) => ({
+          ...c,
+          id: String(c.id || `case_${idx}_${Date.now()}`),
+          name: String(c.name || ''),
+          category: String(c.category || 'علاج مرضى الأورام'),
+          required: Number(c.required) || 0,
+          disbursed: Number(c.disbursed) || 0,
+          desc: String(c.desc || ''),
+          approveCount: Number(c.approveCount) || 0,
+          rejectCount: Number(c.rejectCount) || 0,
+          rejections: Array.isArray(c.rejections) ? c.rejections : []
+        }));
+
+      const cleanPending = deduplicateContributionsList(base.pendingContributions)
+        .filter(p => !deletedSet.has(String(p.id)));
+      const cleanApproved = deduplicateContributionsList(base.approvedContributions)
+        .filter(a => !deletedSet.has(String(a.id)));
+
+      return {
+        lastUpdated: base.lastUpdated || formatNowDate(),
+        updatedAtMs: Number(base.updatedAtMs) || 0,
+        deletedIds: Array.from(deletedSet),
+        cases: cleanCases,
+        pendingContributions: cleanPending,
+        approvedContributions: cleanApproved
+      };
+    }
+
+    function computeStateSyncFingerprint(st) {
+      try {
+        const clean = sanitizeStateData(st);
+        return JSON.stringify({
+          deletedIds: clean.deletedIds,
+          cases: clean.cases,
+          pendingContributions: clean.pendingContributions,
+          approvedContributions: clean.approvedContributions
+        });
+      } catch (e) {
+        return '';
       }
     }
 
-    function handleFirebaseConfigSubmit(e) {
-      e.preventDefault();
-      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, '');
-      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
-      closeFirebaseConfigModal();
-      pushStateToFirebase(true);
-      showToast('تم حفظ إعدادات Firebase وتفعيل المزامنة.', 'success');
-    }
-
-    function disconnectFirebaseCloud() {
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
-      setCloudStatus(false, 'ربط Firebase متوقف');
-      closeFirebaseConfigModal();
-      showToast('تم إيقاف الربط السحابي.', 'info');
-    }
-
-    function scheduleFirebasePush(delayMs = 80, force = true) {
+    function scheduleFirebasePush(delayMs = 40, force = false) {
       if (firebasePushDebounceTimer) clearTimeout(firebasePushDebounceTimer);
       firebasePushDebounceTimer = setTimeout(() => {
         pushStateToFirebase(force);
-      }, delayMs);
+      }, Math.max(0, Number(delayMs) || 0));
+    }
+
+    function scheduleRenderAll() {
+      if (renderScheduled) return;
+      renderScheduled = true;
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        if (typeof renderAll === 'function') renderAll();
+      });
     }
 
     async function pushStateToFirebase(force = false) {
       if (isPushingFirebase) {
-        scheduleFirebasePush(180, true);
+        needsFollowupPush = true;
+        scheduleFirebasePush(80, true);
         return;
       }
       const cfg = getFirebaseConfig();
@@ -1388,6 +1203,7 @@
       if (!force && fp && fp === lastSyncedFingerprint && !hasUnsyncedLocalChanges) return;
 
       isPushingFirebase = true;
+      needsFollowupPush = false;
       try {
         const stampMs = Math.max(Number(appState.updatedAtMs) || 0, Date.now());
         appState.updatedAtMs = stampMs;
@@ -1417,23 +1233,80 @@
           lastSyncedFingerprint = fp;
           hasUnsyncedLocalChanges = false;
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          setCloudStatus(true, 'متصل ومتزامن');
+          setCloudStatus(true, 'متصل ومتزامن لحظياً');
         }
       } catch (e) {
         setCloudStatus(false, 'وضع غير متصل');
       } finally {
         isPushingFirebase = false;
+        if (needsFollowupPush || hasUnsyncedLocalChanges) {
+          needsFollowupPush = false;
+          scheduleFirebasePush(50, true);
+        }
       }
     }
 
-    async function pullStateFromFirebase() {
-      if (isPullingFirebase || isPushingFirebase || hasUnsyncedLocalChanges) return;
+    function applyRemoteFirebaseSnapshot(remote) {
+      if (!remote || typeof remote !== 'object') return false;
+      const candidateState = remote.state && typeof remote.state === 'object' ? remote.state : remote;
+      if (!candidateState || typeof candidateState !== 'object') return false;
+
+      const remoteMs = Number(remote.updatedAt) || Number(candidateState.updatedAtMs) || 0;
+      const localMs = Number(appState.updatedAtMs) || 0;
+      const mergedDeletedSet = new Set([
+        ...getDeletedIds().map(String),
+        ...(Array.isArray(remote.deletedIds) ? remote.deletedIds.map(String) : []),
+        ...(Array.isArray(candidateState.deletedIds) ? candidateState.deletedIds.map(String) : [])
+      ]);
+      setDeletedIdsList(Array.from(mergedDeletedSet));
+
+      const remoteSanitized = sanitizeStateData({
+        ...candidateState,
+        deletedIds: Array.from(mergedDeletedSet)
+      });
+
+      const remoteFp = computeStateSyncFingerprint(remoteSanitized);
+      const currentFp = computeStateSyncFingerprint(appState);
+
+      if ((remoteMs >= localMs || !hasLocalStateStored) && remoteFp && remoteFp !== currentFp) {
+        appState = {
+          ...remoteSanitized,
+          deletedIds: Array.from(mergedDeletedSet),
+          updatedAtMs: Math.max(remoteMs, localMs)
+        };
+        hasLocalStateStored = true;
+        hasUnsyncedLocalChanges = false;
+        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+        if (readStorageSafe(RESTORED_LOCK_KEY)) {
+          writeStorageSafe(RESTORED_LOCK_KEY, JSON.stringify({
+            updatedAtMs: appState.updatedAtMs,
+            savedAt: appState.lastUpdated,
+            state: appState
+          }));
+        }
+        lastSyncedFingerprint = remoteFp;
+        if (typeof updateAdminUI === 'function') {
+          updateAdminUI();
+        }
+        if (typeof renderAll === 'function') {
+          renderAll();
+        }
+        return true;
+      } else if (remoteFp && remoteFp === currentFp) {
+        lastSyncedFingerprint = remoteFp;
+      }
+      return false;
+    }
+
+    async function pullStateFromFirebase(forcePull = false) {
+      if (isPullingFirebase) return;
+      if (!forcePull && (isPushingFirebase || hasUnsyncedLocalChanges)) return;
       const cfg = getFirebaseConfig();
       if (!cfg || !cfg.dbUrl) return;
       isPullingFirebase = true;
       try {
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 4500) : null;
         const res = await fetch(buildFirebaseEndpoint(cfg), {
           cache: 'no-store',
           signal: controller ? controller.signal : undefined
@@ -1441,42 +1314,12 @@
         if (timeoutId) clearTimeout(timeoutId);
         if (!res.ok) return;
         const remote = await res.json();
-        if (!remote || !remote.state || typeof remote.state !== 'object') {
-          setCloudStatus(true, 'متصل ومتزامن');
+        if (!remote || typeof remote !== 'object') {
+          setCloudStatus(true, 'متصل ومتزامن لحظياً');
           return;
         }
-        const remoteMs = Number(remote.updatedAt) || Number(remote.state.updatedAtMs) || 0;
-        const localMs = Number(appState.updatedAtMs) || 0;
-        const mergedDeletedSet = new Set([
-          ...getDeletedIds().map(String),
-          ...(Array.isArray(remote.deletedIds) ? remote.deletedIds.map(String) : []),
-          ...(Array.isArray(remote.state.deletedIds) ? remote.state.deletedIds.map(String) : [])
-        ]);
-        setDeletedIdsList(Array.from(mergedDeletedSet));
-
-        const remoteSanitized = sanitizeStateData({
-          ...remote.state,
-          deletedIds: Array.from(mergedDeletedSet)
-        });
-
-        const remoteFp = computeStateSyncFingerprint(remoteSanitized);
-        const currentFp = computeStateSyncFingerprint(appState);
-
-        if (remoteMs > localMs && remoteFp && remoteFp !== currentFp) {
-          appState = {
-            ...remoteSanitized,
-            deletedIds: Array.from(mergedDeletedSet),
-            updatedAtMs: remoteMs
-          };
-          hasLocalStateStored = true;
-          hasUnsyncedLocalChanges = false;
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          lastSyncedFingerprint = remoteFp;
-          scheduleRenderAll();
-        } else if (remoteFp && remoteFp === currentFp) {
-          lastSyncedFingerprint = remoteFp;
-        }
-        setCloudStatus(true, 'متصل ومتزامن');
+        applyRemoteFirebaseSnapshot(remote);
+        setCloudStatus(true, 'متصل ومتزامن لحظياً');
       } catch (e) {
         setCloudStatus(false, 'وضع غير متصل');
       } finally {
@@ -1484,196 +1327,106 @@
       }
     }
 
+    function startFirebaseRealtimeStream() {
+      if (firebaseEventSource) {
+        try { firebaseEventSource.close(); } catch (e) {}
+        firebaseEventSource = null;
+      }
+      if (typeof EventSource === 'undefined') return;
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return;
+      try {
+        const es = new EventSource(buildFirebaseEndpoint(cfg));
+        firebaseEventSource = es;
+        const onStreamData = (evt) => {
+          if (isPushingFirebase || hasUnsyncedLocalChanges) return;
+          try {
+            const parsed = JSON.parse(evt.data);
+            if (parsed && parsed.data) {
+              if (parsed.path === '/' || !parsed.path) {
+                applyRemoteFirebaseSnapshot(parsed.data);
+              } else {
+                pullStateFromFirebase(false);
+              }
+            } else if (parsed && parsed.path && parsed.path !== '/') {
+              pullStateFromFirebase(false);
+            }
+            setCloudStatus(true, 'متصل ومتزامن لحظياً');
+          } catch (err) {
+            pullStateFromFirebase(false);
+          }
+        };
+        es.addEventListener('put', onStreamData);
+        es.addEventListener('patch', onStreamData);
+        es.onerror = () => {
+          try { es.close(); } catch (e) {}
+          firebaseEventSource = null;
+        };
+      } catch (e) {}
+    }
+
     function startFirebasePolling() {
       if (firebasePollTimer) clearInterval(firebasePollTimer);
-      pullStateFromFirebase();
+      startFirebaseRealtimeStream();
+      pullStateFromFirebase(true);
       firebasePollTimer = setInterval(() => {
-        pullStateFromFirebase();
-      }, 3000);
+        if (!firebaseEventSource || firebaseEventSource.readyState === 2) {
+          startFirebaseRealtimeStream();
+        }
+        pullStateFromFirebase(false);
+      }, 900);
     }
 
-    function loadLocalState() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (evt) => {
+        if (evt.key === STORAGE_KEY && evt.newValue) {
+          try {
+            const parsed = JSON.parse(evt.newValue);
+            applyRemoteFirebaseSnapshot({ updatedAt: parsed.updatedAtMs, state: parsed });
+          } catch (e) {}
+        }
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          startFirebaseRealtimeStream();
+          pullStateFromFirebase(true);
+        }
+      });
+      window.addEventListener('focus', () => {
+        pullStateFromFirebase(true);
+      });
+    }
+
+    function getDeviceVotes() {
       try {
-        const restoredLockRaw = readStorageSafe(RESTORED_LOCK_KEY);
-        if (restoredLockRaw) {
-          const lockObj = JSON.parse(restoredLockRaw);
-          if (lockObj && lockObj.state && typeof lockObj.state === 'object') {
-            const lockedMs = Number(lockObj.updatedAtMs) || (Date.now() + 86400000);
-            const mainRaw = readStorageSafe(STORAGE_KEY);
-            let sourceState = lockObj.state;
-            let sourceMs = lockedMs;
-            if (mainRaw) {
-              try {
-                const mainParsed = JSON.parse(mainRaw);
-                const mainMs = Number(mainParsed && mainParsed.updatedAtMs) || 0;
-                if (mainParsed && mainMs >= lockedMs) {
-                  sourceState = mainParsed;
-                  sourceMs = mainMs;
-                }
-              } catch (e) {}
-            }
-            appState = sanitizeStateData({
-              ...sourceState,
-              updatedAtMs: sourceMs
-            });
-            appState.updatedAtMs = sourceMs;
-            hasLocalStateStored = true;
-            hasUnsyncedLocalChanges = true;
-            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            return appState;
-          }
-        }
-
-        const raw = readStorageSafe(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          appState = sanitizeStateData(parsed);
-          hasLocalStateStored = true;
-          return appState;
-        }
-        const backupRaw = readStorageSafe(AUTO_BACKUP_KEY);
-        if (backupRaw) {
-          const bParsed = JSON.parse(backupRaw);
-          if (bParsed && bParsed.state) {
-            appState = sanitizeStateData(bParsed.state);
-            hasLocalStateStored = true;
-            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            return appState;
-          }
-        }
-      } catch (e) {}
-      appState = getInitialState();
-      return appState;
-    }
-
-    function ensureSeedDataIfEmpty() {
-      if (readStorageSafe(RESTORED_LOCK_KEY)) return;
-      if (hasLocalStateStored) return;
-      const hasAnyCases = Array.isArray(appState.cases) && appState.cases.length > 0;
-      const hasAnyApproved = Array.isArray(appState.approvedContributions) && appState.approvedContributions.length > 0;
-      const hasAnyPending = Array.isArray(appState.pendingContributions) && appState.pendingContributions.length > 0;
-      if (hasAnyCases || hasAnyApproved || hasAnyPending) return;
-
-      const nowStr = formatNowDate();
-      appState.cases = [
-        {
-          id: 'case_oncology_support_1',
-          title: 'دعم علاج مرضى الأورام — متابعة الجلسات والأدوية',
-          category: 'علاج مرضى الأورام',
-          description: 'توفير تكاليف الجلسات العلاجية والتحاليل الطبية الدورية لمرضى الأورام من أبناء القبيلة.',
-          requiredAmount: 15000,
-          disbursedAmount: 2500,
-          closed: false,
-          votesYes: 18,
-          votesNo: 1,
-          rejections: []
-        },
-        {
-          id: 'case_blood_money_2',
-          title: 'مساهمة في صلح ودية عاجلة',
-          category: 'دية',
-          description: 'المساهمة في إتمام صلح اجتماعي وحقن الدماء وإغلاق ملف الدية في الموعد المحدد.',
-          requiredAmount: 20000,
-          disbursedAmount: 5000,
-          closed: false,
-          votesYes: 24,
-          votesNo: 0,
-          rejections: []
-        }
-      ];
-
-      appState.approvedContributions = [
-        {
-          id: 'contrib_featured_fatima_10500',
-          type: 'contribution',
-          contributorName: 'فاطمة',
-          branch: 'الهمايلة',
-          amount: 10500,
-          target: 'general',
-          targetLabel: 'رصيد الصندوق العام',
-          method: 'المصرف (تحويل مصرفي)',
-          phone: '',
-          note: 'مساهمة مميزة لدعم التكافل الاجتماعي',
-          receiptData: '',
-          receiptName: '',
-          createdAt: nowStr,
-          approvedAt: nowStr,
-          userEditUsed: false,
-          userEditCount: 0
-        },
-        {
-          id: 'contrib_seed_case1_4500',
-          type: 'contribution',
-          contributorName: 'سالم مفتاح الصيعاني',
-          branch: 'أولاد سلام',
-          amount: 4500,
-          target: 'case_oncology_support_1',
-          targetLabel: 'دعم علاج مرضى الأورام — متابعة الجلسات والأدوية',
-          method: 'النقال (تحويل رصيد)',
-          phone: '0910000001',
-          note: 'دعم علاج الأورام',
-          receiptData: '',
-          receiptName: '',
-          createdAt: nowStr,
-          approvedAt: nowStr,
-          userEditUsed: false,
-          userEditCount: 0
-        },
-        {
-          id: 'disb_seed_case1_2500',
-          type: 'disbursement',
-          contributorName: 'صرف من الصندوق — دعم علاج مرضى الأورام — متابعة الجلسات والأدوية',
-          branch: 'علاج مرضى الأورام',
-          amount: 2500,
-          target: 'case_oncology_support_1',
-          targetLabel: 'دعم علاج مرضى الأورام — متابعة الجلسات والأدوية',
-          method: 'رصيد الصندوق',
-          note: 'الدفعة الأولى للعلاج',
-          createdAt: nowStr,
-          approvedAt: nowStr
-        }
-      ];
-
-      appState.pendingContributions = [
-        {
-          id: 'pending_seed_1',
-          type: 'contribution',
-          contributorName: 'عبدالله إبراهيم',
-          branch: 'أولاد إمحمد',
-          amount: 1200,
-          target: 'general',
-          targetLabel: 'رصيد الصندوق العام',
-          method: 'النقال (تحويل رصيد)',
-          phone: '0920000002',
-          note: 'مساهمة شهرية',
-          receiptData: '',
-          receiptName: '',
-          createdAt: nowStr,
-          userEditUsed: false,
-          userEditCount: 0
-        }
-      ];
-
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-    }
-
-    function saveAutoBackupSnapshot(label = 'نسخة تلقائية', showMsg = false) {
-      try {
-        const snapshot = {
-          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          label: String(label || 'نسخة احتياطية'),
-          savedAt: formatNowDate(),
-          savedAtMs: Date.now(),
-          state: sanitizeStateData(appState)
-        };
-        writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
-        const hist = getAutoBackupHistory();
-        const nextHist = [snapshot, ...hist.filter(x => x && x.id !== snapshot.id)].slice(0, MAX_BACKUP_SNAPSHOTS);
-        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(nextHist));
-        if (showMsg) showToast(`تم حفظ ${label}.`, 'success');
-        return snapshot;
+        const raw = readStorageSafe(DEVICE_VOTE_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === 'object' ? obj : {};
       } catch (e) {
-        return null;
+        return {};
+      }
+    }
+
+    function saveDeviceVotes(map) {
+      writeStorageSafe(DEVICE_VOTE_KEY, JSON.stringify(map || {}));
+    }
+
+    function getMyContributionIds() {
+      try {
+        const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.map(String) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function registerMyContributionId(id) {
+      if (!id) return;
+      const list = getMyContributionIds();
+      if (!list.includes(String(id))) {
+        list.push(String(id));
+        writeStorageSafe(MY_CONTRIBUTIONS_KEY, JSON.stringify(list));
       }
     }
 
@@ -1702,100 +1455,62 @@
         if (pushCloud) {
           lastSyncedFingerprint = '';
           pushStateToFirebase(true);
-          scheduleFirebasePush(120, true);
+          scheduleFirebasePush(50, true);
         }
       } catch (e) {}
     }
-    function startFirebasePolling() {
-      if (firebasePollTimer) clearInterval(firebasePollTimer);
-      pullStateFromFirebase();
-      firebasePollTimer = setInterval(() => {
-        pullStateFromFirebase();
-      }, 1000);
-    }
 
-    function exportManualBackupFile() {
-      try {
-        const nowMs = Date.now();
-        const payload = {
-          app: 'sayaan_takaful_platform',
-          exportedAt: formatNowDate(),
-          exportedAtMs: nowMs,
-          updatedAtMs: nowMs,
-          deletedIds: getDeletedIds(),
-          state: sanitizeStateData({
-            ...appState,
-            updatedAtMs: nowMs
-          })
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sayaan-takaful-backup-${nowMs}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('تم حفظ نسخة المنصة الكاملة إلى الجهاز بنجاح.', 'success');
-      } catch (e) {
-        showToast('تعذر تصدير ملف النسخة إلى الجهاز.', 'warning');
+    function showToast(message, type = 'success') {
+      const box = document.getElementById('toast-box');
+      const text = document.getElementById('toast-text');
+      const icon = document.getElementById('toast-icon');
+      if (!box || !text) return;
+      text.textContent = message;
+      if (icon) {
+        icon.textContent = type === 'error' ? '!' : type === 'warning' ? '⚠' : '✓';
       }
+      box.classList.remove('hidden', 'toast-animate-in');
+      box.classList.add('flex');
+      void box.offsetWidth;
+      box.classList.add('toast-animate-in');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+        box.classList.remove('flex', 'toast-animate-in');
+      }, 3600);
     }
 
-    function handleManualBackupFileImport(input) {
-      const file = input?.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const rawText = String(reader.result || '');
-          const parsed = JSON.parse(rawText);
-          const candidateState = parsed && parsed.state ? parsed.state : parsed;
-          if (!candidateState || typeof candidateState !== 'object') {
-            showToast('ملف النسخة الاحتياطية غير صالح.', 'warning');
-            return;
-          }
+    function copyPaymentDetail(value, label) {
+      const text = String(value || '');
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      temp.setAttribute('readonly', '');
+      temp.style.position = 'fixed';
+      temp.style.opacity = '0';
+      document.body.appendChild(temp);
+      temp.select();
+      try {
+        document.execCommand('copy');
+        showToast(`تم نسخ ${label}: ${text}`, 'success');
+      } catch (e) {
+        showToast(`تعذر النسخ التلقائي: ${text}`, 'warning');
+      }
+      document.body.removeChild(temp);
+    }
 
-          const restoredStampMs = Math.max(
-            Date.now() + 86400000,
-            (Number(parsed.exportedAtMs || parsed.updatedAtMs || candidateState.updatedAtMs) || 0) + 86400000
-          );
-          setDeletedIdsList([]);
-
-          const sanitized = sanitizeStateData({
-            ...candidateState,
-            deletedIds: [],
-            updatedAtMs: restoredStampMs
-          });
-
-          appState = {
-            ...sanitized,
-            deletedIds: [],
-            lastUpdated: formatNowDate(),
-            updatedAtMs: restoredStampMs
-          };
-          hasLocalStateStored = true;
-          hasUnsyncedLocalChanges = true;
-          lastSyncedFingerprint = '';
-
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          writeStorageSafe(RESTORED_LOCK_KEY, JSON.stringify({
-            updatedAtMs: restoredStampMs,
-            restoredAt: appState.lastUpdated,
-            state: appState
-          }));
-          saveAutoBackupSnapshot('استعادة نسخة كاملة من الجهاز', false);
-          renderAll();
-          await pushStateToFirebase(true);
-          showToast('تم استعادة كافة بيانات المنصة وتثبيتها ومزامنتها مع Firebase بنجاح.', 'success');
-        } catch (err) {
-          showToast('تعذر قراءة ملف النسخة الاحتياطية.', 'warning');
-        } finally {
-          if (input) input.value = '';
-        }
-      };
-      reader.readAsText(file);
+    function scrollToContributeSection(targetCaseId = 'general') {
+      const section = document.getElementById('contribute-section');
+      const select = document.getElementById('contrib-target');
+      if (select && targetCaseId) {
+        const exists = Array.from(select.options).some(opt => opt.value === String(targetCaseId));
+        if (exists) select.value = String(targetCaseId);
+      }
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        section.classList.remove('target-highlight-ring');
+        void section.offsetWidth;
+        section.classList.add('target-highlight-ring');
+      }
     }
 
     function handleAdminHeaderClick() {
@@ -1803,32 +1518,23 @@
         isAdminMode = false;
         updateAdminUI();
         renderAll();
-        showToast('تم الخروج من وضع الإدارة.', 'info');
+        showToast('تم الخروج من وضع الإدارة.', 'success');
       } else {
-        openAdminLoginModal();
+        const modal = document.getElementById('admin-login-modal');
+        const err = document.getElementById('admin-login-error');
+        if (err) err.classList.add('hidden');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
       }
-    }
-
-    function openAdminLoginModal() {
-      const err = document.getElementById('admin-login-error');
-      const eInp = document.getElementById('admin-email-input');
-      const pInp = document.getElementById('admin-pass-input');
-      if (err) err.classList.add('hidden');
-      if (eInp) eInp.value = '';
-      if (pInp) pInp.value = '';
-      const m = document.getElementById('admin-login-modal');
-      if (m) {
-        m.classList.remove('hidden');
-        m.classList.add('flex');
-      }
-      setTimeout(() => eInp?.focus(), 60);
     }
 
     function closeAdminLoginModal() {
-      const m = document.getElementById('admin-login-modal');
-      if (m) {
-        m.classList.add('hidden');
-        m.classList.remove('flex');
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
       }
     }
 
@@ -1842,65 +1548,63 @@
         closeAdminLoginModal();
         updateAdminUI();
         renderAll();
-        showToast('تم الدخول إلى وضع الإدارة بنجاح.', 'success');
+        pullStateFromFirebase(true);
+        showToast('تم الدخول إلى وضع الإدارة ومزامنة البيانات بنجاح.', 'success');
       } else if (err) {
         err.classList.remove('hidden');
       }
     }
 
     function updateAdminUI() {
-      const labelEl = document.getElementById('admin-toggle-label');
-      const pendingPanel = document.getElementById('admin-pending-panel');
-      const backupPanel = document.getElementById('manual-backup-restore-section');
+      const toggleBtn = document.getElementById('admin-toggle-btn');
+      const toggleLabel = document.getElementById('admin-toggle-label');
       const addCaseBtn = document.getElementById('admin-add-case-btn');
+      const pendingPanel = document.getElementById('admin-pending-panel');
+      const backupSection = document.getElementById('manual-backup-restore-section');
+      const notifBtn = document.getElementById('admin-notifications-btn');
+      const notifBadge = document.getElementById('admin-notifications-count-badge');
 
-      if (labelEl) labelEl.textContent = isAdminMode ? 'خروج الإدارة' : 'وضع الإدارة';
-      if (pendingPanel) pendingPanel.classList.toggle('hidden', !isAdminMode);
-      if (backupPanel) backupPanel.classList.toggle('hidden', !isAdminMode);
-      if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminMode);
+      const pendingCount = (appState.pendingContributions || []).length;
+      if (notifBadge) notifBadge.textContent = String(pendingCount);
+
       if (isAdminMode) {
-        renderPendingContributions();
-        renderAutoRecoverySnapshots();
-      }
-      renderAdminNotifications();
-    }
-
-    function getPendingReviewCount() {
-      const pending = Array.isArray(appState.pendingContributions) ? appState.pendingContributions.length : 0;
-      const reapproval = (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
-        .filter(x => x && x.type !== 'disbursement' && x.pendingAdminReapproval).length;
-      return pending + reapproval;
-    }
-
-    function renderAdminNotifications() {
-      const btn = document.getElementById('admin-notifications-btn');
-      const badge = document.getElementById('admin-notifications-count-badge');
-      const label = document.getElementById('admin-notifications-btn-label');
-      if (!btn) return;
-      const count = getPendingReviewCount();
-      if (isAdminMode && count > 0) {
-        btn.classList.remove('hidden');
-        btn.classList.add('inline-flex');
-        if (badge) badge.textContent = String(count);
-        if (label) label.textContent = 'طلبات معلقة بانتظار النشر';
+        if (toggleLabel) toggleLabel.textContent = 'خروج من الإدارة';
+        if (toggleBtn) {
+          toggleBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'text-emerald-950');
+          toggleBtn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white');
+        }
+        if (addCaseBtn) addCaseBtn.classList.remove('hidden');
+        if (pendingPanel) pendingPanel.classList.remove('hidden');
+        if (backupSection) backupSection.classList.remove('hidden');
+        if (notifBtn) {
+          notifBtn.classList.remove('hidden');
+          notifBtn.classList.add('inline-flex');
+        }
       } else {
-        btn.classList.add('hidden');
-        btn.classList.remove('inline-flex');
+        if (toggleLabel) toggleLabel.textContent = 'وضع الإدارة';
+        if (toggleBtn) {
+          toggleBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-emerald-950');
+          toggleBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500', 'text-white');
+        }
+        if (addCaseBtn) addCaseBtn.classList.add('hidden');
+        if (pendingPanel) pendingPanel.classList.add('hidden');
+        if (backupSection) backupSection.classList.add('hidden');
+        if (notifBtn) {
+          notifBtn.classList.add('hidden');
+          notifBtn.classList.remove('inline-flex');
+        }
       }
     }
 
     function jumpToPendingApprovalQueue() {
-      if (!isAdminMode) {
-        openAdminLoginModal();
-        return;
-      }
       const panel = document.getElementById('admin-pending-panel');
-      if (!panel) return;
-      panel.classList.remove('hidden');
-      renderPendingContributions();
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      panel.classList.add('target-highlight-ring');
-      setTimeout(() => panel.classList.remove('target-highlight-ring'), 4200);
+      if (panel) {
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        panel.classList.remove('target-highlight-ring');
+        void panel.offsetWidth;
+        panel.classList.add('target-highlight-ring');
+      }
     }
 
     function computeFinancialMetrics() {
@@ -1908,463 +1612,206 @@
       const cases = Array.isArray(appState.cases) ? appState.cases : [];
 
       let totalContributions = 0;
-      let contributionCount = 0;
+      let contributionsCount = 0;
       let totalDisbursed = 0;
-      let totalCaseTransfers = 0;
-      let totalSurplusToFund = 0;
+      const caseDirectMap = {};
 
-      for (const item of approved) {
-        if (!item) continue;
+      approved.forEach(item => {
+        if (!item) return;
         const amt = Number(item.amount) || 0;
         if (item.type === 'disbursement') {
           totalDisbursed += amt;
         } else {
           totalContributions += amt;
-          contributionCount += 1;
-          if (item.target && item.target !== 'general' && amt > 0) {
-            totalCaseTransfers += amt;
+          contributionsCount += 1;
+          if (item.targetCaseId && item.targetCaseId !== 'general') {
+            const key = String(item.targetCaseId);
+            caseDirectMap[key] = (caseDirectMap[key] || 0) + amt;
           }
         }
-      }
+      });
 
+      const availableBalance = Math.max(0, totalContributions - totalDisbursed);
       let totalRequired = 0;
       let totalCovered = 0;
-      let completedCasesCount = 0;
+      let fundedCasesCount = 0;
 
-      for (const c of cases) {
-        if (!c) continue;
-        const req = Math.max(0, Number(c.requiredAmount) || 0);
-        const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-        const cSum = approved
-          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id))
-          .reduce((s, x) => s + (Number(x.amount) || 0), 0);
-        const funded = disb + cSum;
-        if (req > 0 && funded > req) {
-          totalSurplusToFund += (funded - req);
-        }
+      cases.forEach(c => {
+        const req = Math.max(0, Number(c.required) || 0);
+        const direct = caseDirectMap[String(c.id)] || 0;
+        const disb = Math.max(0, Number(c.disbursed) || 0);
+        const effective = Math.max(direct, disb);
         totalRequired += req;
-        totalCovered += Math.min(req, funded);
-        if (c.closed || (req > 0 && funded >= req)) {
-          completedCasesCount += 1;
-        }
-      }
+        totalCovered += Math.min(req, effective);
+        if (req > 0 && effective >= req) fundedCasesCount += 1;
+      });
 
-      const availableBalance = Math.max(0, totalContributions - totalDisbursed - totalCaseTransfers + totalSurplusToFund);
-      const coveragePct = totalRequired > 0 ? Math.min(100, Math.round((totalCovered / totalRequired) * 100)) : 0;
+      const coveragePercent = totalRequired > 0 ? Math.min(100, Math.round((totalCovered / totalRequired) * 100)) : 0;
 
       return {
         totalContributions,
-        contributionCount,
+        contributionsCount,
         totalDisbursed,
         availableBalance,
         totalRequired,
         totalCovered,
-        coveragePct,
-        completedCasesCount,
-        casesCount: cases.length
+        coveragePercent,
+        casesCount: cases.length,
+        fundedCasesCount,
+        caseDirectMap
       };
     }
 
     function renderStats() {
       const m = computeFinancialMetrics();
-      const setTxt = (id, txt) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = txt;
-      };
-      setTxt('stat-total-contributions', formatCurrency(m.totalContributions));
-      setTxt('stat-contributions-count', `عدد المساهمات: ${m.contributionCount}`);
-      setTxt('stat-total-disbursed', formatCurrency(m.totalDisbursed));
-      setTxt('stat-disbursed-summary', `حالات مسددة / مصروفة: ${m.completedCasesCount} من ${m.casesCount}`);
-      setTxt('stat-available-balance', formatCurrency(m.availableBalance));
-      setTxt('stat-last-updated', `آخر تحديث: ${appState.lastUpdated || formatNowDate()}`);
-      setTxt('stat-cases-badge', `${m.casesCount} حالات`);
-      setTxt('stat-coverage-text', `${m.coveragePct}% من ${formatCurrency(m.totalRequired)}`);
-      const bar = document.getElementById('stat-coverage-bar');
-      if (bar) bar.style.width = `${m.coveragePct}%`;
+      const elTotalContrib = document.getElementById('stat-total-contributions');
+      const elContribCount = document.getElementById('stat-contributions-count');
+      const elTotalDisb = document.getElementById('stat-total-disbursed');
+      const elDisbSummary = document.getElementById('stat-disbursed-summary');
+      const elBalance = document.getElementById('stat-available-balance');
+      const elLastUpdated = document.getElementById('stat-last-updated');
+      const elCasesBadge = document.getElementById('stat-cases-badge');
+      const elCovText = document.getElementById('stat-coverage-text');
+      const elCovBar = document.getElementById('stat-coverage-bar');
+
+      if (elTotalContrib) elTotalContrib.textContent = formatCurrency(m.totalContributions);
+      if (elContribCount) elContribCount.textContent = `عدد المساهمات: ${m.contributionsCount}`;
+      if (elTotalDisb) elTotalDisb.textContent = formatCurrency(m.totalDisbursed);
+      if (elDisbSummary) elDisbSummary.textContent = `حالات مسددة / مصروفة: ${m.fundedCasesCount} من ${m.casesCount}`;
+      if (elBalance) elBalance.textContent = formatCurrency(m.availableBalance);
+      if (elLastUpdated) elLastUpdated.textContent = `آخر تحديث: ${appState.lastUpdated || '--'}`;
+      if (elCasesBadge) elCasesBadge.textContent = `${m.casesCount} حالات`;
+      if (elCovText) elCovText.textContent = `${m.coveragePercent}% من ${formatCurrency(m.totalRequired)}`;
+      if (elCovBar) elCovBar.style.width = `${m.coveragePercent}%`;
     }
 
-    function renderTargetSelects() {
-      const selects = [document.getElementById('contrib-target'), document.getElementById('edit-contrib-target')].filter(Boolean);
-      const openCases = (Array.isArray(appState.cases) ? appState.cases : []).filter(c => {
-        const req = Math.max(0, Number(c.requiredAmount) || 0);
-        const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-        const cSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-        return !(c.closed || (req > 0 && (disb + cSum) >= req));
+    function populateTargetCaseSelects() {
+      const cases = Array.isArray(appState.cases) ? appState.cases : [];
+      const selects = [
+        document.getElementById('contrib-target'),
+        document.getElementById('edit-contrib-target')
+      ];
+      selects.forEach(sel => {
+        if (!sel) return;
+        const prev = sel.value || 'general';
+        let html = `<option value="general">الصندوق العام (أورام ودية)</option>`;
+        cases.forEach(c => {
+          html += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`;
+        });
+        sel.innerHTML = html;
+        if (Array.from(sel.options).some(o => o.value === prev)) {
+          sel.value = prev;
+        }
       });
-
-      for (const sel of selects) {
-        const prevVal = sel.value;
-        sel.innerHTML = `<option value="general">رصيد الصندوق العام (أورام / دية)</option>` +
-          openCases.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)} (${escapeHtml(c.category)})</option>`).join('');
-        if (prevVal && Array.from(sel.options).some(o => o.value === prevVal)) {
-          sel.value = prevVal;
-        }
-      }
-    }
-
-    function scrollToContributeSection(targetCaseId = 'general') {
-      const targetSel = document.getElementById('contrib-target');
-      if (targetSel) {
-        if (targetCaseId && Array.from(targetSel.options).some(o => o.value === String(targetCaseId))) {
-          targetSel.value = String(targetCaseId);
-        } else {
-          targetSel.value = 'general';
-        }
-      }
-      const sec = document.getElementById('contribute-section');
-      if (sec) {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        sec.classList.add('target-highlight-ring');
-        setTimeout(() => sec.classList.remove('target-highlight-ring'), 3000);
-      }
-    }
-
-    function toggleNewPaymentFields() {
-      const method = document.getElementById('contrib-method')?.value || '';
-      const bankBox = document.getElementById('new-bank-fields');
-      const mobileBox = document.getElementById('new-mobile-fields');
-      bankBox?.classList.toggle('hidden', !method.includes('المصرف'));
-      mobileBox?.classList.toggle('hidden', !method.includes('النقال'));
-    }
-
-    function toggleEditPaymentFields() {
-      const method = document.getElementById('edit-contrib-method')?.value || '';
-      const bankBox = document.getElementById('edit-contrib-bank-fields');
-      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
-      bankBox?.classList.toggle('hidden', !method.includes('المصرف'));
-      mobileBox?.classList.toggle('hidden', !method.includes('النقال'));
-    }
-
-    function compressReceiptFileToDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        if (!file) return reject(new Error('No file'));
-        if (file.type === 'application/pdf') {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ''));
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-          const img = new Image();
-          img.onload = () => {
-            const maxDim = 1100;
-            let w = img.width || 800;
-            let h = img.height || 800;
-            if (w > maxDim || h > maxDim) {
-              if (w > h) {
-                h = Math.round((h * maxDim) / w);
-                w = maxDim;
-              } else {
-                w = Math.round((w * maxDim) / h);
-                h = maxDim;
-              }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.78));
-          };
-          img.onerror = () => resolve(String(reader.result || ''));
-          img.src = String(reader.result || '');
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function clearNewReceiptSelection() {
-      const input = document.getElementById('contrib-receipt');
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const prevWrap = document.getElementById('new-receipt-preview-wrap');
-      const prevImg = document.getElementById('new-receipt-preview-img');
-      const clearBtn = document.getElementById('clear-new-receipt-btn');
-      if (input) input.value = '';
-      newReceiptDataUrl = '';
-      newReceiptFileName = '';
-      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
-      if (prevImg) prevImg.src = '';
-      prevWrap?.classList.add('hidden');
-      clearBtn?.classList.add('hidden');
-    }
-
-    async function handleNewReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const prevWrap = document.getElementById('new-receipt-preview-wrap');
-      const prevImg = document.getElementById('new-receipt-preview-img');
-      const clearBtn = document.getElementById('clear-new-receipt-btn');
-      if (!file) return;
-      isLoadingNewReceipt = true;
-      newReceiptFileName = file.name;
-      if (nameEl) nameEl.textContent = `جاري تجهيز الإيصال: ${file.name}...`;
-      try {
-        const dataUrl = await compressReceiptFileToDataUrl(file);
-        newReceiptDataUrl = dataUrl;
-        if (nameEl) nameEl.textContent = `الإيصال المحدد: ${file.name}`;
-        clearBtn?.classList.remove('hidden');
-        if (dataUrl.startsWith('data:image')) {
-          prevWrap?.classList.remove('hidden');
-          if (prevImg) prevImg.src = dataUrl;
-        }
-      } catch (e) {
-        showToast('تعذر قراءة ملف الإيصال.', 'warning');
-      } finally {
-        isLoadingNewReceipt = false;
-        if (input) input.value = '';
-      }
-    }
-
-    function openReceiptViewerModal(id, scope = 'approved') {
-      if (!isAdminMode) {
-        showToast('عرض الإيصال متاح في وضع الإدارة فقط.', 'warning');
-        return;
-      }
-      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
-      const item = (list || []).find(x => String(x.id) === String(id));
-      if (!item) return;
-      const modal = document.getElementById('receipt-viewer-modal');
-      const titleEl = document.getElementById('receipt-viewer-title');
-      const bodyEl = document.getElementById('receipt-viewer-body');
-      if (titleEl) titleEl.textContent = `إيصال المساهمة: ${item.contributorName || ''}`;
-      if (bodyEl) {
-        const dataUrl = String(item.receiptData || '');
-        if (dataUrl.startsWith('data:image')) {
-          bodyEl.innerHTML = `<img src="${dataUrl}" alt="إيصال المساهمة" class="max-h-[60vh] rounded-xl object-contain" />`;
-        } else if (dataUrl.startsWith('data:application/pdf')) {
-          bodyEl.innerHTML = `<iframe src="${dataUrl}" class="w-full h-[55vh] rounded-xl border-0"></iframe>`;
-        } else if (item.phone) {
-          bodyEl.innerHTML = `
-            <div class="text-center space-y-2 p-4">
-              <p class="text-xs font-extrabold text-slate-600">تحويل رصيد عبر النقال من الرقم:</p>
-              <p dir="ltr" class="font-mono text-lg font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl">${escapeHtml(item.phone)}</p>
-            </div>
-          `;
-        } else {
-          bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-500 py-6">لا يوجد إيصال مرفق لهذه المساهمة.</p>`;
-        }
-      }
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeReceiptViewerModal() {
-      const modal = document.getElementById('receipt-viewer-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function getCaseContributionsList(caseId) {
-      return (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
-        .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(caseId));
-    }
-
-    function getCaseDisbursementsList(caseId) {
-      return (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
-        .filter(x => x && x.type === 'disbursement' && String(x.target) === String(caseId));
-    }
-
-    function isHighValueContribution(amount) {
-      return (Number(amount) || 0) >= 10000;
-    }
-
-    function renderDonorIdentityBadge(name, branch, amount = 0) {
-      const safeName = escapeHtml(name || 'فاعل خير');
-      const safeBranch = escapeHtml(branch || '');
-      if (!isHighValueContribution(amount)) {
-        return `
-          <span class="font-black text-slate-900">${safeName}</span>
-          ${safeBranch ? `<span class="text-[11px] font-bold text-emerald-700"> (${safeBranch})</span>` : ''}
-        `;
-      }
-      return `
-        <span class="elite-donor-identity-chip">
-          <span class="elite-glow-star" aria-hidden="true">✦</span>
-          <span class="font-black text-amber-950">${safeName}</span>
-          ${safeBranch ? `<span class="text-[11px] font-black text-emerald-900 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-300/80">${safeBranch}</span>` : ''}
-        </span>
-      `;
     }
 
     function renderCases() {
       const container = document.getElementById('cases-container');
       if (!container) return;
       const cases = Array.isArray(appState.cases) ? appState.cases : [];
-      if (!cases.length) {
+      const metrics = computeFinancialMetrics();
+      const deviceVotes = getDeviceVotes();
+
+      if (cases.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center space-y-2">
-            <p class="text-sm font-black text-slate-700">لا توجد حالات معروضة للتصويت حالياً.</p>
-            <p class="text-xs font-bold text-slate-500">يمكن للمشرف إضافة حالة جديدة من زر «+ إضافة حالة جديدة» في وضع الإدارة.</p>
+          <div class="col-span-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-8 text-center space-y-2">
+            <p class="text-sm sm:text-base font-black text-slate-700">لا توجد حالات معروضة للتصويت حالياً</p>
+            <p class="text-xs font-bold text-slate-500">يمكن للإدارة إضافة الحالات المستحقة وستظهر هنا مباشرة لجميع الأعضاء.</p>
           </div>
         `;
         return;
       }
 
-      const deviceVotes = getDeviceVotes();
-      const caseVisualThemes = [
-        { cardClass: 'case-card-theme-0', numberBadge: 'bg-emerald-700 text-white border border-emerald-400/60', categoryBadge: 'bg-emerald-100 text-emerald-950 border border-emerald-300', innerPanel: 'bg-white/90 border-emerald-200/90', cornerOrnament: '❖' },
-        { cardClass: 'case-card-theme-1', numberBadge: 'bg-amber-600 text-white border border-amber-300/70', categoryBadge: 'bg-amber-100 text-amber-950 border border-amber-300', innerPanel: 'bg-white/90 border-amber-200/90', cornerOrnament: '✦' },
-        { cardClass: 'case-card-theme-2', numberBadge: 'bg-sky-700 text-white border border-sky-300/70', categoryBadge: 'bg-sky-100 text-sky-950 border border-sky-300', innerPanel: 'bg-white/90 border-sky-200/90', cornerOrnament: '◈' },
-        { cardClass: 'case-card-theme-3', numberBadge: 'bg-pink-700 text-white border border-pink-300/70', categoryBadge: 'bg-pink-100 text-pink-950 border border-pink-300', innerPanel: 'bg-white/90 border-pink-200/90', cornerOrnament: '❋' },
-        { cardClass: 'case-card-theme-4', numberBadge: 'bg-violet-700 text-white border border-violet-300/70', categoryBadge: 'bg-violet-100 text-violet-950 border border-violet-300', innerPanel: 'bg-white/90 border-violet-200/90', cornerOrnament: '✧' },
-        { cardClass: 'case-card-theme-5', numberBadge: 'bg-teal-700 text-white border border-teal-300/70', categoryBadge: 'bg-teal-100 text-teal-950 border border-teal-300', innerPanel: 'bg-white/90 border-teal-200/90', cornerOrnament: '❈' }
-      ];
-
-      container.innerHTML = cases.map((c, idx) => {
-        const theme = caseVisualThemes[idx % caseVisualThemes.length];
-        const req = Math.max(0, Number(c.requiredAmount) || 0);
-        const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-        const caseContribs = getCaseContributionsList(c.id);
-        const caseDisbs = getCaseDisbursementsList(c.id);
-        const contribSum = caseContribs.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-        const rawFunded = disb + contribSum;
-        const surplus = req > 0 && rawFunded > req ? (rawFunded - req) : 0;
-        const covered = req > 0 ? Math.min(req, rawFunded) : rawFunded;
-        const remaining = Math.max(0, req - covered);
-        const pct = req > 0 ? Math.min(100, Math.round((covered / req) * 100)) : (rawFunded > 0 ? 100 : 0);
-        const isCompleted = Boolean(c.closed) || (req > 0 && rawFunded >= req);
+      container.innerHTML = cases.map((c, index) => {
+        const themeIdx = index % 6;
+        const req = Math.max(0, Number(c.required) || 0);
+        const direct = metrics.caseDirectMap[String(c.id)] || 0;
+        const disb = Math.max(0, Number(c.disbursed) || 0);
+        const collected = Math.max(direct, disb);
+        const remaining = Math.max(0, req - collected);
+        const pct = req > 0 ? Math.min(100, Math.round((collected / req) * 100)) : 0;
+        const isCompleted = req > 0 && collected >= req;
         const myVote = deviceVotes[String(c.id)] || '';
-
-        const loggedDisbTotal = caseDisbs.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-        const unloggedDisb = Math.max(0, disb - loggedDisbTotal);
-
-        const fundContributionsHtml = [
-          ...(unloggedDisb > 0 ? [`
-            <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
-              <div>
-                <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
-                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(appState.lastUpdated || formatNowDate()))}</span>
-              </div>
-              <span class="font-black text-emerald-700">${formatCurrency(unloggedDisb)}</span>
-            </div>
-          `] : []),
-          ...caseDisbs.map(d => `
-            <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
-              <div>
-                <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
-                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(d.approvedAt || d.createdAt || formatNowDate()))}</span>
-              </div>
-              <span class="font-black text-emerald-700">${formatCurrency(d.amount)}</span>
-            </div>
-          `)
-        ].join('');
-
-        const donorsHtml = caseContribs.map(item => `
-          <div class="bg-white/95 border border-slate-200/90 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-1.5">
-                ${renderDonorIdentityBadge(item.contributorName, item.branch, item.amount)}
-              </div>
-              <span class="text-[11px] font-bold text-slate-500 block mt-0.5">${escapeHtml(formatDateTimeWithPeriod(item.editedAt || item.approvedAt || item.createdAt || formatNowDate()))}</span>
-            </div>
-            <span class="font-black text-emerald-700 shrink-0">${formatCurrency(item.amount)}</span>
-          </div>
-        `).join('');
-
-        const rejectionsHtml = (!isCompleted && Array.isArray(c.rejections) && c.rejections.length)
-          ? `<div class="space-y-1.5 pt-1">
-              <p class="text-[11px] font-black text-rose-700">ملاحظات وأسباب عدم الموافقة (${c.rejections.length}):</p>
-              ${c.rejections.map(r => `
-                <div class="bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-xs text-rose-900 flex items-start justify-between gap-2">
-                  <div>
-                    <p class="font-bold leading-relaxed">${escapeHtml(r.reason || '(تعليق مصفّر)')}</p>
-                    <span class="text-[10px] text-rose-500 font-bold">${escapeHtml(r.createdAt || '')}</span>
-                  </div>
-                  ${isAdminMode ? `
-                    <div class="flex items-center gap-1 shrink-0">
-                      <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-white border border-rose-200 text-rose-700 font-black text-[10px] cursor-pointer">تعديل</button>
-                      <button type="button" onclick="resetSingleRejectionItem('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-950 font-black text-[10px] cursor-pointer">تصفير</button>
-                      <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px] cursor-pointer">حذف</button>
-                    </div>
-                  ` : ''}
-                </div>
-              `).join('')}
-            </div>`
-          : '';
-
-        const votesYesCount = Math.max(0, Number(c.votesYes) || 0);
-        const votesNoCount = Math.max(0, Number(c.votesNo) || 0);
-        const totalVotesCount = votesYesCount + votesNoCount;
-        const yesPct = totalVotesCount > 0 ? Math.round((votesYesCount / totalVotesCount) * 100) : 0;
-        const noPct = totalVotesCount > 0 ? Math.max(0, 100 - yesPct) : 0;
-
-        const timelineBarClass = isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar';
-        const statusBadge = isCompleted
-          ? `<span class="inline-flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-sm">✓ مكتملة ومغطاة</span>`
-          : `<span class="status-badge-glow inline-flex items-center gap-1 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[11px] font-black px-3 py-1 rounded-full">⚡ قيد التصويت والدعم</span>`;
+        const rejections = Array.isArray(c.rejections) ? c.rejections : [];
 
         return `
-          <article class="${theme.cardClass} rounded-3xl p-5 sm:p-6 flex flex-col justify-between gap-4 transition">
+          <article class="case-card-theme-${themeIdx} rounded-3xl p-5 flex flex-col justify-between gap-4 transition">
             <div class="space-y-3">
               <div class="flex items-start justify-between gap-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="${theme.numberBadge} text-xs font-black px-2.5 py-1 rounded-full">#${idx + 1}</span>
-                  <span class="${theme.categoryBadge} text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category || 'حالة')}</span>
-                  ${statusBadge}
-                </div>
-                <span class="text-slate-400 text-base select-none" aria-hidden="true">${theme.cornerOrnament}</span>
+                <span class="inline-flex items-center gap-1.5 bg-emerald-950 text-amber-300 text-xs font-black px-3 py-1 rounded-full">
+                  ${escapeHtml(c.category)}
+                </span>
+                <span class="${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full">
+                  ${isCompleted ? 'مكتملة التغطية ✓' : 'قيد التصويت والدعم'}
+                </span>
               </div>
 
               <div>
-                <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">${escapeHtml(c.title || '')}</h3>
-                ${c.description ? `<p class="text-xs sm:text-sm font-bold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>` : ''}
+                <h3 class="text-lg font-black text-slate-900 leading-snug">${escapeHtml(c.name)}</h3>
+                <p class="text-xs sm:text-sm font-bold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.desc)}</p>
               </div>
 
-              <div class="${theme.innerPanel} border rounded-2xl p-3.5 space-y-2">
+              <div class="bg-white/85 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
                 <div class="flex items-center justify-between text-xs font-black">
-                  <span class="text-slate-600">نسبة التغطية (${pct}%)</span>
-                  <span class="text-emerald-800">المغطى: ${formatCurrency(covered)} من ${formatCurrency(req)}</span>
+                  <span class="text-slate-600">المطلوب: <strong class="text-slate-900">${formatCurrency(req)}</strong></span>
+                  <span class="text-emerald-700">المغطى / المصروف: <strong>${formatCurrency(collected)} (${pct}%)</strong></span>
                 </div>
-                <div class="w-full h-3 bg-slate-200/90 rounded-full overflow-hidden">
-                  <div class="h-full ${timelineBarClass} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                  <div class="h-full rounded-full transition-all duration-500 ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'}" style="width: ${pct}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[11px] font-extrabold pt-0.5">
-                  <span class="text-amber-800">المتبقي للحالة: ${formatCurrency(remaining)}</span>
-                  ${surplus > 0 ? `<span class="text-emerald-700">فائض للصندوق: ${formatCurrency(surplus)}</span>` : `<span class="text-slate-500">مساهمات الحالة: ${caseContribs.length}</span>`}
+                <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-500">
+                  <span>المتبقي: ${formatCurrency(remaining)}</span>
+                  <span>المصروف الفعلي: ${formatCurrency(disb)}</span>
                 </div>
               </div>
 
-              ${(fundContributionsHtml || donorsHtml) ? `
-                <div class="space-y-1.5 pt-1">
-                  <p class="text-[11px] font-black text-slate-700">المساهمات والدعم المخصص للحالة:</p>
-                  <div class="space-y-1.5 max-h-40 overflow-y-auto">${fundContributionsHtml}${donorsHtml}</div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" onclick="voteApproveCase('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'approve' ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm' : 'bg-white hover:bg-emerald-50 text-emerald-900 border-emerald-300'}">
+                  <span>✓ موافق</span>
+                  <span class="bg-emerald-950/15 px-2 py-0.5 rounded-full">${Number(c.approveCount) || 0}</span>
+                </button>
+                <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'reject' ? 'bg-rose-600 text-white border-rose-700 shadow-sm' : 'bg-white hover:bg-rose-50 text-rose-800 border-rose-300'}">
+                  <span>✕ غير موافق</span>
+                  <span class="bg-rose-950/15 px-2 py-0.5 rounded-full">${Number(c.rejectCount) || 0}</span>
+                </button>
+              </div>
+
+              ${rejections.length > 0 ? `
+                <div class="bg-rose-50/90 border border-rose-200 rounded-2xl p-3 space-y-1.5">
+                  <p class="text-[11px] font-black text-rose-900">ملاحظات وأسباب عدم الموافقة (${rejections.length}):</p>
+                  <div class="space-y-1 max-h-28 overflow-y-auto">
+                    ${rejections.map(r => `
+                      <div class="bg-white/90 border border-rose-100 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 text-[11px]">
+                        <span class="font-bold text-slate-700">${escapeHtml(r.reason)}</span>
+                        ${isAdminMode ? `
+                          <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="text-emerald-700 hover:underline font-black cursor-pointer">تعديل</button>
+                            <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="text-rose-600 hover:underline font-black cursor-pointer">حذف</button>
+                          </div>
+                        ` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
                 </div>
               ` : ''}
-
-              ${rejectionsHtml}
             </div>
 
-            <div class="space-y-2.5 pt-2 border-t border-slate-200/80">
-              ${!isCompleted ? `
-                <div class="grid grid-cols-2 gap-2">
-                  <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300'}">
-                    <span>موافق (${votesYesCount} • ${yesPct}%)</span>
-                  </button>
-                  <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300'}">
-                    <span>غير موافق (${votesNoCount} • ${noPct}%)</span>
-                  </button>
-                </div>
-                <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer">
-                  + ساهم في هذه الحالة
-                </button>
-              ` : `
-                <div class="bg-emerald-50 border border-emerald-200 rounded-xl py-2.5 px-3 text-center text-xs font-black text-emerald-800">
-                  تم اكتمال تغطية هذه الحالة بنجاح
-                </div>
-              `}
+            <div class="pt-2 border-t border-slate-200/70 space-y-2">
+              <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm py-2.5 px-4 rounded-2xl shadow-xs transition cursor-pointer">
+                ساهم لهذه الحالة الآن
+              </button>
 
               ${isAdminMode ? `
                 <div class="grid grid-cols-3 gap-2 pt-1">
-                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-[11px] transition cursor-pointer">صرف من الصندوق</button>
-                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] transition cursor-pointer">تعديل الحالة</button>
-                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] transition cursor-pointer">حذف الحالة</button>
+                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                    صرف مساعدة
+                  </button>
+                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                    تعديل
+                  </button>
+                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                    حذف
+                  </button>
                 </div>
               ` : ''}
             </div>
@@ -2373,139 +1820,30 @@
       }).join('');
     }
 
-    function getAutoBackupHistory() {
-      try {
-        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch (e) {}
-      return [];
-    }
-
-    function applyRestoredSnapshotState(rawState, label = 'نقطة استعادة') {
-      if (!rawState || typeof rawState !== 'object') {
-        showToast('تعذر العثور على بيانات صالحة في نقطة الاستعادة.', 'warning');
-        return false;
-      }
-      const restoredStampMs = Math.max(
-        Date.now() + 86400000,
-        (Number(rawState.updatedAtMs) || 0) + 86400000
-      );
-      setDeletedIdsList(Array.isArray(rawState.deletedIds) ? rawState.deletedIds : []);
-      const sanitized = sanitizeStateData({
-        ...rawState,
-        updatedAtMs: restoredStampMs
-      });
-      appState = {
-        ...sanitized,
-        lastUpdated: formatNowDate(),
-        updatedAtMs: restoredStampMs
-      };
-      hasLocalStateStored = true;
-      hasUnsyncedLocalChanges = true;
-      lastSyncedFingerprint = '';
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-      writeStorageSafe(RESTORED_LOCK_KEY, JSON.stringify({
-        updatedAtMs: restoredStampMs,
-        restoredAt: appState.lastUpdated,
-        state: appState
-      }));
-      renderAll();
-      scheduleFirebasePush(60, true);
-      showToast(`تمت استعادة (${label}) وتثبيتها ومزامنتها مع Firebase.`, 'success');
-      return true;
-    }
-
-    function restoreLatestAutoSnapshot() {
-      if (!isAdminMode) return;
-      try {
-        const latestRaw = readStorageSafe(AUTO_BACKUP_KEY);
-        if (latestRaw) {
-          const latestObj = JSON.parse(latestRaw);
-          if (latestObj && latestObj.state) {
-            applyRestoredSnapshotState(latestObj.state, latestObj.label || 'أحدث نقطة حفظ');
-            return;
-          }
-        }
-        const hist = getAutoBackupHistory();
-        if (hist.length > 0 && hist[0].state) {
-          applyRestoredSnapshotState(hist[0].state, hist[0].label || 'أحدث نقطة حفظ');
-          return;
-        }
-        showToast('لا توجد نقطة حفظ تلقائية متاحة حالياً.', 'warning');
-      } catch (e) {
-        showToast('حدث خطأ أثناء استعادة أحدث نقطة حفظ.', 'warning');
-      }
-    }
-
-    function restoreAutoSnapshotById(snapshotId) {
-      if (!isAdminMode || !snapshotId) return;
-      const hist = getAutoBackupHistory();
-      const found = hist.find(s => s && String(s.id) === String(snapshotId));
-      if (!found || !found.state) {
-        showToast('لم يتم العثور على نقطة الاستعادة المطلوبة.', 'warning');
-        return;
-      }
-      applyRestoredSnapshotState(found.state, `${found.label || 'لقطة'} — ${found.savedAt || ''}`);
-    }
-
-    function renderAutoRecoverySnapshots() {
-      const box = document.getElementById('auto-recovery-snapshots-list');
-      if (!box) return;
-      const hist = getAutoBackupHistory();
-      if (!hist.length) {
-        box.innerHTML = `<div class="bg-white border border-slate-200 rounded-xl p-3 text-center text-xs font-bold text-slate-500">لا توجد لقطات تلقائية محفوظة بعد.</div>`;
-        return;
-      }
-      box.innerHTML = hist.map((snap, idx) => {
-        const casesCount = Array.isArray(snap.state?.cases) ? snap.state.cases.length : 0;
-        const contribsCount = Array.isArray(snap.state?.approvedContributions) ? snap.state.approvedContributions.length : 0;
-        return `
-          <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
-            <div class="min-w-0">
-              <p class="font-black text-slate-900 truncate">${escapeHtml(snap.label || `نقطة #${idx + 1}`)}</p>
-              <p class="text-[11px] font-bold text-slate-500 mt-0.5">
-                ${escapeHtml(snap.savedAt || '')} • ${casesCount} حالات • ${contribsCount} قيود
-              </p>
-            </div>
-            <button type="button" onclick="restoreAutoSnapshotById('${escapeHtml(snap.id)}')" class="shrink-0 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-black px-3 py-1.5 rounded-lg text-[11px] transition cursor-pointer">
-              استعادة ومزامنة
-            </button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function voteCaseYes(caseId) {
+    function voteApproveCase(caseId) {
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
       if (!c) return;
       const votes = getDeviceVotes();
       const prev = votes[String(caseId)];
-      if (prev === 'yes') {
-        showToast('لقد قمت بالتصويت بالموافقة على هذه الحالة مسبقاً.', 'info');
+      if (prev === 'approve') {
+        showToast('لقد قمت بالتصويت بالموافقة على هذه الحالة مسبقاً.', 'warning');
         return;
       }
-      if (prev === 'no') {
-        c.votesNo = Math.max(0, (Number(c.votesNo) || 0) - 1);
+      if (prev === 'reject' && (Number(c.rejectCount) || 0) > 0) {
+        c.rejectCount = Number(c.rejectCount) - 1;
       }
-      c.votesYes = (Number(c.votesYes) || 0) + 1;
-      setDeviceVote(caseId, 'yes');
-      saveAppState('تصويت بالموافقة على حالة');
-      renderCases();
-      showToast('تم تسجيل موافقتك على الحالة.', 'success');
+      c.approveCount = (Number(c.approveCount) || 0) + 1;
+      votes[String(caseId)] = 'approve';
+      saveDeviceVotes(votes);
+      saveAppState('تصويت بالموافقة على حالة', true);
+      renderAll();
+      showToast('تم تسجيل صوتك بالموافقة ومزامنته.', 'success');
     }
 
     function openRejectVoteModal(caseId) {
-      const votes = getDeviceVotes();
-      if (votes[String(caseId)] === 'no') {
-        showToast('لقد قمت بتسجيل عدم الموافقة وإضافة التعليق على هذه الحالة مسبقاً (مرة واحدة فقط).', 'info');
-        return;
-      }
       pendingRejectCaseId = String(caseId);
-      const inp = document.getElementById('reject-reason-input');
-      if (inp) inp.value = '';
+      const input = document.getElementById('reject-reason-input');
+      if (input) input.value = '';
       const modal = document.getElementById('reject-vote-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2525,40 +1863,37 @@
     function handleRejectVoteSubmit(e) {
       e.preventDefault();
       if (!pendingRejectCaseId) return;
-      const c = (appState.cases || []).find(x => String(x.id) === String(pendingRejectCaseId));
-      if (!c) return;
       const reason = (document.getElementById('reject-reason-input')?.value || '').trim();
       if (!reason) return;
-
+      const c = (appState.cases || []).find(x => String(x.id) === String(pendingRejectCaseId));
+      if (!c) return;
       const votes = getDeviceVotes();
-      const prev = votes[String(c.id)];
-      if (prev === 'no') {
-        showToast('لقد قمت بتسجيل عدم الموافقة وإضافة التعليق على هذه الحالة مسبقاً (مرة واحدة فقط).', 'info');
-        closeRejectVoteModal();
-        return;
+      const prev = votes[String(pendingRejectCaseId)];
+      if (prev === 'approve' && (Number(c.approveCount) || 0) > 0) {
+        c.approveCount = Number(c.approveCount) - 1;
       }
-      if (prev === 'yes') {
-        c.votesYes = Math.max(0, (Number(c.votesYes) || 0) - 1);
+      if (prev !== 'reject') {
+        c.rejectCount = (Number(c.rejectCount) || 0) + 1;
       }
-      c.votesNo = (Number(c.votesNo) || 0) + 1;
-      c.rejections = Array.isArray(c.rejections) ? c.rejections : [];
+      if (!Array.isArray(c.rejections)) c.rejections = [];
       c.rejections.push({
         id: `rej_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         reason,
-        createdAt: formatNowDate()
+        date: formatNowDate()
       });
-      setDeviceVote(c.id, 'no');
-      saveAppState('تسجيل ملاحظة عدم موافقة');
+      votes[String(pendingRejectCaseId)] = 'reject';
+      saveDeviceVotes(votes);
       closeRejectVoteModal();
-      renderCases();
-      showToast('تم تسجيل ملاحظتك على الحالة.', 'info');
+      saveAppState('تسجيل سبب عدم موافقة', true);
+      renderAll();
+      showToast('تم تسجيل ملاحظتك ومزامنتها.', 'success');
     }
 
     function openEditRejectionModal(caseId, rejId) {
       if (!isAdminMode) return;
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
-      const r = c?.rejections?.find(x => String(x.id) === String(rejId));
-      if (!c || !r) return;
+      const r = c && Array.isArray(c.rejections) ? c.rejections.find(item => String(item.id) === String(rejId)) : null;
+      if (!r) return;
       document.getElementById('edit-rej-case-id').value = String(caseId);
       document.getElementById('edit-rej-item-id').value = String(rejId);
       document.getElementById('edit-rej-input').value = r.reason || '';
@@ -2580,44 +1915,28 @@
     function handleEditRejectionSubmit(e) {
       e.preventDefault();
       if (!isAdminMode) return;
-      const caseId = document.getElementById('edit-rej-case-id')?.value;
-      const rejId = document.getElementById('edit-rej-item-id')?.value;
+      const caseId = document.getElementById('edit-rej-case-id').value;
+      const rejId = document.getElementById('edit-rej-item-id').value;
       const text = (document.getElementById('edit-rej-input')?.value || '').trim();
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
-      const r = c?.rejections?.find(x => String(x.id) === String(rejId));
-      if (c && r && text) {
+      const r = c && Array.isArray(c.rejections) ? c.rejections.find(item => String(item.id) === String(rejId)) : null;
+      if (r && text) {
         r.reason = text;
-        saveAppState('تعديل سبب الرفض');
-        renderCases();
-        showToast('تم تحديث نص الملاحظة.', 'success');
+        saveAppState('تعديل سبب رفض', true);
+        renderAll();
+        showToast('تم تعديل سبب الرفض.', 'success');
       }
       closeEditRejectionModal();
-    }
-
-    function resetSingleRejectionItem(caseId, rejId) {
-      if (!isAdminMode) return;
-      const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
-      const r = c?.rejections?.find(x => String(x.id) === String(rejId));
-      if (!c || !r) return;
-      r.reason = '';
-      r.createdAt = formatNowDate();
-      saveAppState('تصفير تعليق الرفض');
-      renderCases();
-      showToast('تم تصفير هذا التعليق فقط.', 'success');
     }
 
     function deleteRejectionReason(caseId, rejId) {
       if (!isAdminMode) return;
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
-      if (!c) return;
-      const beforeLen = (c.rejections || []).length;
-      c.rejections = (c.rejections || []).filter(x => String(x.id) !== String(rejId));
-      if (c.rejections.length < beforeLen) {
-        c.votesNo = Math.max(0, (Number(c.votesNo) || 0) - 1);
-      }
-      saveAppState('حذف سبب رفض');
-      renderCases();
-      showToast('تم حذف سبب الرفض وتحديث عداد عدم الموافقة.', 'success');
+      if (!c || !Array.isArray(c.rejections)) return;
+      c.rejections = c.rejections.filter(item => String(item.id) !== String(rejId));
+      saveAppState('حذف سبب رفض', true);
+      renderAll();
+      showToast('تم حذف الملاحظة.', 'success');
     }
 
     function openAddCaseModal() {
@@ -2641,10 +1960,10 @@
       if (!c) return;
       document.getElementById('case-editor-title').textContent = 'تعديل بيانات الحالة';
       document.getElementById('editor-case-id').value = String(c.id);
-      document.getElementById('editor-case-name').value = c.title || '';
+      document.getElementById('editor-case-name').value = c.name || '';
       document.getElementById('editor-case-category').value = c.category || 'علاج مرضى الأورام';
-      document.getElementById('editor-case-required').value = Number(c.requiredAmount) || 0;
-      document.getElementById('editor-case-desc').value = c.description || '';
+      document.getElementById('editor-case-required').value = Number(c.required) || 0;
+      document.getElementById('editor-case-desc').value = c.desc || '';
       const modal = document.getElementById('case-editor-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2663,93 +1982,86 @@
     function handleCaseEditorSubmit(e) {
       e.preventDefault();
       if (!isAdminMode) return;
-      const idVal = (document.getElementById('editor-case-id')?.value || '').trim();
-      const title = (document.getElementById('editor-case-name')?.value || '').trim();
+      const id = (document.getElementById('editor-case-id')?.value || '').trim();
+      const name = (document.getElementById('editor-case-name')?.value || '').trim();
       const category = document.getElementById('editor-case-category')?.value || 'علاج مرضى الأورام';
-      const requiredAmount = Math.max(0, Number(document.getElementById('editor-case-required')?.value) || 0);
-      const description = (document.getElementById('editor-case-desc')?.value || '').trim();
-      if (!title || requiredAmount <= 0) return;
+      const required = Number(document.getElementById('editor-case-required')?.value) || 0;
+      const desc = (document.getElementById('editor-case-desc')?.value || '').trim();
+      if (!name || required <= 0 || !desc) return;
 
-      if (idVal) {
-        const c = (appState.cases || []).find(x => String(x.id) === String(idVal));
-        if (c) {
-          c.title = title;
-          c.category = category;
-          c.requiredAmount = requiredAmount;
-          c.description = description;
-          const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          c.closed = ((Number(c.disbursedAmount) || 0) + contribSum) >= requiredAmount;
+      if (!Array.isArray(appState.cases)) appState.cases = [];
+      if (id) {
+        const existing = appState.cases.find(x => String(x.id) === id);
+        if (existing) {
+          existing.name = name;
+          existing.category = category;
+          existing.required = required;
+          existing.desc = desc;
         }
-        saveAppState('تعديل حالة');
-        showToast('تم تحديث بيانات الحالة.', 'success');
+        saveAppState('تعديل حالة', true);
+        showToast('تم تعديل الحالة ومزامنتها فوراً مع Firebase.', 'success');
       } else {
         appState.cases.unshift({
           id: `case_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          title,
+          name,
           category,
-          description,
-          requiredAmount,
-          disbursedAmount: 0,
-          closed: false,
-          votesYes: 0,
-          votesNo: 0,
+          required,
+          disbursed: 0,
+          desc,
+          approveCount: 0,
+          rejectCount: 0,
           rejections: []
         });
-        saveAppState('إضافة حالة جديدة');
-        showToast('تمت إضافة الحالة الجديدة بنجاح.', 'success');
+        saveAppState('إضافة حالة جديدة', true);
+        showToast('تمت إضافة الحالة الجديدة ومزامنتها فوراً مع Firebase.', 'success');
       }
-
       closeCaseEditorModal();
       renderAll();
     }
 
     function deleteCaseItem(caseId) {
       if (!isAdminMode) return;
-      addDeletedId(caseId);
-      appState.cases = (appState.cases || []).filter(x => String(x.id) !== String(caseId));
-      saveAppState('حذف حالة');
+      const targetId = String(caseId);
+      addDeletedId(targetId);
+      appState.cases = (appState.cases || []).filter(x => String(x.id) !== targetId);
+      saveAppState('حذف حالة', true);
       renderAll();
-      showToast('تم حذف الحالة.', 'success');
+      showToast('تم حذف الحالة ومزامنة التحديث مع Firebase.', 'success');
     }
 
     function openDisburseModal(caseId) {
       if (!isAdminMode) return;
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
       if (!c) return;
-      currentDisburseCaseId = String(caseId);
+      currentDisburseCaseId = String(c.id);
       const metrics = computeFinancialMetrics();
-      const fundBal = Math.max(0, Number(metrics.availableBalance) || 0);
-      const req = Math.max(0, Number(c.requiredAmount) || 0);
-      const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-      const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-      const covered = Math.min(req, disb + contribSum);
-      const remaining = Math.max(0, req - covered);
+      const direct = metrics.caseDirectMap[String(c.id)] || 0;
+      const disbursed = Number(c.disbursed) || 0;
+      const remaining = Math.max(0, (Number(c.required) || 0) - Math.max(direct, disbursed));
 
-      const lbl = document.getElementById('disburse-case-label');
+      document.getElementById('disburse-case-label').textContent = `الحالة المستفيدة: ${c.name} (${c.category})`;
       const balEl = document.getElementById('disburse-fund-balance');
       const remEl = document.getElementById('disburse-case-remaining');
       const zeroAlert = document.getElementById('disburse-zero-alert');
-      const amtInp = document.getElementById('disburse-amount-input');
-      const noteInp = document.getElementById('disburse-note-input');
-      const subBtn = document.getElementById('disburse-submit-btn');
+      const submitBtn = document.getElementById('disburse-submit-btn');
 
-      if (lbl) lbl.textContent = `الحالة: ${c.title} (${c.category}) — المطلوب: ${formatCurrency(req)} — المغطى: ${formatCurrency(covered)}`;
       if (balEl) {
-        balEl.textContent = formatCurrency(fundBal);
-        balEl.dataset.copyValue = String(fundBal);
+        balEl.textContent = formatCurrency(metrics.availableBalance);
+        balEl.dataset.copyValue = String(metrics.availableBalance);
       }
       if (remEl) {
         remEl.textContent = formatCurrency(remaining);
         remEl.dataset.copyValue = String(remaining);
       }
-      if (zeroAlert) zeroAlert.classList.toggle('hidden', fundBal > 0);
-      if (amtInp) {
-        amtInp.value = remaining > 0 ? String(Math.min(remaining, fundBal || remaining)) : '';
-        amtInp.disabled = fundBal <= 0;
+      if (metrics.availableBalance <= 0) {
+        if (zeroAlert) zeroAlert.classList.remove('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+      } else {
+        if (zeroAlert) zeroAlert.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = false;
       }
-      if (noteInp) noteInp.value = '';
-      if (subBtn) subBtn.disabled = fundBal <= 0;
-
+      document.getElementById('disburse-amount-input').value = '';
+      document.getElementById('disburse-note-input').value = '';
       const modal = document.getElementById('disburse-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2768,62 +2080,550 @@
 
     function copyDisburseFundBalance() {
       const val = document.getElementById('disburse-fund-balance')?.dataset?.copyValue || '0';
-      copyPaymentDetail(val, 'رصيد الصندوق الحالي');
+      document.getElementById('disburse-amount-input').value = val;
+      copyPaymentDetail(val, 'رصيد الصندوق');
     }
 
     function copyDisburseRemainingValue() {
       const val = document.getElementById('disburse-case-remaining')?.dataset?.copyValue || '0';
+      document.getElementById('disburse-amount-input').value = val;
       copyPaymentDetail(val, 'القيمة المتبقية للحالة');
     }
 
     function handleDisburseSubmit(e) {
       e.preventDefault();
       if (!isAdminMode || !currentDisburseCaseId) return;
-      const c = (appState.cases || []).find(x => String(x.id) === String(currentDisburseCaseId));
-      if (!c) return;
-      const metrics = computeFinancialMetrics();
-      const fundBal = Math.max(0, Number(metrics.availableBalance) || 0);
       const amount = Number(document.getElementById('disburse-amount-input')?.value) || 0;
       const note = (document.getElementById('disburse-note-input')?.value || '').trim();
-
-      if (amount <= 0) {
-        showToast('يرجى إدخال قيمة صرف صحيحة.', 'warning');
+      const metrics = computeFinancialMetrics();
+      if (amount <= 0) return;
+      if (amount > metrics.availableBalance) {
+        showToast('قيمة الصرف تتجاوز الرصيد المتاح حالياً في الصندوق.', 'error');
         return;
       }
-      if (amount > fundBal) {
-        showToast('قيمة الصرف تتجاوز الرصيد المتاح حالياً في الصندوق.', 'warning');
-        return;
-      }
-
-      c.disbursedAmount = (Number(c.disbursedAmount) || 0) + amount;
-      const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-      if ((Number(c.requiredAmount) || 0) > 0 && (c.disbursedAmount + contribSum) >= (Number(c.requiredAmount) || 0)) {
-        c.closed = true;
-      }
-
-      appState.approvedContributions.push({
+      const c = (appState.cases || []).find(x => String(x.id) === String(currentDisburseCaseId));
+      if (!c) return;
+      c.disbursed = (Number(c.disbursed) || 0) + amount;
+      if (!Array.isArray(appState.approvedContributions)) appState.approvedContributions = [];
+      appState.approvedContributions.unshift({
         id: `disb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         type: 'disbursement',
-        contributorName: `صرف من الصندوق — ${c.title}`,
-        branch: c.category || '',
+        name: `صرف مساعدة: ${c.name}`,
+        branch: c.category,
         amount,
-        target: String(c.id),
-        targetLabel: c.title,
-        method: 'رصيد الصندوق',
-        note: note || `صرف مساعدة لحالة: ${c.title}`,
-        createdAt: formatNowDate(),
+        targetCaseId: String(c.id),
+        targetLabel: c.name,
+        method: 'صرف من إدارة الصندوق',
+        note: note || 'صرف معتمد من الصندوق',
+        date: formatNowDate()
+      });
+      closeDisburseModal();
+      saveAppState('صرف مساعدة من الصندوق', true);
+      renderAll();
+      showToast(`تم صرف ${formatCurrency(amount)} ومزامنة السجل والأرصدة مع Firebase.`, 'success');
+    }
+
+    function toggleNewPaymentFields() {
+      const method = document.getElementById('contrib-method')?.value || '';
+      const bankBox = document.getElementById('new-bank-fields');
+      const mobileBox = document.getElementById('new-mobile-fields');
+      if (method.includes('المصرف')) {
+        bankBox?.classList.remove('hidden');
+        mobileBox?.classList.add('hidden');
+      } else if (method.includes('النقال')) {
+        mobileBox?.classList.remove('hidden');
+        bankBox?.classList.add('hidden');
+      } else {
+        bankBox?.classList.add('hidden');
+        mobileBox?.classList.add('hidden');
+      }
+    }
+
+    function handleNewReceiptFileChange(input) {
+      const file = input?.files && input.files[0];
+      if (!file) return;
+      newReceiptFileName = file.name;
+      isLoadingNewReceipt = true;
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      const previewWrap = document.getElementById('new-receipt-preview-wrap');
+      const previewImg = document.getElementById('new-receipt-preview-img');
+      if (nameEl) nameEl.textContent = `جاري تجهيز الملف: ${file.name}`;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        newReceiptDataUrl = String(reader.result || '');
+        isLoadingNewReceipt = false;
+        if (nameEl) nameEl.textContent = `تم إرفاق: ${file.name}`;
+        clearBtn?.classList.remove('hidden');
+        if (newReceiptDataUrl.startsWith('data:image/') && previewImg && previewWrap) {
+          previewImg.src = newReceiptDataUrl;
+          previewWrap.classList.remove('hidden');
+        } else {
+          previewWrap?.classList.add('hidden');
+        }
+      };
+      reader.onerror = () => {
+        isLoadingNewReceipt = false;
+        showToast('تعذر قراءة ملف الإيصال.', 'error');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearNewReceiptSelection() {
+      newReceiptDataUrl = '';
+      newReceiptFileName = '';
+      isLoadingNewReceipt = false;
+      const fileInput = document.getElementById('contrib-receipt');
+      if (fileInput) fileInput.value = '';
+      const nameEl = document.getElementById('contrib-receipt-name');
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      document.getElementById('clear-new-receipt-btn')?.classList.add('hidden');
+      document.getElementById('new-receipt-preview-wrap')?.classList.add('hidden');
+    }
+
+    function handleNewContributionSubmit(e) {
+      e.preventDefault();
+      if (isLoadingNewReceipt) {
+        showToast('يرجى الانتظار لحظة حتى يكتمل تحميل صورة الإيصال.', 'warning');
+        return;
+      }
+      const name = (document.getElementById('contrib-name')?.value || '').trim();
+      const branch = document.getElementById('contrib-branch')?.value || 'الهمايلة';
+      const amount = Number(document.getElementById('contrib-amount')?.value) || 0;
+      const targetCaseId = document.getElementById('contrib-target')?.value || 'general';
+      const method = document.getElementById('contrib-method')?.value || '';
+      const note = (document.getElementById('contrib-note')?.value || '').trim();
+      const phone = (document.getElementById('contrib-phone')?.value || '').trim();
+
+      if (!name || amount <= 0 || !method) {
+        showToast('يرجى تعبئة كافة الحقول المطلوبة بشكل صحيح.', 'error');
+        return;
+      }
+      if (method.includes('المصرف') && !newReceiptDataUrl) {
+        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.', 'error');
+        return;
+      }
+      if (method.includes('النقال') && !/^\d{10}$/.test(phone)) {
+        showToast('يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام.', 'error');
+        return;
+      }
+
+      const targetCase = (appState.cases || []).find(c => String(c.id) === String(targetCaseId));
+      const newEntry = {
+        id: `contrib_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: 'contribution',
+        name,
+        branch,
+        amount,
+        targetCaseId: String(targetCaseId),
+        targetLabel: targetCase ? targetCase.name : 'الصندوق العام',
+        method,
+        note,
+        phone: method.includes('النقال') ? phone : '',
+        receiptDataUrl: method.includes('المصرف') ? newReceiptDataUrl : '',
+        receiptFileName: method.includes('المصرف') ? newReceiptFileName : '',
+        editCount: 0,
+        date: formatNowDate()
+      };
+
+      if (!Array.isArray(appState.pendingContributions)) appState.pendingContributions = [];
+      appState.pendingContributions.unshift(newEntry);
+      registerMyContributionId(newEntry.id);
+
+      document.getElementById('new-contribution-form')?.reset();
+      clearNewReceiptSelection();
+      toggleNewPaymentFields();
+
+      saveAppState('تسجيل مساهمة جديدة للمراجعة', true);
+      updateAdminUI();
+      renderAll();
+      showToast('تم إرسال مساهمتك بنجاح وهي الآن في قائمة مراجعة الإدارة.', 'success');
+    }
+
+    function approvePendingContribution(id) {
+      if (!isAdminMode) return;
+      const idx = (appState.pendingContributions || []).findIndex(x => String(x.id) === String(id));
+      if (idx === -1) return;
+      const item = appState.pendingContributions[idx];
+      appState.pendingContributions.splice(idx, 1);
+      if (!Array.isArray(appState.approvedContributions)) appState.approvedContributions = [];
+      appState.approvedContributions.unshift({
+        ...item,
         approvedAt: formatNowDate()
       });
-
-      saveAppState('صرف مساعدة من الصندوق');
-      closeDisburseModal();
+      saveAppState('اعتماد ونشر مساهمة', true);
+      updateAdminUI();
       renderAll();
-      showToast('تم تسجيل صرف المساعدة وتحديث الرصيد.', 'success');
+      showToast('تم اعتماد المساهمة وإضافتها إلى الرصيد والسجل المتزامن.', 'success');
+    }
+
+    function deletePendingContribution(id) {
+      if (!isAdminMode) return;
+      const targetId = String(id);
+      addDeletedId(targetId);
+      appState.pendingContributions = (appState.pendingContributions || []).filter(x => String(x.id) !== targetId);
+      saveAppState('حذف مساهمة معلقة', true);
+      updateAdminUI();
+      renderAll();
+      showToast('تم حذف الطلب المعلق ومزامنة التحديث.', 'success');
+    }
+
+    function deleteApprovedEntry(id) {
+      if (!isAdminMode) return;
+      const targetId = String(id);
+      const entry = (appState.approvedContributions || []).find(x => String(x.id) === targetId);
+      if (entry && entry.type === 'disbursement' && entry.targetCaseId) {
+        const c = (appState.cases || []).find(x => String(x.id) === String(entry.targetCaseId));
+        if (c) {
+          c.disbursed = Math.max(0, (Number(c.disbursed) || 0) - (Number(entry.amount) || 0));
+        }
+      }
+      addDeletedId(targetId);
+      appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== targetId);
+      saveAppState('حذف قيد من السجل المعتمد', true);
+      renderAll();
+      showToast('تم حذف القيد وتحديث الأرصدة ومزامنتها.', 'success');
+    }
+
+    function renderPendingContributions() {
+      const listEl = document.getElementById('pending-contributions-list');
+      const badgeEl = document.getElementById('pending-count-badge');
+      const items = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+      if (badgeEl) badgeEl.textContent = `${items.length} طلبات`;
+      if (!listEl) return;
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<p class="text-xs font-bold text-amber-900/80 bg-white/80 rounded-2xl p-4 text-center">لا توجد طلبات مساهمات معلقة حالياً.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => `
+        <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-black text-slate-900 text-sm">${escapeHtml(item.name)}</span>
+              <span class="bg-slate-100 text-slate-700 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>
+              <span class="bg-emerald-100 text-emerald-900 text-xs font-black px-2.5 py-0.5 rounded-full">${formatCurrency(item.amount)}</span>
+            </div>
+            <p class="text-xs font-bold text-slate-600">
+              الوجهة: <span class="text-slate-900">${escapeHtml(item.targetLabel || 'الصندوق العام')}</span> •
+              الطريقة: <span class="text-slate-900">${escapeHtml(item.method)}</span>
+              ${item.phone ? `• الهاتف: <span dir="ltr" class="font-mono text-emerald-800">${escapeHtml(item.phone)}</span>` : ''}
+            </p>
+            ${item.note ? `<p class="text-xs font-bold text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
+            <p class="text-[11px] font-bold text-slate-400">${escapeHtml(formatDateTimeWithPeriod(item.date))}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            ${item.receiptDataUrl ? `
+              <button type="button" onclick="openReceiptViewer('${escapeHtml(item.id)}', 'pending')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">
+                عرض الإيصال
+              </button>
+            ` : ''}
+            <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'pending')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">
+              تعديل
+            </button>
+            <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-4 py-2 rounded-xl transition cursor-pointer">
+              اعتماد ونشر
+            </button>
+            <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">
+              حذف
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function scheduleLedgerRender() {
+      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
+      ledgerSearchTimer = setTimeout(() => {
+        renderLedger();
+      }, 120);
+    }
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+      const query = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
+      const filter = document.getElementById('ledger-filter-select')?.value || 'all';
+      const myIds = getMyContributionIds();
+
+      const approved = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+      const pending = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+
+      const myPending = pending
+        .filter(p => myIds.includes(String(p.id)))
+        .map(p => ({ ...p, _isPendingMine: true }));
+
+      const combined = [...myPending, ...approved];
+
+      const filtered = combined.filter(item => {
+        if (!item) return false;
+        if (filter === 'general' && (item.type === 'disbursement' || (item.targetCaseId && item.targetCaseId !== 'general'))) return false;
+        if (filter === 'case' && (item.type === 'disbursement' || !item.targetCaseId || item.targetCaseId === 'general')) return false;
+        if (filter === 'disbursement' && item.type !== 'disbursement') return false;
+        if (!query) return true;
+        const hay = `${item.name || ''} ${item.branch || ''} ${item.targetLabel || ''} ${item.note || ''}`.toLowerCase();
+        return hay.includes(query);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-400">
+              لا توجد قيود مطابقة للبحث أو التصفية الحالية.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const isDisb = item.type === 'disbursement';
+        const isMine = myIds.includes(String(item.id));
+        const canDonorEdit = isMine && !isDisb && (Number(item.editCount) || 0) < 1;
+        const scope = item._isPendingMine ? 'pending' : 'approved';
+        const isElite = !isDisb && (Number(item.amount) || 0) >= 1000;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3.5 px-5">
+              <div class="space-y-1">
+                ${isElite ? `
+                  <div class="elite-donor-identity-chip">
+                    <span class="elite-glow-star">★</span>
+                    <span class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.name)}</span>
+                  </div>
+                ` : `
+                  <p class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.name)}</p>
+                `}
+                <p class="text-[11px] font-bold text-slate-500">
+                  ${escapeHtml(item.branch || '')}
+                  ${item.targetLabel ? ` • ${escapeHtml(item.targetLabel)}` : ''}
+                  ${item._isPendingMine ? ' • <span class="text-amber-700 font-black">قيد المراجعة</span>' : ''}
+                </p>
+                ${item.note ? `<p class="text-[11px] font-semibold text-slate-400">${escapeHtml(item.note)}</p>` : ''}
+              </div>
+            </td>
+            <td class="py-3.5 px-3 text-center">
+              <span class="inline-block text-[11px] font-black px-2.5 py-1 rounded-full ${isDisb ? 'bg-rose-100 text-rose-800' : item._isPendingMine ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}">
+                ${isDisb ? 'صرف مساعدة' : item._isPendingMine ? 'بانتظار النشر' : 'مساهمة معتمدة'}
+              </span>
+            </td>
+            <td class="py-3.5 px-3 text-center font-black text-xs sm:text-sm ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
+              ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
+            </td>
+            <td class="py-3.5 px-5 text-left">
+              <div class="flex flex-col items-end gap-1.5">
+                <span class="text-[11px] font-bold text-slate-400">${escapeHtml(formatDateTimeWithPeriod(item.date))}</span>
+                <div class="flex flex-wrap items-center justify-end gap-1.5">
+                  ${item.receiptDataUrl ? `
+                    <button type="button" onclick="openReceiptViewer('${escapeHtml(item.id)}', '${scope}')" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
+                      الإيصال
+                    </button>
+                  ` : ''}
+                  ${(isAdminMode && !isDisb) || canDonorEdit ? `
+                    <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', '${scope}')" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
+                      تعديل
+                    </button>
+                  ` : ''}
+                  ${isAdminMode && isDisb ? `
+                    <button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
+                      تعديل
+                    </button>
+                  ` : ''}
+                  ${isAdminMode ? `
+                    <button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
+                      حذف
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openReceiptViewer(id, scope) {
+      const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
+      const item = list.find(x => String(x.id) === String(id));
+      if (!item || !item.receiptDataUrl) return;
+      const body = document.getElementById('receipt-viewer-body');
+      const title = document.getElementById('receipt-viewer-title');
+      if (title) title.textContent = `إيصال مساهمة: ${item.name}`;
+      if (body) {
+        if (item.receiptDataUrl.startsWith('data:application/pdf')) {
+          body.innerHTML = `<iframe src="${item.receiptDataUrl}" class="w-full h-96 rounded-xl"></iframe>`;
+        } else {
+          body.innerHTML = `<img src="${item.receiptDataUrl}" alt="إيصال المساهمة" class="max-h-[65vh] rounded-xl object-contain" />`;
+        }
+      }
+      const modal = document.getElementById('receipt-viewer-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeReceiptViewerModal() {
+      const modal = document.getElementById('receipt-viewer-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function openEditContributionModal(id, scope) {
+      const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
+      const item = list.find(x => String(x.id) === String(id));
+      if (!item) return;
+      if (!isAdminMode && (Number(item.editCount) || 0) >= 1) {
+        showToast('تم استنفاد محاولة التعديل المسموحة لهذه المساهمة (1/1).', 'warning');
+        return;
+      }
+      populateTargetCaseSelects();
+      document.getElementById('edit-contrib-id').value = String(item.id);
+      document.getElementById('edit-contrib-scope').value = scope;
+      document.getElementById('edit-contrib-name').value = item.name || '';
+      document.getElementById('edit-contrib-branch').value = item.branch || 'الهمايلة';
+      document.getElementById('edit-contrib-amount').value = Number(item.amount) || 0;
+      document.getElementById('edit-contrib-target').value = item.targetCaseId || 'general';
+      document.getElementById('edit-contrib-method').value = item.method || 'المصرف (تحويل مصرفي)';
+      document.getElementById('edit-contrib-note').value = item.note || '';
+      document.getElementById('edit-contrib-phone').value = item.phone || '';
+
+      editReceiptDataUrl = item.receiptDataUrl || '';
+      editReceiptFileName = item.receiptFileName || '';
+      const badge = document.getElementById('edit-contrib-attempts-badge');
+      if (badge) {
+        badge.textContent = isAdminMode ? 'صلاحية الإدارة' : `المحاولات المتبقية: ${Math.max(0, 1 - (Number(item.editCount) || 0))}/1`;
+      }
+      toggleEditPaymentFields();
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
+      const previewWrap = document.getElementById('edit-contrib-receipt-preview');
+      const previewImg = document.getElementById('edit-contrib-receipt-img');
+      if (editReceiptDataUrl) {
+        if (nameEl) nameEl.textContent = editReceiptFileName || 'إيصال مرفق مسبقاً';
+        clearBtn?.classList.remove('hidden');
+        if (editReceiptDataUrl.startsWith('data:image/') && previewImg && previewWrap) {
+          previewImg.src = editReceiptDataUrl;
+          previewWrap.classList.remove('hidden');
+        }
+      } else {
+        if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+        clearBtn?.classList.add('hidden');
+        previewWrap?.classList.add('hidden');
+      }
+
+      const modal = document.getElementById('edit-contribution-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeEditContributionModal() {
+      const modal = document.getElementById('edit-contribution-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function toggleEditPaymentFields() {
+      const method = document.getElementById('edit-contrib-method')?.value || '';
+      const bankBox = document.getElementById('edit-contrib-bank-fields');
+      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
+      if (method.includes('المصرف')) {
+        bankBox?.classList.remove('hidden');
+        mobileBox?.classList.add('hidden');
+      } else {
+        mobileBox?.classList.remove('hidden');
+        bankBox?.classList.add('hidden');
+      }
+    }
+
+    function handleEditReceiptFileChange(input) {
+      const file = input?.files && input.files[0];
+      if (!file) return;
+      editReceiptFileName = file.name;
+      isLoadingEditReceipt = true;
+      const reader = new FileReader();
+      reader.onload = () => {
+        editReceiptDataUrl = String(reader.result || '');
+        isLoadingEditReceipt = false;
+        const nameEl = document.getElementById('edit-contrib-receipt-name');
+        if (nameEl) nameEl.textContent = `تم إرفاق: ${file.name}`;
+        document.getElementById('clear-edit-receipt-btn')?.classList.remove('hidden');
+        const previewWrap = document.getElementById('edit-contrib-receipt-preview');
+        const previewImg = document.getElementById('edit-contrib-receipt-img');
+        if (editReceiptDataUrl.startsWith('data:image/') && previewImg && previewWrap) {
+          previewImg.src = editReceiptDataUrl;
+          previewWrap.classList.remove('hidden');
+        }
+      };
+      reader.onerror = () => {
+        isLoadingEditReceipt = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearEditReceiptSelection() {
+      editReceiptDataUrl = '';
+      editReceiptFileName = '';
+      const fileInput = document.getElementById('edit-contrib-receipt');
+      if (fileInput) fileInput.value = '';
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      if (nameEl) nameEl.textContent = 'تم حذف الإيصال';
+      document.getElementById('clear-edit-receipt-btn')?.classList.add('hidden');
+      document.getElementById('edit-contrib-receipt-preview')?.classList.add('hidden');
+    }
+
+    function handleEditContributionSubmit(e) {
+      e.preventDefault();
+      if (isLoadingEditReceipt) return;
+      const id = document.getElementById('edit-contrib-id').value;
+      const scope = document.getElementById('edit-contrib-scope').value;
+      const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
+      const item = list.find(x => String(x.id) === String(id));
+      if (!item) return;
+
+      const name = (document.getElementById('edit-contrib-name')?.value || '').trim();
+      const branch = document.getElementById('edit-contrib-branch')?.value || item.branch;
+      const amount = Number(document.getElementById('edit-contrib-amount')?.value) || 0;
+      const targetCaseId = document.getElementById('edit-contrib-target')?.value || 'general';
+      const method = document.getElementById('edit-contrib-method')?.value || item.method;
+      const note = (document.getElementById('edit-contrib-note')?.value || '').trim();
+      const phone = (document.getElementById('edit-contrib-phone')?.value || '').trim();
+
+      if (!name || amount <= 0) return;
+      const targetCase = (appState.cases || []).find(c => String(c.id) === String(targetCaseId));
+
+      item.name = name;
+      item.branch = branch;
+      item.amount = amount;
+      item.targetCaseId = String(targetCaseId);
+      item.targetLabel = targetCase ? targetCase.name : 'الصندوق العام';
+      item.method = method;
+      item.note = note;
+      item.phone = method.includes('النقال') ? phone : '';
+      item.receiptDataUrl = method.includes('المصرف') ? editReceiptDataUrl : '';
+      item.receiptFileName = method.includes('المصرف') ? editReceiptFileName : '';
+      if (!isAdminMode) {
+        item.editCount = (Number(item.editCount) || 0) + 1;
+      }
+
+      closeEditContributionModal();
+      saveAppState('تعديل بيانات مساهمة', true);
+      renderAll();
+      showToast('تم حفظ تعديل المساهمة ومزامنتها مع Firebase.', 'success');
     }
 
     function openAdminDisbursementEditModal(entryId) {
       if (!isAdminMode) return;
-      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(entryId));
+      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(entryId) && x.type === 'disbursement');
       if (!item) return;
       document.getElementById('edit-disb-entry-id').value = String(item.id);
       document.getElementById('edit-disb-amount').value = Number(item.amount) || 0;
@@ -2846,623 +2646,292 @@
     function handleAdminDisbursementEditSubmit(e) {
       e.preventDefault();
       if (!isAdminMode) return;
-      const id = document.getElementById('edit-disb-entry-id')?.value;
-      const newAmt = Math.max(0, Number(document.getElementById('edit-disb-amount')?.value) || 0);
+      const entryId = document.getElementById('edit-disb-entry-id').value;
+      const newAmount = Number(document.getElementById('edit-disb-amount')?.value) || 0;
       const newNote = (document.getElementById('edit-disb-note')?.value || '').trim();
-      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(id));
+      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(entryId) && x.type === 'disbursement');
       if (!item) return;
-      const oldAmt = Number(item.amount) || 0;
-      item.amount = newAmt;
-      item.note = newNote;
 
-      if (item.target && item.target !== 'general') {
-        const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
+      const diff = newAmount - (Number(item.amount) || 0);
+      if (item.targetCaseId) {
+        const c = (appState.cases || []).find(x => String(x.id) === String(item.targetCaseId));
         if (c) {
-          const newDisb = Math.max(0, (Number(c.disbursedAmount) || 0) - oldAmt + newAmt);
-          c.disbursedAmount = newDisb;
-          const req = Math.max(0, Number(c.requiredAmount) || 0);
-          const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          c.closed = req > 0 && (newDisb + contribSum) >= req;
+          c.disbursed = Math.max(0, (Number(c.disbursed) || 0) + diff);
         }
       }
-
-      saveAppState('تعديل قيد صرف');
+      item.amount = newAmount;
+      item.note = newNote;
       closeAdminDisbursementEditModal();
+      saveAppState('تعديل قيد صرف', true);
       renderAll();
-      showToast('تم تعديل قيد الصرف بنجاح.', 'success');
+      showToast('تم تعديل قيد الصرف ومزامنته.', 'success');
     }
 
-    function handleNewContributionSubmit(e) {
-      e.preventDefault();
-      if (isLoadingNewReceipt) {
-        showToast('يرجى الانتظار حتى يكتمل تجهيز صورة الإيصال.', 'info');
-        return;
-      }
-
-      const name = (document.getElementById('contrib-name')?.value || '').trim();
-      const branch = (document.getElementById('contrib-branch')?.value || '').trim();
-      const amount = Number(document.getElementById('contrib-amount')?.value) || 0;
-      const target = document.getElementById('contrib-target')?.value || 'general';
-      const method = document.getElementById('contrib-method')?.value || '';
-      const note = (document.getElementById('contrib-note')?.value || '').trim();
-      const phone = (document.getElementById('contrib-phone')?.value || '').trim();
-
-      if (!name || amount <= 0 || !method) {
-        showToast('يرجى تعبئة الحقول المطلوبة بشكل صحيح.', 'warning');
-        return;
-      }
-      if (method.includes('المصرف') && !newReceiptDataUrl) {
-        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.', 'warning');
-        return;
-      }
-      if (method.includes('النقال') && !/^\d{10}$/.test(phone)) {
-        showToast('يرجى إدخال رقم الهاتف المرسل منه الرصيد (10 أرقام).', 'warning');
-        return;
-      }
-
-      let targetLabel = 'رصيد الصندوق العام';
-      if (target !== 'general') {
-        const c = (appState.cases || []).find(x => String(x.id) === String(target));
-        if (c) targetLabel = c.title;
-      }
-
-      const newId = `contrib_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const entry = {
-        id: newId,
-        type: 'contribution',
-        contributorName: name,
-        branch,
-        amount,
-        target,
-        targetLabel,
-        method,
-        phone: method.includes('النقال') ? phone : '',
-        note,
-        receiptData: method.includes('المصرف') ? newReceiptDataUrl : '',
-        receiptName: method.includes('المصرف') ? newReceiptFileName : '',
-        createdAt: formatNowDate(),
-        userEditUsed: false,
-        userEditCount: 0
-      };
-
-      appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
-      appState.pendingContributions.unshift(entry);
-      markAsMyContribution(newId);
-      saveAppState('إرسال مساهمة جديدة للمراجعة', true);
-
-      document.getElementById('new-contribution-form')?.reset();
-      clearNewReceiptSelection();
-      toggleNewPaymentFields();
-      renderPendingContributions();
-      renderAdminNotifications();
-      showToast('تم إرسال مساهمتك ومزامنتها، وهي الآن بانتظار اعتماد الإدارة.', 'success');
-    }
-
-    function clearEditReceiptSelection() {
-      const input = document.getElementById('edit-contrib-receipt');
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const prevImg = document.getElementById('edit-contrib-receipt-img');
-      const clearBtn = document.getElementById('clear-edit-receipt-btn');
-      if (input) input.value = '';
-      editReceiptDataUrl = '';
-      editReceiptFileName = '';
-      if (nameEl) nameEl.textContent = 'تم حذف الإيصال';
-      if (prevImg) prevImg.src = '';
-      prevWrap?.classList.add('hidden');
-      clearBtn?.classList.add('hidden');
-    }
-
-    async function handleEditReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const prevImg = document.getElementById('edit-contrib-receipt-img');
-      const clearBtn = document.getElementById('clear-edit-receipt-btn');
-      if (!file) return;
-      isLoadingEditReceipt = true;
-      editReceiptFileName = file.name;
-      if (nameEl) nameEl.textContent = `جاري تجهيز الإيصال: ${file.name}...`;
-      try {
-        const dataUrl = await compressReceiptFileToDataUrl(file);
-        editReceiptDataUrl = dataUrl;
-        if (nameEl) nameEl.textContent = `الإيصال المحدد: ${file.name}`;
-        clearBtn?.classList.remove('hidden');
-        if (dataUrl.startsWith('data:image')) {
-          prevWrap?.classList.remove('hidden');
-          if (prevImg) prevImg.src = dataUrl;
-        }
-      } catch (e) {
-        showToast('تعذر قراءة صورة الإيصال.', 'warning');
-      } finally {
-        isLoadingEditReceipt = false;
-        if (input) input.value = '';
-      }
-    }
-
-    function openEditContributionModal(id, scope = 'approved') {
-      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
-      const item = (list || []).find(x => String(x.id) === String(id));
-      if (!item) return;
-
-      if (!isAdminMode && (!isMyContribution(item.id) || item.userEditUsed || (Number(item.userEditCount) || 0) >= 1)) {
-        showToast('لقد تم استخدام محاولة التعديل المتاحة لهذه المساهمة.', 'warning');
-        return;
-      }
-
-      renderTargetSelects();
-      document.getElementById('edit-contrib-id').value = String(item.id);
-      document.getElementById('edit-contrib-scope').value = scope;
-      document.getElementById('edit-contrib-name').value = item.contributorName || '';
-      document.getElementById('edit-contrib-branch').value = item.branch || 'الهمايلة';
-      document.getElementById('edit-contrib-amount').value = Number(item.amount) || 0;
-      const targetSel = document.getElementById('edit-contrib-target');
-      if (targetSel) {
-        const targetVal = String(item.target || 'general');
-        if (!Array.from(targetSel.options).some(o => o.value === targetVal)) {
-          const cObj = (appState.cases || []).find(c => String(c.id) === targetVal);
-          const opt = document.createElement('option');
-          opt.value = targetVal;
-          opt.textContent = cObj ? `${cObj.title} (${cObj.category})` : (item.targetLabel || 'حالة');
-          targetSel.appendChild(opt);
-        }
-        targetSel.value = targetVal;
-      }
-      document.getElementById('edit-contrib-method').value = item.method || 'المصرف (تحويل مصرفي)';
-      document.getElementById('edit-contrib-note').value = item.note || '';
-      document.getElementById('edit-contrib-phone').value = item.phone || '';
-
-      editReceiptDataUrl = item.receiptData || '';
-      editReceiptFileName = item.receiptName || '';
-
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const prevImg = document.getElementById('edit-contrib-receipt-img');
-      const clearBtn = document.getElementById('clear-edit-receipt-btn');
-      const badgeEl = document.getElementById('edit-contrib-attempts-badge');
-
-      if (badgeEl) {
-        const remAttempts = (item.userEditUsed || (Number(item.userEditCount) || 0) >= 1) ? 0 : 1;
-        badgeEl.textContent = isAdminMode ? 'تعديل إداري' : `المحاولات المتبقية: ${remAttempts}/1`;
-      }
-
-      if (editReceiptDataUrl) {
-        if (nameEl) nameEl.textContent = `إيصال مرفق: ${editReceiptFileName || 'صورة الإيصال'}`;
-        clearBtn?.classList.remove('hidden');
-        if (editReceiptDataUrl.startsWith('data:image')) {
-          prevWrap?.classList.remove('hidden');
-          if (prevImg) prevImg.src = editReceiptDataUrl;
-        }
-      } else {
-        if (nameEl) nameEl.textContent = 'لم يتم إرفاق إيصال';
-        clearBtn?.classList.add('hidden');
-        prevWrap?.classList.add('hidden');
-      }
-
-      toggleEditPaymentFields();
-      const modal = document.getElementById('edit-contribution-modal');
+    function openFirebaseConfigModal() {
+      const cfg = getFirebaseConfig();
+      const urlInput = document.getElementById('firebase-db-url-input');
+      const secInput = document.getElementById('firebase-auth-secret-input');
+      if (urlInput) urlInput.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
+      if (secInput) secInput.value = cfg.authSecret || '';
+      const modal = document.getElementById('firebase-config-modal');
       if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
       }
     }
 
-    function closeEditContributionModal() {
-      const modal = document.getElementById('edit-contribution-modal');
+    function closeFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
       if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
     }
 
-    function handleEditContributionSubmit(e) {
+    function handleFirebaseConfigSubmit(e) {
       e.preventDefault();
-      if (isLoadingEditReceipt) {
-        showToast('يرجى الانتظار حتى يكتمل تجهيز الإيصال.', 'info');
-        return;
+      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || '').trim().replace(/\/+$/, '');
+      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
+      if (!dbUrl) return;
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
+      closeFirebaseConfigModal();
+      startFirebasePolling();
+      pushStateToFirebase(true);
+      showToast('تم حفظ إعدادات Firebase وتفعيل المزامنة اللحظية.', 'success');
+    }
+
+    function disconnectFirebaseCloud() {
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      if (firebaseEventSource) {
+        try { firebaseEventSource.close(); } catch (e) {}
+        firebaseEventSource = null;
       }
+      setCloudStatus(false, 'تم فصل الربط السحابي');
+      closeFirebaseConfigModal();
+    }
 
-      const id = document.getElementById('edit-contrib-id')?.value;
-      const scope = document.getElementById('edit-contrib-scope')?.value || 'approved';
-      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
-      const item = (list || []).find(x => String(x.id) === String(id));
-      if (!item) return;
-
-      if (!isAdminMode && (!isMyContribution(item.id) || item.userEditUsed || (Number(item.userEditCount) || 0) >= 1)) {
-        showToast('لقد تم استخدام محاولة التعديل المتاحة لهذه المساهمة.', 'warning');
-        return;
+    function getBackupSnapshotsList() {
+      try {
+        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        return [];
       }
+    }
 
-      const name = (document.getElementById('edit-contrib-name')?.value || '').trim();
-      const branch = (document.getElementById('edit-contrib-branch')?.value || '').trim();
-      let amount = Math.max(0, Number(document.getElementById('edit-contrib-amount')?.value) || 0);
-      const target = document.getElementById('edit-contrib-target')?.value || 'general';
-      const method = document.getElementById('edit-contrib-method')?.value || '';
-      const note = (document.getElementById('edit-contrib-note')?.value || '').trim();
-      const phone = (document.getElementById('edit-contrib-phone')?.value || '').trim();
-
-      if (!name || amount <= 0) {
-        showToast('يرجى إدخال اسم المساهم وقيمة صحيحة.', 'warning');
-        return;
-      }
-
-      const prevTarget = String(item.target || 'general');
-      item.contributorName = name;
-      item.branch = branch;
-      item.amount = amount;
-      item.target = target;
-      if (target === 'general') {
-        item.targetLabel = 'رصيد الصندوق العام';
-      } else {
-        const cObj = (appState.cases || []).find(x => String(x.id) === String(target));
-        item.targetLabel = cObj ? cObj.title : (item.targetLabel || 'حالة');
-      }
-      item.method = method;
-      item.note = note;
-      item.phone = method.includes('النقال') ? phone : '';
-      item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
-      item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
-
-      if (!isAdminMode) {
-        item.previousSnapshot = {
-          contributorName: item.contributorName,
-          branch: item.branch,
-          amount: Number(item.amount) || 0,
-          target: item.target,
-          targetLabel: item.targetLabel,
-          method: item.method,
-          note: item.note || '',
-          phone: item.phone || '',
-          receiptName: item.receiptName || ''
+    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية', notify = false) {
+      try {
+        const snapshot = {
+          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+          reason: String(reason || 'نسخة تلقائية'),
+          savedAt: formatNowDate(),
+          updatedAtMs: Number(appState.updatedAtMs) || Date.now(),
+          state: sanitizeStateData(appState)
         };
-        item.userEditUsed = true;
-        item.userEditCount = (Number(item.userEditCount) || 0) + 1;
-        item.pendingAdminReapproval = true;
-        item.editedAt = formatNowDate();
-      }
-
-      const affectedTargets = new Set([prevTarget, String(target || 'general')]);
-      for (const tid of affectedTargets) {
-        if (!tid || tid === 'general') continue;
-        const cObj = (appState.cases || []).find(x => String(x.id) === tid);
-        if (cObj) {
-          const req = Math.max(0, Number(cObj.requiredAmount) || 0);
-          const disb = Math.max(0, Number(cObj.disbursedAmount) || 0);
-          const contribSum = getCaseContributionsList(cObj.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          cObj.closed = req > 0 && (disb + contribSum) >= req;
-        }
-      }
-
-      saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف', true);
-      closeEditContributionModal();
-      renderAll();
-      showToast(
-        isAdminMode
-          ? 'تم حفظ تعديل المساهمة وتحديث الرصيد ومزامنته.'
-          : 'تم حفظ تعديلك ومزامنته وإرساله للمشرف للمراجعة وإعادة الاعتماد والنشر.',
-        'success'
-      );
-    }
-
-    function recycleAndReapproveEditedContribution(id) {
-      if (!isAdminMode) return;
-      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(id));
-      if (!item) return;
-      item.pendingAdminReapproval = false;
-      item.previousSnapshot = null;
-      item.approvedAt = formatNowDate();
-
-      if (item.target && item.target !== 'general') {
-        const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
-        if (c) {
-          const req = Math.max(0, Number(c.requiredAmount) || 0);
-          const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-          const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          c.closed = req > 0 && (disb + contribSum) >= req;
-        }
-      }
-
-      saveAppState('إعادة تدوير واعتماد تعديل مساهمة', true);
-      renderAll();
-      showToast('تمت مراجعة التعديل واعتماده وتحديث الرصيد ومزامنته في السجل.', 'success');
-    }
-
-    function renderPendingContributions() {
-      const listEl = document.getElementById('pending-contributions-list');
-      const badgeEl = document.getElementById('pending-count-badge');
-      const pending = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
-      const editedForReapproval = (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
-        .filter(x => x && x.type !== 'disbursement' && x.pendingAdminReapproval);
-      const totalReviewItems = pending.length + editedForReapproval.length;
-      if (badgeEl) badgeEl.textContent = `${totalReviewItems} طلبات`;
-      if (!listEl) return;
-
-      const editedHtml = editedForReapproval.map(ed => {
-        const prev = ed.previousSnapshot || {};
-        return `
-          <div class="bg-amber-50/90 border-2 border-amber-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
-            <div class="space-y-1 text-xs">
-              <div class="flex flex-wrap items-center gap-2">
-                ${renderDonorIdentityBadge(ed.contributorName, ed.branch, ed.amount)}
-                <span class="bg-amber-500 text-emerald-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">تعديل بعد الاعتماد — بانتظار إعادة التدوير</span>
-                <span class="bg-white border border-amber-300 text-amber-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">${escapeHtml(ed.targetLabel || 'رصيد الصندوق العام')}</span>
-              </div>
-              <p class="font-bold text-slate-700">
-                القيمة الجديدة: <span class="font-black text-emerald-700">${formatCurrency(ed.amount)}</span>
-                ${prev.amount !== undefined ? ` <span class="text-slate-500">(السابقة: ${formatCurrency(prev.amount)})</span>` : ''}
-                • الطريقة: <span class="font-bold text-slate-800">${escapeHtml(ed.method || '')}</span>
-                ${isAdminMode && ed.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(ed.phone)}</span>` : ''}
-              </p>
-              ${ed.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(ed.note)}</p>` : ''}
-              <p class="text-[11px] text-slate-400 font-bold">وقت التعديل: ${escapeHtml(formatDateTimeWithPeriod(ed.editedAt || ed.createdAt || ''))}</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-              ${isAdminMode && ed.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(ed.id)}', 'approved')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">اطلاع على الوصل</button>` : ''}
-              <button type="button" onclick="recycleAndReapproveEditedContribution('${escapeHtml(ed.id)}')" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">تدوير واعتماد ونشر</button>
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(ed.id)}', 'approved')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
-              <button type="button" onclick="deleteApprovedEntry('${escapeHtml(ed.id)}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      const pendingHtml = pending.map(p => `
-        <div class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
-          <div class="space-y-1 text-xs">
-            <div class="flex flex-wrap items-center gap-2">
-              ${renderDonorIdentityBadge(p.contributorName, p.branch, p.amount)}
-              <span class="bg-amber-100 text-amber-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">${escapeHtml(p.targetLabel || 'رصيد الصندوق العام')}</span>
-            </div>
-            <p class="font-bold text-slate-600">
-              القيمة: <span class="font-black text-emerald-700">${formatCurrency(p.amount)}</span> • الطريقة: <span class="font-bold text-slate-800">${escapeHtml(p.method || '')}</span>
-              ${isAdminMode && p.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(p.phone)}</span>` : ''}
-            </p>
-            ${p.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
-            <p class="text-[11px] text-slate-400 font-bold">${escapeHtml(formatDateTimeWithPeriod(p.createdAt || ''))}</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2 shrink-0">
-            ${isAdminMode && p.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">عرض الوصل</button>` : ''}
-            <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">اعتماد ونشر</button>
-            <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
-            <button type="button" onclick="rejectPendingContribution('${escapeHtml(p.id)}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
-          </div>
-        </div>
-      `).join('');
-
-      if (!editedHtml && !pendingHtml) {
-        listEl.innerHTML = `<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs font-bold text-amber-900">لا توجد طلبات مساهمات أو تعديلات معلقة حالياً.</div>`;
-        return;
-      }
-
-      listEl.innerHTML = editedHtml + pendingHtml;
-    }
-
-    function approvePendingContribution(id) {
-      if (!isAdminMode) return;
-      const idx = (appState.pendingContributions || []).findIndex(x => String(x.id) === String(id));
-      if (idx === -1) return;
-      const item = appState.pendingContributions[idx];
-      appState.pendingContributions.splice(idx, 1);
-
-      const approvedAmount = Math.max(0, Number(item.amount) || 0);
-      const targetId = String(item.target || 'general');
-      let resolvedTargetLabel = item.targetLabel || 'رصيد الصندوق العام';
-
-      if (targetId !== 'general') {
-        const c = (appState.cases || []).find(x => String(x.id) === targetId);
-        if (c) {
-          resolvedTargetLabel = c.title;
-          const req = Math.max(0, Number(c.requiredAmount) || 0);
-          const disb = Math.max(0, Number(c.disbursedAmount) || 0);
-          const existingSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          if (req > 0 && (disb + existingSum + approvedAmount) >= req) {
-            c.closed = true;
-          }
-        }
-      }
-
-      appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
-      appState.approvedContributions.unshift({
-        ...item,
-        amount: approvedAmount,
-        target: targetId,
-        targetLabel: resolvedTargetLabel,
-        pendingAdminReapproval: false,
-        approvedAt: formatNowDate()
-      });
-
-      saveAppState('اعتماد مساهمة وتحديث الرصيد', true);
-      renderAll();
-      showToast(`تم اعتماد مساهمة (${formatCurrency(approvedAmount)}) وتحديث الرصيد ومزامنتها.`, 'success');
-    }
-
-    function rejectPendingContribution(id) {
-      if (!isAdminMode) return;
-      addDeletedId(id);
-      appState.pendingContributions = (appState.pendingContributions || []).filter(x => String(x.id) !== String(id));
-      saveAppState('حذف طلب مساهمة معلق');
-      renderPendingContributions();
-      renderAdminNotifications();
-      showToast('تم حذف الطلب المعلق.', 'info');
-    }
-
-    function deleteApprovedEntry(id) {
-      if (!isAdminMode) return;
-      const targetIdStr = String(id);
-      const targetItem = (appState.approvedContributions || []).find(x => String(x.id) === targetIdStr);
-
-      addDeletedId(targetIdStr);
-      appState.deletedIds = getDeletedIds();
-      appState.approvedContributions = (appState.approvedContributions || []).filter(
-        x => x && String(x.id) !== targetIdStr && !appState.deletedIds.includes(String(x.id))
-      );
-
-      if (targetItem && targetItem.target && targetItem.target !== 'general') {
-        const cObj = (appState.cases || []).find(x => String(x.id) === String(targetItem.target));
-        if (cObj) {
-          const amt = Number(targetItem.amount) || 0;
-          if (targetItem.type === 'disbursement') {
-            cObj.disbursedAmount = Math.max(0, (Number(cObj.disbursedAmount) || 0) - amt);
-          }
-          const req = Math.max(0, Number(cObj.requiredAmount) || 0);
-          const disb = Math.max(0, Number(cObj.disbursedAmount) || 0);
-          const contribSum = getCaseContributionsList(cObj.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          cObj.closed = req > 0 && (disb + contribSum) >= req;
-        }
-      }
-
-      saveAppState('حذف قيد وسحب الرصيد من الحالة', true);
-      renderAll();
-      showToast('تم حذف الشريط والقيد نهائياً وسحب الرصيد ومزامنته.', 'success');
-    }
-
-    function scheduleLedgerRender() {
-      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
-      ledgerSearchTimer = setTimeout(() => {
-        renderLedger();
-      }, 120);
-    }
-
-    function renderLedger() {
-      const tbody = document.getElementById('ledger-table-body');
-      if (!tbody) return;
-      const q = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
-      const filterType = document.getElementById('ledger-filter-select')?.value || 'all';
-      const list = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
-
-      const filtered = list.filter(item => {
-        if (!item) return false;
-        if (item.pendingAdminReapproval && !isAdminMode) return false;
-        const isDisb = item.type === 'disbursement';
-        const isCase = !isDisb && item.target && item.target !== 'general';
-        if (filterType === 'disbursement' && !isDisb) return false;
-        if (filterType === 'general' && (isDisb || isCase)) return false;
-        if (filterType === 'case' && (isDisb || !isCase)) return false;
-        if (!q) return true;
-        const hay = `${item.contributorName || ''} ${item.branch || ''} ${item.targetLabel || ''} ${item.note || ''}`.toLowerCase();
-        return hay.includes(q);
-      });
-
-      if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="py-8 px-4 text-center text-xs font-bold text-slate-500">لا توجد قيود مطابقة للعرض حالياً.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(item => {
-        const isDisb = item.type === 'disbursement';
-        const isCase = !isDisb && item.target && item.target !== 'general';
-        const typeBadge = isDisb
-          ? `<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>`
-          : isCase
-            ? `<span class="inline-block bg-amber-100 text-amber-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>`
-            : `<span class="inline-block bg-emerald-100 text-emerald-800 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>`;
-
-        const canUserEdit = !isAdminMode && isMyContribution(item.id) && !item.userEditUsed && (Number(item.userEditCount) || 0) < 1;
-
-        return `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="py-3.5 px-5 align-top">
-              <div class="flex flex-wrap items-center gap-1.5">${renderDonorIdentityBadge(item.contributorName, item.branch, isDisb ? 0 : item.amount)}</div>
-              ${item.pendingAdminReapproval && isAdminMode ? `<div class="mt-1"><span class="inline-block bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">معدّلة — بانتظار إعادة التدوير والاعتماد</span></div>` : ''}
-              <div class="text-xs font-bold text-slate-600 mt-1">${escapeHtml(item.targetLabel || '')}</div>
-            </td>
-            <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap">${typeBadge}</td>
-            <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap font-black ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
-              ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
-            </td>
-            <td class="py-3.5 px-5 text-left align-middle">
-              <div class="text-xs font-bold text-slate-500">${escapeHtml(formatDateTimeWithPeriod(item.editedAt || item.approvedAt || item.createdAt))}</div>
-              <div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
-                ${isAdminMode && !isDisb ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
-                ${canUserEdit ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] transition cursor-pointer">تعديل مساهمتي</button>` : ''}
-                ${isAdminMode && item.pendingAdminReapproval ? `<button type="button" onclick="recycleAndReapproveEditedContribution('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[11px] transition cursor-pointer">تدوير واعتماد</button>` : ''}
-                ${isAdminMode ? (
-                  isDisb
-                    ? `<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] transition cursor-pointer">تعديل</button>`
-                    : `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] transition cursor-pointer">تعديل</button>`
-                ) : ''}
-                ${isAdminMode ? `<button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] transition cursor-pointer">حذف</button>` : ''}
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function renderAll() {
-      if (isRenderingNow) return;
-      isRenderingNow = true;
-      try {
-        if (!appState || typeof appState !== 'object') {
-          appState = getInitialState();
-        }
-        renderStats();
-        renderTargetSelects();
-        renderCases();
-        if (isAdminMode) {
-          renderPendingContributions();
-        }
-        renderAdminNotifications();
-        renderLedger();
-      } catch (err) {
-        console.error('Error rendering platform:', err);
-      } finally {
-        isRenderingNow = false;
-      }
-    }
-
-    function scheduleRenderAll() {
-      if (renderAllFrameId) {
-        cancelAnimationFrame(renderAllFrameId);
-        renderAllFrameId = null;
-      }
-      if (typeof requestAnimationFrame === 'function') {
-        renderAllFrameId = requestAnimationFrame(() => {
-          renderAllFrameId = null;
-          renderAll();
-        });
-      } else {
-        renderAll();
-      }
-    }
-
-    function initializePlatformOnce() {
-      if (window.__sayaanPlatformInitialized) return;
-      window.__sayaanPlatformInitialized = true;
-      try {
-        loadLocalState();
-        ensureSeedDataIfEmpty();
-        updateAdminUI();
-        renderAll();
-        saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
-        startAutoBackupTimer();
-        if (readStorageSafe(RESTORED_LOCK_KEY)) {
-          pushStateToFirebase(true);
-        }
-        startFirebasePolling();
+        writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
+        const list = getBackupSnapshotsList();
+        list.unshift(snapshot);
+        const trimmed = list.slice(0, MAX_BACKUP_SNAPSHOTS);
+        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(trimmed));
+        renderAutoRecoverySnapshots();
+        if (notify) showToast('تم حفظ نقطة استعادة تلقائية.', 'success');
       } catch (e) {}
     }
 
-    if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', initializePlatformOnce);
-    } else {
-      initializePlatformOnce();
+    function renderAutoRecoverySnapshots() {
+      const container = document.getElementById('auto-recovery-snapshots-list');
+      if (!container) return;
+      const list = getBackupSnapshotsList();
+      if (list.length === 0) {
+        container.innerHTML = `<p class="text-xs font-bold text-slate-500 bg-white rounded-xl p-3 text-center">لا توجد نقاط استعادة محفوظة على هذا الجهاز بعد.</p>`;
+        return;
+      }
+      container.innerHTML = list.map((snap, idx) => {
+        const casesCount = Array.isArray(snap.state?.cases) ? snap.state.cases.length : 0;
+        const approvedCount = Array.isArray(snap.state?.approvedContributions) ? snap.state.approvedContributions.length : 0;
+        return `
+          <div class="bg-white border border-emerald-200 rounded-xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div>
+              <p class="font-black text-slate-900">${idx === 0 ? '★ ' : ''}${escapeHtml(snap.reason)}</p>
+              <p class="text-[11px] font-bold text-slate-500">${escapeHtml(snap.savedAt)} • الحالات: ${casesCount} • القيود: ${approvedCount}</p>
+            </div>
+            <button type="button" onclick="restoreSnapshotById('${escapeHtml(snap.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black px-3 py-1.5 rounded-lg text-[11px] transition cursor-pointer">
+              استعادة ومزامنة
+            </button>
+          </div>
+        `;
+      }).join('');
     }
 
-    window.addEventListener('storage', (event) => {
-      if (!event || !event.key) return;
-      if (event.key === STORAGE_KEY || event.key === TOMBSTONE_KEY) {
-        loadLocalState();
-        updateAdminUI();
-        renderAll();
-      }
-    });
+    function applyRestoredStateAndSync(restoredRawState, sourceLabel) {
+      const clean = sanitizeStateData(restoredRawState);
+      const nowStamp = Date.now();
+      appState = {
+        ...clean,
+        lastUpdated: formatNowDate(),
+        updatedAtMs: Math.max((Number(appState.updatedAtMs) || 0) + 1000, nowStamp)
+      };
+      setDeletedIdsList(appState.deletedIds || []);
+      hasLocalStateStored = true;
+      hasUnsyncedLocalChanges = true;
+      const serialized = JSON.stringify(appState);
+      writeStorageSafe(STORAGE_KEY, serialized);
+      writeStorageSafe(RESTORED_LOCK_KEY, JSON.stringify({
+        updatedAtMs: appState.updatedAtMs,
+        savedAt: appState.lastUpdated,
+        state: appState
+      }));
+      saveAutoBackupSnapshot(sourceLabel, false);
+      lastSyncedFingerprint = '';
+      pushStateToFirebase(true);
+      scheduleFirebasePush(60, true);
+      updateAdminUI();
+      renderAll();
+      showToast(`تمت استعادة البيانات (${sourceLabel}) وتثبيتها ومزامنتها مع Firebase.`, 'success');
+    }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        pullStateFromFirebase();
+    function restoreSnapshotById(snapId) {
+      if (!isAdminMode) return;
+      const snap = getBackupSnapshotsList().find(s => String(s.id) === String(snapId));
+      if (!snap || !snap.state) return;
+      applyRestoredStateAndSync(snap.state, `نقطة ${snap.savedAt}`);
+    }
+
+    function restoreLatestAutoSnapshot() {
+      if (!isAdminMode) return;
+      const list = getBackupSnapshotsList();
+      if (list.length > 0 && list[0].state) {
+        applyRestoredStateAndSync(list[0].state, 'أحدث نقطة حفظ');
+        return;
       }
-    });
+      try {
+        const raw = readStorageSafe(AUTO_BACKUP_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.state) {
+            applyRestoredStateAndSync(parsed.state, 'أحدث نقطة حفظ');
+            return;
+          }
+        }
+      } catch (e) {}
+      showToast('لا توجد نقطة حفظ سابقة للاستعادة.', 'warning');
+    }
+
+    function exportManualBackupFile() {
+      try {
+        const payload = {
+          app: 'SayaanTakafulPlatform',
+          exportedAt: formatNowDate(),
+          updatedAtMs: Number(appState.updatedAtMs) || Date.now(),
+          deletedIds: getDeletedIds(),
+          state: sanitizeStateData(appState)
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sayaan-takaful-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('تم حفظ ملف النسخة الاحتياطية إلى الهاتف.', 'success');
+      } catch (e) {
+        showToast('تعذر تصدير النسخة الاحتياطية.', 'error');
+      }
+    }
+
+    function handleManualBackupFileImport(input) {
+      const file = input?.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          const candidate = parsed && parsed.state && typeof parsed.state === 'object' ? parsed.state : parsed;
+          if (!candidate || typeof candidate !== 'object') {
+            throw new Error('Invalid backup format');
+          }
+          if (Array.isArray(parsed.deletedIds)) {
+            setDeletedIdsList([...getDeletedIds(), ...parsed.deletedIds]);
+          }
+          applyRestoredStateAndSync(candidate, 'استعادة من ملف الهاتف');
+        } catch (err) {
+          showToast('ملف النسخة الاحتياطية غير صالح أو تالف.', 'error');
+        } finally {
+          input.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    function renderAll() {
+      try {
+        renderStats();
+        populateTargetCaseSelects();
+        renderCases();
+        renderPendingContributions();
+        renderLedger();
+        renderAutoRecoverySnapshots();
+        updateAdminUI();
+      } catch (e) {}
+    }
+
+    function loadInitialAppState() {
+      try {
+        const lockedRaw = readStorageSafe(RESTORED_LOCK_KEY);
+        const storageRaw = readStorageSafe(STORAGE_KEY);
+        let chosen = null;
+
+        if (storageRaw) {
+          const parsedStorage = JSON.parse(storageRaw);
+          if (parsedStorage && typeof parsedStorage === 'object') {
+            chosen = parsedStorage;
+          }
+        }
+        if (lockedRaw) {
+          const parsedLock = JSON.parse(lockedRaw);
+          const lockState = parsedLock && parsedLock.state ? parsedLock.state : null;
+          if (lockState && (!chosen || (Number(lockState.updatedAtMs) || 0) >= (Number(chosen.updatedAtMs) || 0))) {
+            chosen = lockState;
+          }
+        }
+
+        if (chosen) {
+          appState = sanitizeStateData(chosen);
+          hasLocalStateStored = true;
+        } else {
+          appState = getInitialState();
+          hasLocalStateStored = false;
+        }
+      } catch (e) {
+        appState = getInitialState();
+        hasLocalStateStored = false;
+      }
+    }
+
+    function initApp() {
+      loadInitialAppState();
+      renderAll();
+      startFirebasePolling();
+      if (hasLocalStateStored && readStorageSafe(RESTORED_LOCK_KEY)) {
+        pushStateToFirebase(true);
+      }
+      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
+      autoBackupMinuteTimer = setInterval(() => {
+        if (hasLocalStateStored) {
+          saveAutoBackupSnapshot('حفظ دوري تلقائي', false);
+        }
+      }, BACKUP_INTERVAL_MS);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
   </script>
 </body>
 </html>
