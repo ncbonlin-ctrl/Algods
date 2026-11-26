@@ -503,41 +503,65 @@
     <section id="manual-backup-restore-section" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border-2 border-emerald-200 space-y-5">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
-          <span class="inline-block bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full mb-1">نسخ وحفظ واستعادة يدوية شاملة</span>
-          <h2 class="text-xl sm:text-2xl font-black text-slate-900">نسخ وحفظ واستعادة كافة تفاصيل المنصة</h2>
+          <span class="inline-block bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full mb-1">نسخ واستعادة شاملة</span>
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900">نسخ واستعادة كافة تفاصيل المنصة</h2>
           <p class="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">
             يشمل جميع تفاصيل الموقع، البيانات، المدخلات، المساهمات، الأرصدة، وبيان المساهمات بالكامل دون استثناء.
           </p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" onclick="copyFullPlatformPackageToClipboard()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer">
-            نسخ كامل المنصة
-          </button>
-          <button type="button" onclick="exportManualBackupFile()" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer">
-            حفظ نسخة كاملة (JSON)
-          </button>
-          <label class="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer inline-flex items-center justify-center">
-            <span>استرداد من ملف</span>
-            <input type="file" id="manual-restore-file-input" accept=".json,application/json" onchange="handleManualBackupFileImport(this)" class="hidden" />
-          </label>
+      </div>
+
+      <!-- زرين متقابلين متساويين في الطول والعرض + زر الاستعادة -->
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" onclick="copyCompactSummaryToClipboard()" class="w-full h-12 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition flex items-center justify-center cursor-pointer">
+          نسخ
+        </button>
+        <button type="button" onclick="copyFullPlatformPackageToClipboard()" class="w-full h-12 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm px-4 rounded-2xl shadow-sm transition flex items-center justify-center cursor-pointer">
+          نسخ كامل للمنصة
+        </button>
+      </div>
+
+      <!-- حفظ واستعادة نسخة خارجية إلى/من الهاتف -->
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" onclick="exportManualBackupFile()" class="w-full h-12 bg-teal-50 hover:bg-teal-100 text-teal-950 border border-teal-300 font-black text-xs sm:text-sm px-3 rounded-2xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>حفظ نسخة إلى الهاتف</span>
+        </button>
+        <label for="phone-backup-file-input" class="w-full h-12 bg-sky-50 hover:bg-sky-100 text-sky-950 border border-sky-300 font-black text-xs sm:text-sm px-3 rounded-2xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>استعادة من الهاتف</span>
+          <input type="file" id="phone-backup-file-input" accept=".json,application/json,text/plain" onchange="handleManualBackupFileImport(this)" class="hidden" />
+        </label>
+      </div>
+
+      <!-- حفظ واستعادة النسخة عبر المزامنة السحابية -->
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" onclick="saveSnapshotToCloudSync()" class="w-full h-12 bg-emerald-900 hover:bg-emerald-800 text-amber-300 border border-amber-400/40 font-black text-xs sm:text-sm px-3 rounded-2xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>حفظ نسخة سحابية</span>
+        </button>
+        <button type="button" onclick="restoreSnapshotFromCloudSync()" class="w-full h-12 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-400/60 font-black text-xs sm:text-sm px-3 rounded-2xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>استعادة نسخة سحابية</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+        <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+          <label for="admin-restore-version-date" class="text-xs font-black text-slate-800 shrink-0">تاريخ النسخة للاستعادة (من لوحة الإدارة):</label>
+          <input type="text" id="admin-restore-version-date" dir="ltr" placeholder="مثال: 2026-11-26 13:30" class="w-full sm:w-60 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 outline-none transition" />
         </div>
+        <button type="button" id="admin-restore-action-btn" onclick="triggerRestoreAction()" class="h-11 px-6 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm rounded-2xl shadow-xs transition flex items-center justify-center cursor-pointer shrink-0">
+          استعادة
+        </button>
       </div>
 
       <div class="space-y-2">
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <label for="full-platform-bundle-textarea" class="text-xs font-black text-slate-800">
-            حزمة النسخ والاستعادة اليدوية الكاملة (كل البيانات والمدخلات والمساهمات والأرصدة وبيان المساهمات)
+            بيانات النسخة الكاملة (للمعاينة أو اللصق عند الاستعادة اليدوية)
           </label>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="refreshFullPlatformBundleTextarea()" class="text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-xl transition cursor-pointer">
-              تحديث الحزمة الآن
-            </button>
-            <button type="button" onclick="restorePlatformFromManualTextarea()" class="text-xs font-black bg-emerald-800 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl transition cursor-pointer">
-              استعادة يدوية من النص
-            </button>
-          </div>
+          <button type="button" onclick="refreshFullPlatformBundleTextarea()" class="text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-xl transition cursor-pointer">
+            تحديث الحزمة الآن
+          </button>
         </div>
-        <textarea id="full-platform-bundle-textarea" rows="8" dir="ltr" placeholder="ستظهر هنا الحزمة الكاملة أو يمكنك لصق نسخة كاملة هنا ثم الضغط على استعادة يدوية من النص..." class="w-full font-mono text-xs bg-slate-50 border border-slate-300 rounded-2xl p-3.5 text-slate-800 focus:bg-white focus:border-emerald-600 outline-none transition"></textarea>
+        <textarea id="full-platform-bundle-textarea" rows="7" dir="ltr" placeholder="ستظهر هنا الحزمة الكاملة أو يمكنك لصق نسخة كاملة هنا ثم الضغط على استعادة..." class="w-full font-mono text-xs bg-slate-50 border border-slate-300 rounded-2xl p-3.5 text-slate-800 focus:bg-white focus:border-emerald-600 outline-none transition"></textarea>
       </div>
     </section>
   </main>
@@ -2954,12 +2978,73 @@
     }
 
     function updateBackupAdminUI() {
-      // مزامنة حالة أزرار النسخ الاحتياطي داخل لوحة الإدارة
       const backupBar = document.getElementById('admin-backup-bar');
       if (backupBar && isAdminMode) {
         backupBar.classList.remove('hidden');
       }
+      const dateInput = document.getElementById('admin-restore-version-date');
+      if (dateInput) {
+        dateInput.disabled = !isAdminMode;
+        dateInput.title = isAdminMode ? 'أدخل تاريخ النسخة المراد استعادتها' : 'إضافة تاريخ النسخة متاحة من لوحة الإدارة فقط';
+      }
       refreshFullPlatformBundleTextarea();
+    }
+
+    function copyCompactSummaryToClipboard() {
+      try {
+        const m = computeFinancialMetrics();
+        const lines = [
+          'صندوق التكافل الاجتماعي - قبيلة الصيعان',
+          `إجمالي المساهمات المعتمدة: ${formatCurrency(m.totalContrib)} (عدد المساهمات: ${m.contribCount})`,
+          `إجمالي المساعدات المصروفة: ${formatCurrency(m.totalDisb)}`,
+          `الرصيد المتاح حالياً بالصندوق: ${formatCurrency(m.availableBalance)}`,
+          `نسبة التغطية: ${m.coveragePct}% من ${formatCurrency(m.totalReq)}`
+        ];
+        const text = lines.join('\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+        showToast('تم نسخ ملخص الأرصدة والبيانات بنجاح.', 'success');
+      } catch (e) {
+        showToast('تعذر نسخ الملخص.', 'warning');
+      }
+    }
+
+    function triggerRestoreAction() {
+      const requestedDate = (document.getElementById('admin-restore-version-date')?.value || '').trim();
+      if (requestedDate && !isAdminMode) {
+        showToast('تحديد تاريخ النسخة للاستعادة متاح من لوحة الإدارة فقط.', 'warning');
+        return;
+      }
+
+      if (requestedDate && isAdminMode) {
+        const history = getAutoBackupHistory();
+        const matchedSnap = history.find(s =>
+          String(s.createdAt || '').includes(requestedDate) ||
+          String(s.id || '').includes(requestedDate)
+        );
+        if (matchedSnap) {
+          applyRestoredState(matchedSnap);
+          showToast(`تمت استعادة النسخة المؤرخة (${matchedSnap.createdAt}) بنجاح.`, 'success');
+          return;
+        }
+        const rawText = (document.getElementById('full-platform-bundle-textarea')?.value || '').trim();
+        if (!rawText) {
+          showToast(`لم يتم العثور على نسخة محفوظة بتاريخ (${requestedDate})؛ الصق نص النسخة للاستعادة.`, 'warning');
+          return;
+        }
+      }
+
+      restorePlatformFromManualTextarea();
     }
 
     function buildCompletePlatformSnapshotObject(reason = 'نسخة يدوية شاملة') {
@@ -3224,20 +3309,169 @@
 
     function exportManualBackupFile() {
       try {
-        const payload = buildCompletePlatformSnapshotObject('حفظ ملف نسخة يدوية كاملة');
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const payload = buildCompletePlatformSnapshotObject('حفظ نسخة خارجية إلى الهاتف');
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const fileName = `sayaan-takaful-backup-${Date.now()}.json`;
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+
+        // دعم مشاركة الملف مباشرة في الهواتف إن أمكن مع الإبقاء على التنزيل المباشر كخيار أساسي
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sayaan-takaful-complete-platform-${Date.now()}.json`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+
         refreshFullPlatformBundleTextarea();
-        showToast('تم حفظ وتنزيل النسخة الكاملة للمنصة بنجاح.', 'success');
+        showToast('تم حفظ وتنزيل النسخة الخارجية إلى الهاتف بنجاح.', 'success');
       } catch (e) {
-        showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'warning');
+        showToast('تعذر حفظ النسخة الخارجية إلى الهاتف.', 'warning');
+      }
+    }
+
+    async function saveSnapshotToCloudSync() {
+      try {
+        const cfg = getFirebaseConfig();
+        if (!cfg || !cfg.dbUrl) {
+          showToast('يرجى التأكد من إعداد رابط المزامنة السحابية أولاً.', 'warning');
+          return;
+        }
+        const snapshotPayload = buildCompletePlatformSnapshotObject('حفظ نسخة احتياطية سحابية');
+        const stampMs = Date.now();
+        const baseUrl = cfg.dbUrl.replace(/\/+$/, '');
+        const authParam = cfg.authSecret ? `&auth=${encodeURIComponent(cfg.authSecret)}` : '';
+        const queryAuth = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+
+        // حفظ النسخة الحالية في المزامنة السحابية الرئيسية
+        await pushStateToFirebase(true);
+
+        // حفظ لقطة نسخة سحابية مؤرخة قابلة للاستعادة السحابية
+        const snapId = `snap_${stampMs}`;
+        const cloudSnapEndpoint = `${baseUrl}/sayaanTakafulSnapshots/${snapId}.json${queryAuth}`;
+        const latestPointerEndpoint = `${baseUrl}/sayaanTakafulLatestSnapshot.json${queryAuth}`;
+
+        const snapRecord = {
+          id: snapId,
+          savedAt: formatNowDate(),
+          updatedAt: stampMs,
+          snapshot: snapshotPayload
+        };
+
+        const resSnap = await fetch(cloudSnapEndpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapRecord)
+        });
+        await fetch(latestPointerEndpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapRecord)
+        });
+
+        if (resSnap.ok) {
+          setCloudStatus(true, 'متصل ومتزامن');
+          showToast(`تم حفظ النسخة في المزامنة السحابية (${snapRecord.savedAt}).`, 'success');
+        } else {
+          showToast('تعذر حفظ النسخة السحابية حالياً.', 'warning');
+        }
+      } catch (e) {
+        showToast('حدث خطأ أثناء الحفظ في المزامنة السحابية.', 'warning');
+      }
+    }
+
+    async function restoreSnapshotFromCloudSync() {
+      try {
+        const cfg = getFirebaseConfig();
+        if (!cfg || !cfg.dbUrl) {
+          showToast('يرجى التأكد من إعداد رابط المزامنة السحابية أولاً.', 'warning');
+          return;
+        }
+        const requestedDate = (document.getElementById('admin-restore-version-date')?.value || '').trim();
+        const baseUrl = cfg.dbUrl.replace(/\/+$/, '');
+        const queryAuth = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+
+        let chosenRecord = null;
+
+        // إذا تم تحديد تاريخ من لوحة الإدارة نبحث في النسخ السحابية المؤرخة أولاً
+        if (requestedDate) {
+          const allSnapsRes = await fetch(`${baseUrl}/sayaanTakafulSnapshots.json${queryAuth}`, { cache: 'no-store' });
+          if (allSnapsRes.ok) {
+            const snapsMap = await allSnapsRes.json();
+            if (snapsMap && typeof snapsMap === 'object') {
+              const list = Object.values(snapsMap).filter(Boolean).sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+              chosenRecord = list.find(r =>
+                String(r.savedAt || '').includes(requestedDate) ||
+                String(r.snapshot?.exportedAt || '').includes(requestedDate) ||
+                String(r.id || '').includes(requestedDate)
+              ) || null;
+            }
+          }
+          if (!chosenRecord) {
+            showToast(`لم يتم العثور على نسخة سحابية مطابقة للتاريخ (${requestedDate}).`, 'warning');
+            return;
+          }
+        } else {
+          // جلب أحدث نسخة سحابية محفوظة، وإلا الرجوع للحالة السحابية الرئيسية
+          const latestRes = await fetch(`${baseUrl}/sayaanTakafulLatestSnapshot.json${queryAuth}`, { cache: 'no-store' });
+          if (latestRes.ok) {
+            const latestData = await latestRes.json();
+            if (latestData && latestData.snapshot) {
+              chosenRecord = latestData;
+            }
+          }
+          if (!chosenRecord) {
+            const mainRes = await fetch(buildFirebaseEndpoint(cfg), { cache: 'no-store' });
+            if (mainRes.ok) {
+              const mainData = await mainRes.json();
+              if (mainData && mainData.state) {
+                chosenRecord = {
+                  savedAt: mainData.lastUpdated || formatNowDate(),
+                  snapshot: {
+                    state: mainData.state,
+                    deletedIds: mainData.deletedIds || []
+                  }
+                };
+              }
+            }
+          }
+        }
+
+        if (!chosenRecord || !chosenRecord.snapshot) {
+          showToast('لا توجد نسخة سحابية متاحة للاستعادة حالياً.', 'warning');
+          return;
+        }
+
+        const parsed = chosenRecord.snapshot;
+        const candidateState = parsed.state || (Array.isArray(parsed.cases) ? parsed : null);
+        if (!candidateState) {
+          showToast('بيانات النسخة السحابية غير صالحة.', 'warning');
+          return;
+        }
+
+        const snap = {
+          id: chosenRecord.id || ('cloud-restore-' + Date.now()),
+          createdAt: chosenRecord.savedAt || parsed.exportedAt || formatNowDate(),
+          reason: 'استعادة نسخة من المزامنة السحابية',
+          lang: parsed.siteDetails?.lang || parsed.lang || 'ar',
+          dir: parsed.siteDetails?.dir || parsed.dir || 'rtl',
+          state: sanitizeStateData(candidateState),
+          deletedIds: parsed.deletedIds || candidateState.deletedIds || [],
+          deviceVotes: parsed.deviceVotes || {},
+          myContributions: parsed.myContributions || {},
+          firebaseConfig: parsed.firebaseConfig || null,
+          biometricConfig: parsed.biometricConfig || null,
+          appearance: parsed.appearance || null,
+          inputs: parsed.inputs || {},
+          outputs: parsed.outputs || {}
+        };
+
+        applyRestoredState(snap);
+        refreshFullPlatformBundleTextarea();
+        showToast(`تمت استعادة النسخة السحابية (${snap.createdAt}) بنجاح.`, 'success');
+      } catch (e) {
+        showToast('تعذر استعادة النسخة من المزامنة السحابية.', 'warning');
       }
     }
 
