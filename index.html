@@ -2741,6 +2741,7 @@
                   ${isAdminMode ? `
                     <div class="flex items-center gap-1 shrink-0">
                       <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-white border border-rose-200 text-rose-700 font-black text-[10px] cursor-pointer">تعديل</button>
+                      <button type="button" onclick="resetSingleRejectionItem('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-950 font-black text-[10px] cursor-pointer">تصفير</button>
                       <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px] cursor-pointer">حذف</button>
                     </div>
                   ` : ''}
@@ -2982,10 +2983,27 @@
       if (!isAdminMode) return;
       const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
       if (!c) return;
+      const beforeLen = (c.rejections || []).length;
       c.rejections = (c.rejections || []).filter(x => String(x.id) !== String(rejId));
+      if (c.rejections.length < beforeLen) {
+        c.votesNo = Math.max(0, (Number(c.votesNo) || 0) - 1);
+      }
       saveAppState('حذف سبب رفض');
-      renderCases();
-      showToast('تم حذف الملاحظة.', 'success');
+      renderAll();
+      showToast('تم حذف سبب الرفض وتحديث عداد عدم الموافقة.', 'success');
+    }
+
+    function resetSingleRejectionItem(caseId, rejId) {
+      if (!isAdminMode) return;
+      const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
+      if (!c) return;
+      const r = (c.rejections || []).find(x => String(x.id) === String(rejId));
+      if (!r) return;
+      r.reason = '';
+      r.createdAt = formatNowDate();
+      saveAppState('تصفير تعليق الرفض');
+      renderAll();
+      showToast('تم تصفير هذا التعليق فقط.', 'success');
     }
 
     function openAddCaseModal() {
@@ -3667,14 +3685,19 @@
 
     function deleteApprovedEntry(id) {
       if (!isAdminMode) return;
-      const targetItem = (appState.approvedContributions || []).find(x => String(x.id) === String(id));
-      addDeletedId(id);
-      appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== String(id));
-      if (targetItem && targetItem.target && targetItem.target !== 'general') {
+      const targetIdStr = String(id);
+      const targetItem = (appState.approvedContributions || []).find(x => String(x.id) === targetIdStr);
+      if (!targetItem) return;
+
+      addDeletedId(targetIdStr);
+      appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== targetIdStr);
+
+      if (targetItem.target && targetItem.target !== 'general') {
         const cObj = (appState.cases || []).find(x => String(x.id) === String(targetItem.target));
         if (cObj) {
+          const amt = Number(targetItem.amount) || 0;
           if (targetItem.type === 'disbursement') {
-            cObj.disbursedAmount = Math.max(0, (Number(cObj.disbursedAmount) || 0) - (Number(targetItem.amount) || 0));
+            cObj.disbursedAmount = Math.max(0, (Number(cObj.disbursedAmount) || 0) - amt);
           }
           const req = Math.max(0, Number(cObj.requiredAmount) || 0);
           const disb = Math.max(0, Number(cObj.disbursedAmount) || 0);
@@ -3682,9 +3705,10 @@
           cObj.closed = req > 0 && (disb + contribSum) >= req;
         }
       }
+
       saveAppState('حذف قيد معتمد');
       renderAll();
-      showToast('تم حذف القيد من السجل.', 'success');
+      showToast('تم حذف القيد وإزالة قيمته من حساب الحالة فوراً.', 'success');
     }
 
     function scheduleLedgerRender() {
