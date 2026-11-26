@@ -931,168 +931,12 @@
 
     function getInitialState() {
       return {
-        lastUpdated: '2026-11-25 23:51',
-        cases: [
-          {
-            id: 'case-1774645873473',
-            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            category: 'علاج مرضى الأورام',
-            requiredAmount: 450000,
-            disbursedAmount: 1290,
-            closed: false,
-            description: 'كريم عمران خالد',
-            votes: { approve: 0, reject: 0 },
-            rejections: []
-          },
-          {
-            id: 'case-1774645907105',
-            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            category: 'علاج مرضى الأورام',
-            requiredAmount: 421600,
-            disbursedAmount: 1375,
-            closed: false,
-            description: 'ناجي مصطفى عيسى',
-            votes: { approve: 0, reject: 0 },
-            rejections: []
-          },
-          {
-            id: 'case-1774645963350',
-            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            category: 'علاج مرضى الأورام',
-            requiredAmount: 440000,
-            disbursedAmount: 0,
-            closed: false,
-            description: 'مريم بوزيد',
-            votes: { approve: 0, reject: 0 },
-            rejections: []
-          },
-          {
-            id: 'case-1774645994418',
-            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            category: 'علاج مرضى الأورام',
-            requiredAmount: 430000,
-            disbursedAmount: 0,
-            closed: false,
-            description: 'فوزي ميلود',
-            votes: { approve: 0, reject: 0 },
-            rejections: []
-          },
-          {
-            id: 'case-1774646023003',
-            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            category: 'علاج مرضى الأورام',
-            requiredAmount: 425000,
-            disbursedAmount: 0,
-            closed: false,
-            description: 'علي نصر',
-            votes: { approve: 0, reject: 0 },
-            rejections: []
-          }
-        ],
-        pendingContributions: [
-          {
-            id: 'contrib-1774646179033',
-            type: 'general',
-            contributorName: 'نضال',
-            branch: 'متبرع من خارج القبيلة',
-            amount: 889505,
-            target: 'general',
-            targetLabel: 'رصيد الصندوق العام',
-            method: 'المصرف (تحويل مصرفي)',
-            note: '',
-            receiptData: '',
-            receiptName: 'Screenshot_20260322-075126~2.jpg',
-            phone: '',
-            createdAt: '2026-11-25 23:49',
-            userEditUsed: false,
-            userEditCount: 0
-          }
-        ],
-        approvedContributions: [
-          {
-            id: 'disb-1774646133412',
-            type: 'disbursement',
-            contributorName: 'صرف: علاج مرضى الأورام - متابعة جلسات علاجية',
-            branch: 'علاج مرضى الأورام',
-            amount: 1375,
-            target: 'case-1774645907105',
-            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            method: 'صرف من الصندوق',
-            note: 'صرف مساعدة معتمدة',
-            receiptData: '',
-            receiptName: '',
-            phone: '',
-            createdAt: '2026-11-25 23:48',
-            userEditUsed: true
-          },
-          {
-            id: 'disb-1774646121599',
-            type: 'disbursement',
-            contributorName: 'صرف: علاج مرضى الأورام - متابعة جلسات علاجية',
-            branch: 'علاج مرضى الأورام',
-            amount: 1290,
-            target: 'case-1774645873473',
-            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            method: 'صرف من الصندوق',
-            note: 'صرف مساعدة معتمدة',
-            receiptData: '',
-            receiptName: '',
-            phone: '',
-            createdAt: '2026-11-25 23:48',
-            userEditUsed: true
-          },
-          {
-            id: 'contrib-1774646110858',
-            type: 'general',
-            contributorName: 'فاعلة خير',
-            branch: 'متبرع من خارج القبيلة',
-            amount: 889685,
-            target: 'general',
-            targetLabel: 'رصيد الصندوق العام',
-            method: 'المصرف (تحويل مصرفي)',
-            note: '',
-            receiptData: '',
-            receiptName: 'Screenshot_20260322-075126~2.jpg',
-            phone: '',
-            createdAt: '2026-11-25 23:48',
-            userEditUsed: false,
-            userEditCount: 0
-          },
-          {
-            id: 'contrib-1774646082994',
-            type: 'case',
-            contributorName: 'محمود',
-            branch: 'متبرع من خارج القبيلة',
-            amount: 582248,
-            target: 'case-1774645907105',
-            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
-            method: 'المصرف (تحويل مصرفي)',
-            note: '',
-            receiptData: '',
-            receiptName: 'Screenshot_20260322-075126~2.jpg',
-            phone: '',
-            createdAt: '2026-11-25 23:47',
-            userEditUsed: false,
-            userEditCount: 0
-          },
-          {
-            id: 'contrib-1774646050602',
-            type: 'general',
-            contributorName: 'عادل',
-            branch: 'أولاد سلام',
-            amount: 4580,
-            target: 'general',
-            targetLabel: 'رصيد الصندوق العام',
-            method: 'المصرف (تحويل مصرفي)',
-            note: '',
-            receiptData: '',
-            receiptName: 'Screenshot_20260322-075126~2.jpg',
-            phone: '',
-            createdAt: '2026-11-25 23:47',
-            userEditUsed: false,
-            userEditCount: 0
-          }
-        ]
+        lastUpdated: formatNowDate(),
+        updatedAtMs: Date.now(),
+        deletedIds: [],
+        cases: [],
+        pendingContributions: [],
+        approvedContributions: []
       };
     }
 
@@ -1124,19 +968,29 @@
     function getDeletedIds() {
       try {
         const raw = readStorageSafe(TOMBSTONE_KEY);
-        return raw ? JSON.parse(raw) : (memoryStore.deletedIds || []);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed)) {
+          memoryStore.deletedIds = parsed.map(String);
+          return memoryStore.deletedIds;
+        }
+        return (memoryStore.deletedIds || []).map(String);
       } catch (e) {
-        return memoryStore.deletedIds || [];
+        return (memoryStore.deletedIds || []).map(String);
       }
+    }
+
+    function setDeletedIdsList(ids) {
+      const uniqueIds = Array.from(new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean)));
+      memoryStore.deletedIds = uniqueIds;
+      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(uniqueIds));
+      return uniqueIds;
     }
 
     function addDeletedId(id) {
       if (!id) return;
-      const list = new Set(getDeletedIds().map(String));
-      list.add(String(id));
-      const arr = Array.from(list);
-      memoryStore.deletedIds = arr;
-      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(arr));
+      const current = getDeletedIds();
+      current.push(String(id));
+      setDeletedIdsList(current);
     }
 
     function getAutoBackupHistory() {
@@ -3061,7 +2915,10 @@
 
     function saveAppState(reason = 'تحديث البيانات') {
       try {
+        const nowStamp = Date.now();
+        appState.updatedAtMs = nowStamp;
         appState.lastUpdated = formatNowDate();
+        appState.deletedIds = getDeletedIds();
         appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions);
         const approvedIds = new Set(appState.approvedContributions.map(x => String(x.id)));
         appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions)
@@ -3069,7 +2926,7 @@
 
         const serialized = JSON.stringify(appState);
         writeStorageSafe(STORAGE_KEY, serialized);
-        pushStateToFirebase(false);
+        pushStateToFirebase(true);
         return reason;
       } catch (e) {
         return reason;
@@ -3078,14 +2935,47 @@
 
     function loadLocalState() {
       try {
+        const initialClean = getInitialState();
+        const seededDeletedIds = [
+          'case-1774645873473',
+          'case-1774645907105',
+          'case-1774645963350',
+          'case-1774645994418',
+          'case-1774646023003',
+          'contrib-1774646179033',
+          'disb-1774646133412',
+          'disb-1774646121599',
+          'contrib-1774646110858',
+          'contrib-1774646082994',
+          'contrib-1774646050602'
+        ];
         const raw = readStorageSafe(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          appState = sanitizeStateData(parsed);
+          const mergedDeleted = Array.from(new Set([
+            ...getDeletedIds(),
+            ...seededDeletedIds,
+            ...(Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [])
+          ]));
+          setDeletedIdsList(mergedDeleted);
+          const deletedSet = new Set(mergedDeleted.map(String));
+          const cleanParsed = {
+            ...parsed,
+            deletedIds: mergedDeleted,
+            cases: (Array.isArray(parsed.cases) ? parsed.cases : []).filter(c => c && !deletedSet.has(String(c.id))),
+            pendingContributions: (Array.isArray(parsed.pendingContributions) ? parsed.pendingContributions : []).filter(p => p && !deletedSet.has(String(p.id))),
+            approvedContributions: (Array.isArray(parsed.approvedContributions) ? parsed.approvedContributions : []).filter(a => a && !deletedSet.has(String(a.id)))
+          };
+          appState = sanitizeStateData(cleanParsed);
         } else {
-          appState = getInitialState();
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+          setDeletedIdsList(seededDeletedIds);
+          appState = {
+            ...initialClean,
+            deletedIds: seededDeletedIds
+          };
         }
+        appState.updatedAtMs = Math.max(Number(appState.updatedAtMs) || 0, Date.now());
+        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
         lastSyncedFingerprint = computeStateSyncFingerprint(appState);
       } catch (e) {
         appState = getInitialState();
@@ -3341,13 +3231,17 @@
       try {
         const cfg = getFirebaseConfig();
         if (!cfg.dbUrl) return;
+        const stampMs = Number(appState.updatedAtMs) || Date.now();
+        appState.updatedAtMs = stampMs;
+        appState.deletedIds = getDeletedIds();
         const fingerprint = computeStateSyncFingerprint(appState);
         if (!force && fingerprint === lastSyncedFingerprint) return;
 
         isPushingFirebase = true;
         const payload = {
-          updatedAt: Date.now(),
+          updatedAt: stampMs,
           lastUpdated: appState.lastUpdated || formatNowDate(),
+          deletedIds: appState.deletedIds,
           state: appState
         };
 
@@ -3442,59 +3336,76 @@
         const data = await res.json();
         if (data && data.state && typeof data.state === 'object') {
           const remoteState = sanitizeStateData(data.state);
-          const deleted = new Set(getDeletedIds());
+          const remoteUpdatedAt = Number(data.updatedAt || remoteState.updatedAtMs || 0) || 0;
+          const localUpdatedAt = Number(appState.updatedAtMs || 0) || 0;
 
-          const remoteFingerprint = computeStateSyncFingerprint(remoteState);
-          const localFingerprint = computeStateSyncFingerprint(appState);
+          const combinedDeleted = setDeletedIdsList([
+            ...getDeletedIds(),
+            ...(Array.isArray(data.deletedIds) ? data.deletedIds : []),
+            ...(Array.isArray(remoteState.deletedIds) ? remoteState.deletedIds : [])
+          ]);
+          const deletedSet = new Set(combinedDeleted.map(String));
 
-          // إذا كانت النسخة البعيدة أحدث أو مختلفة عن المحلية، ندمج بدون تكرار
-          const mergeListsById = (localArr, remoteArr) => {
-            const combined = [];
-            for (const item of (remoteArr || [])) {
-              if (item && item.id && !deleted.has(String(item.id))) {
-                combined.push(item);
-              }
-            }
-            for (const item of (localArr || [])) {
-              if (item && item.id && !deleted.has(String(item.id))) {
-                combined.push(item);
-              }
-            }
-            return deduplicateContributionsList(combined);
-          };
+          const remoteFingerprint = computeStateSyncFingerprint({ ...remoteState, deletedIds: combinedDeleted });
+          const localFingerprint = computeStateSyncFingerprint({ ...appState, deletedIds: combinedDeleted });
 
-          const mergedApproved = mergeListsById(appState.approvedContributions, remoteState.approvedContributions);
-          const approvedIds = new Set(mergedApproved.map(x => String(x.id)));
-          const mergedPending = mergeListsById(appState.pendingContributions, remoteState.pendingContributions)
-            .filter(p => !approvedIds.has(String(p.id)) && !mergedApproved.some(a => isSameLogicalContribution(a, p)));
+          let nextState;
 
-          const caseMap = new Map();
-          for (const c of (remoteState.cases || [])) {
-            if (c && c.id && !deleted.has(String(c.id))) {
-              caseMap.set(String(c.id), c);
-            }
+          // إذا كانت التحديثات في Firebase أحدث من النسخة المحلية، نعتمد المصدر السحابي بعد استبعاد المحذوفات
+          if (remoteUpdatedAt >= localUpdatedAt) {
+            const cleanApproved = deduplicateContributionsList(
+              (remoteState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
+            );
+            const approvedIds = new Set(cleanApproved.map(x => String(x.id)));
+            const cleanPending = deduplicateContributionsList(
+              (remoteState.pendingContributions || []).filter(
+                p => p && p.id && !deletedSet.has(String(p.id)) && !approvedIds.has(String(p.id)) && !cleanApproved.some(a => isSameLogicalContribution(a, p))
+              )
+            );
+            const cleanCases = (remoteState.cases || []).filter(c => c && c.id && !deletedSet.has(String(c.id)));
+
+            nextState = {
+              updatedAtMs: remoteUpdatedAt || Date.now(),
+              lastUpdated: remoteState.lastUpdated || data.lastUpdated || appState.lastUpdated,
+              deletedIds: combinedDeleted,
+              cases: cleanCases,
+              pendingContributions: cleanPending,
+              approvedContributions: cleanApproved
+            };
+          } else {
+            // النسخة المحلية أحدث من السحابة؛ نحافظ عليها ونستبعد أي محذوفات
+            const cleanApproved = deduplicateContributionsList(
+              (appState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
+            );
+            const approvedIds = new Set(cleanApproved.map(x => String(x.id)));
+            const cleanPending = deduplicateContributionsList(
+              (appState.pendingContributions || []).filter(
+                p => p && p.id && !deletedSet.has(String(p.id)) && !approvedIds.has(String(p.id)) && !cleanApproved.some(a => isSameLogicalContribution(a, p))
+              )
+            );
+            const cleanCases = (appState.cases || []).filter(c => c && c.id && !deletedSet.has(String(c.id)));
+
+            nextState = {
+              updatedAtMs: localUpdatedAt || Date.now(),
+              lastUpdated: appState.lastUpdated || formatNowDate(),
+              deletedIds: combinedDeleted,
+              cases: cleanCases,
+              pendingContributions: cleanPending,
+              approvedContributions: cleanApproved
+            };
           }
-          for (const c of (appState.cases || [])) {
-            if (c && c.id && !deleted.has(String(c.id)) && !caseMap.has(String(c.id))) {
-              caseMap.set(String(c.id), c);
-            }
-          }
 
-          const mergedState = {
-            lastUpdated: remoteState.lastUpdated || appState.lastUpdated,
-            cases: Array.from(caseMap.values()),
-            pendingContributions: mergedPending,
-            approvedContributions: mergedApproved
-          };
-
-          const mergedFingerprint = computeStateSyncFingerprint(mergedState);
-          if (mergedFingerprint !== localFingerprint) {
-            appState = mergedState;
+          const nextFingerprint = computeStateSyncFingerprint(nextState);
+          if (nextFingerprint !== localFingerprint || remoteFingerprint !== localFingerprint) {
+            appState = nextState;
             writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            lastSyncedFingerprint = mergedFingerprint;
+            lastSyncedFingerprint = nextFingerprint;
             scheduleRenderAll();
-          } else if (remoteFingerprint === localFingerprint) {
-            lastSyncedFingerprint = mergedFingerprint;
+            if (remoteUpdatedAt > localUpdatedAt) {
+              await pushStateToFirebase(false);
+            }
+          } else {
+            lastSyncedFingerprint = nextFingerprint;
           }
           setCloudStatus(true, 'متصل ومتزامن');
         }
@@ -3511,7 +3422,15 @@
       firebasePollTimer = setInterval(() => {
         if (typeof document !== 'undefined' && document.hidden) return;
         pullStateFromFirebase();
-      }, 25000);
+      }, 6000);
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          pullStateFromFirebase();
+        }
+      });
     }
 
     function openFirebaseConfigModal() {
