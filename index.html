@@ -2111,18 +2111,15 @@
           c.targetType === 'personal_wallet' ||
           c.targetId === 'personal_wallet' ||
           String(c.targetLabel || '').includes('المحفظة الشخصية');
-        if (isWalletCharge) {
-          return;
-        }
         rows.push({
           kind: isCase ? 'case' : 'general',
-          typeLabel: isCase ? 'مساهمة حالة' : 'مساهمة عامة',
+          typeLabel: isWalletCharge ? 'شحن محفظة شخصية' : (isCase ? 'مساهمة حالة' : 'مساهمة عامة'),
           title: c.name || 'متبرع',
-          subtitle: `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.method === 'حافظة المساهم الذكية' ? ' • عبر حافظة المساهم' : ''}${c.note ? ` — ${c.note}` : ''}`,
+          subtitle: `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.method === 'حافظة المساهم الذكية' ? ' • عبر حافظة المساهم' : ''}${c.method ? ` • ${c.method}` : ''}${c.note ? ` — ${c.note}` : ''}`,
           amount: Number(c.amount) || 0,
           isPositive: true,
-          isWalletCharge: false,
-          date: c.date || '',
+          isWalletCharge,
+          date: c.date || c.approvedAt || '',
           rawId: c.id,
           scope: 'approved'
         });
@@ -2253,6 +2250,8 @@
       const container = document.getElementById('cases-container');
       if (!container) return;
       const cases = Array.isArray(appState?.cases) ? appState.cases : [];
+      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+
       if (!cases.length) {
         container.innerHTML = `<div class="col-span-full text-center py-8 text-xs font-extrabold text-slate-400">لا توجد حالات معروضة حالياً.</div>`;
         return;
@@ -2262,40 +2261,118 @@
         .map((c, idx) => {
           const req = Math.max(0, Number(c.required) || 0);
           const disb = Math.max(0, Number(c.disbursed) || 0);
-          const pct = req > 0 ? Math.min(100, Math.round((disb / req) * 100)) : 0;
+          const caseDonors = approved.filter((item) => item.targetType === 'case' && String(item.targetId) === String(c.id));
+          const caseDonorsSum = caseDonors.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+          const effectiveFunded = Math.max(disb, caseDonorsSum);
+          const pct = req > 0 ? Math.min(100, Math.round((effectiveFunded / req) * 100)) : 0;
           const themeClass = `case-card-theme-${idx % 6}`;
+          const barClass = pct >= 100 ? 'completed-timeline-glow' : 'glowing-timeline-bar';
+
+          const donorsHtml = caseDonors.length
+            ? `<div class="bg-white/85 border border-slate-200/90 rounded-2xl p-3 space-y-2">
+                 <div class="flex items-center justify-between text-[11px] font-black text-emerald-950 border-b border-slate-100 pb-1.5">
+                   <span>المساهمون في الحالة (${caseDonors.length})</span>
+                   <span>إجمالي المساهمات: ${formatCurrency(caseDonorsSum)}</span>
+                 </div>
+                 <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                   ${caseDonors
+                     .map(
+                       (d) => `
+                       <div class="flex items-center justify-between gap-2 bg-slate-50/90 border border-slate-200/70 rounded-xl px-2.5 py-1.5 text-xs">
+                         <div class="min-w-0">
+                           <p class="font-black text-slate-900 truncate">${escapeHtml(d.name || 'متبرع')}</p>
+                           <p class="text-[11px] font-bold text-slate-500">اللحمة: ${escapeHtml(d.branch || 'غير محدد')}</p>
+                           <p class="text-[10px] font-bold text-slate-400">${escapeHtml(d.date || d.approvedAt || '')}</p>
+                         </div>
+                         <span class="shrink-0 font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">${formatCurrency(d.amount)}</span>
+                       </div>`
+                     )
+                     .join('')}
+                 </div>
+               </div>`
+            : `<p class="text-[11px] font-bold text-slate-500 bg-white/70 border border-slate-200/70 rounded-xl px-3 py-2 text-center">لا توجد مساهمات منشورة لهذه الحالة بعد.</p>`;
+
           return `
             <article class="${themeClass} rounded-3xl p-5 flex flex-col justify-between gap-4">
               <div class="space-y-2">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="bg-emerald-900 text-amber-300 text-[11px] font-black px-3 py-0.5 rounded-full">${escapeHtml(c.category || 'دية')}</span>
+                  <span class="bg-emerald-900 text-amber-300 text-[11px] font-black px-3 py-0.5 rounded-full status-badge-glow">${escapeHtml(c.category || 'دية')}</span>
                   <span class="text-xs font-black text-emerald-900">${pct}% مكتمل</span>
                 </div>
                 <h3 class="text-base sm:text-lg font-black text-slate-900">${escapeHtml(c.name)}</h3>
                 <p class="text-xs font-bold text-slate-600 leading-relaxed">${escapeHtml(c.description || '')}</p>
               </div>
-              <div class="space-y-2">
+              <div class="space-y-2.5">
                 <div class="flex items-center justify-between text-xs font-black">
                   <span class="text-slate-600">المصروف: ${formatCurrency(disb)}</span>
                   <span class="text-slate-900">المطلوب: ${formatCurrency(req)}</span>
                 </div>
-                <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div class="h-full glowing-timeline-bar rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                  <div class="h-full ${barClass} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                 </div>
-                <div class="pt-2 flex items-center gap-2">
+                ${donorsHtml}
+                <div class="pt-1 flex items-center gap-2">
                   <button type="button" onclick="scrollToContributeSection('case:${escapeHtml(c.id)}')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
                     ساهم في هذه الحالة
                   </button>
-                  ${
-                    isAdminLoggedIn
-                      ? `<button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">صرف</button>`
-                      : ''
-                  }
                 </div>
+                ${
+                  isAdminLoggedIn
+                    ? `<div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80">
+                         <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                           تعديل الحالة
+                         </button>
+                         <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-emerald-800 hover:bg-emerald-700 text-amber-300 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                           صرف المساعدة
+                         </button>
+                         <button type="button" onclick="deleteCaseById('${escapeHtml(c.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
+                           حذف
+                         </button>
+                       </div>`
+                    : ''
+                }
               </div>
             </article>`;
         })
         .join('');
+    }
+
+    function openEditCaseModal(caseId) {
+      if (!isAdminLoggedIn) {
+        handleAdminHeaderClick();
+        return;
+      }
+      const targetCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
+      if (!targetCase) {
+        showToast('تعذر العثور على الحالة المطلوب تعديلها.', 'error');
+        return;
+      }
+      const modal = document.getElementById('case-editor-modal');
+      document.getElementById('case-editor-title').textContent = 'تعديل بيانات الحالة';
+      document.getElementById('editor-case-id').value = String(targetCase.id);
+      document.getElementById('editor-case-name').value = targetCase.name || '';
+      document.getElementById('editor-case-category').value = targetCase.category || 'دية';
+      document.getElementById('editor-case-required').value = Number(targetCase.required) || 0;
+      document.getElementById('editor-case-desc').value = targetCase.description || '';
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function deleteCaseById(caseId) {
+      if (!isAdminLoggedIn) {
+        handleAdminHeaderClick();
+        return;
+      }
+      const idx = (appState?.cases || []).findIndex((c) => String(c.id) === String(caseId));
+      if (idx === -1) return;
+      const removedCase = appState.cases[idx];
+      appState.cases.splice(idx, 1);
+      addDeletedIds([caseId]);
+      populateTargetSelects();
+      saveAndSync(`حذف الحالة: ${removedCase.name || caseId}`);
+      showToast('تم حذف الحالة ومزامنتها.', 'warning');
     }
 
     function renderPendingPanel() {
@@ -2333,16 +2410,35 @@
       list.innerHTML = pending
         .map(
           (p) => `
-          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="space-y-1">
-              <p class="text-sm font-black text-slate-900">${escapeHtml(p.name)} — <span class="text-emerald-700">${formatCurrency(p.amount)}</span></p>
-              <p class="text-xs font-bold text-slate-600">${escapeHtml(p.branch || '')} • ${escapeHtml(p.targetLabel || '')} • ${escapeHtml(p.method || '')}</p>
-              ${p.phone ? `<p class="text-xs font-mono font-bold text-amber-900" dir="ltr">هاتف: ${escapeHtml(p.phone)}</p>` : ''}
+          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="text-sm sm:text-base font-black text-slate-900">${escapeHtml(p.name || 'متبرع')}</p>
+                <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">${formatCurrency(p.amount)}</span>
+                <span class="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-0.5 rounded-full">${escapeHtml(p.branch || 'غير محدد')}</span>
+              </div>
+              <p class="text-xs font-extrabold text-emerald-900">وجهة التبرع: ${escapeHtml(p.targetLabel || 'الصندوق العام')}</p>
+              <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                <span class="bg-amber-50 border border-amber-200 text-amber-950 px-2.5 py-1 rounded-xl">طريقة الدفع: ${escapeHtml(p.method || 'غير محددة')}</span>
+                ${p.phone ? `<span class="bg-slate-100 border border-slate-200 text-slate-900 font-mono px-2.5 py-1 rounded-xl" dir="ltr">رقم الهاتف: ${escapeHtml(p.phone)}</span>` : ''}
+                ${p.receiptFileName ? `<span class="bg-sky-50 border border-sky-200 text-sky-900 px-2.5 py-1 rounded-xl">الإيصال: ${escapeHtml(p.receiptFileName)}</span>` : ''}
+              </div>
               ${p.note ? `<p class="text-xs font-bold text-slate-500">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
+              ${p.date ? `<p class="text-[11px] font-bold text-slate-400">تاريخ الإرسال: ${escapeHtml(p.date)}</p>` : ''}
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-4 py-2 rounded-xl transition cursor-pointer">اعتماد ونشر</button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">حذف</button>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+              <button type="button" onclick="previewPendingContributionReceipt('${escapeHtml(p.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
+                معاينة الوصل
+              </button>
+              <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
+                تعديل
+              </button>
+              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
+                حذف
+              </button>
+              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
+                نشر
+              </button>
             </div>
           </div>`
         )
@@ -2589,76 +2685,6 @@
       showToast('تم حفظ تعديلات المساهمة ومزامنتها.', 'success');
     }
 
-    function renderPendingPanel() {
-      const panel = document.getElementById('admin-pending-panel');
-      const list = document.getElementById('pending-contributions-list');
-      const badge = document.getElementById('pending-count-badge');
-      const topBtn = document.getElementById('admin-notifications-btn');
-      const topBadge = document.getElementById('admin-notifications-count-badge');
-
-      const pending = Array.isArray(appState?.pendingContributions) ? appState.pendingContributions : [];
-      if (topBtn && topBadge) {
-        if (isAdminLoggedIn && pending.length > 0) {
-          topBtn.classList.remove('hidden');
-          topBtn.classList.add('inline-flex');
-          topBadge.textContent = String(pending.length);
-        } else {
-          topBtn.classList.add('hidden');
-          topBtn.classList.remove('inline-flex');
-        }
-      }
-
-      if (!panel || !list) return;
-      if (!isAdminLoggedIn) {
-        panel.classList.add('hidden');
-        return;
-      }
-      panel.classList.remove('hidden');
-      if (badge) badge.textContent = `${pending.length} طلبات`;
-
-      if (!pending.length) {
-        list.innerHTML = `<p class="text-xs font-extrabold text-amber-900 bg-white/80 rounded-2xl p-4 text-center">لا توجد طلبات مساهمات معلقة بانتظار الاعتماد حالياً.</p>`;
-        return;
-      }
-
-      list.innerHTML = pending
-        .map(
-          (p) => `
-          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div class="space-y-1.5">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="text-sm sm:text-base font-black text-slate-900">${escapeHtml(p.name || 'متبرع')}</p>
-                <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">${formatCurrency(p.amount)}</span>
-                <span class="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-0.5 rounded-full">${escapeHtml(p.branch || 'غير محدد')}</span>
-              </div>
-              <p class="text-xs font-extrabold text-emerald-900">وجهة التبرع: ${escapeHtml(p.targetLabel || 'الصندوق العام')}</p>
-              <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-                <span class="bg-amber-50 border border-amber-200 text-amber-950 px-2.5 py-1 rounded-xl">طريقة الدفع: ${escapeHtml(p.method || 'غير محددة')}</span>
-                ${p.phone ? `<span class="bg-slate-100 border border-slate-200 text-slate-900 font-mono px-2.5 py-1 rounded-xl" dir="ltr">رقم الهاتف: ${escapeHtml(p.phone)}</span>` : ''}
-                ${p.receiptFileName ? `<span class="bg-sky-50 border border-sky-200 text-sky-900 px-2.5 py-1 rounded-xl">الإيصال: ${escapeHtml(p.receiptFileName)}</span>` : ''}
-              </div>
-              ${p.note ? `<p class="text-xs font-bold text-slate-500">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
-              ${p.date ? `<p class="text-[11px] font-bold text-slate-400">تاريخ الإرسال: ${escapeHtml(p.date)}</p>` : ''}
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
-              <button type="button" onclick="previewPendingContributionReceipt('${escapeHtml(p.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                معاينة الوصل
-              </button>
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                تعديل
-              </button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                حذف
-              </button>
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
-                نشر
-              </button>
-            </div>
-          </div>`
-        )
-        .join('');
-    }
-
     function handleNewReceiptFileChange(input) {
       const file = input?.files?.[0];
       if (!file) return;
@@ -2729,6 +2755,17 @@
         date: formatNowDate()
       };
 
+      if (tInfo.targetType === 'personal_wallet' || tInfo.targetId === 'personal_wallet') {
+        creditDonorWallet(name, branch, amount, 'تبرع / شحن محفظة شخصية');
+        document.getElementById('contrib-amount').value = '';
+        document.getElementById('contrib-note').value = '';
+        if (document.getElementById('contrib-phone')) document.getElementById('contrib-phone').value = '';
+        clearNewReceiptSelection();
+        saveAndSync(`شحن حافظة ${name} الشخصية`);
+        showToast(`تم شحن حافظة ${name} المستقلة بمبلغ ${formatCurrency(amount)}.`, 'success');
+        return;
+      }
+
       appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
       appState.pendingContributions.unshift(item);
 
@@ -2770,6 +2807,7 @@
     function handleCaseEditorSubmit(event) {
       event.preventDefault();
       if (!isAdminLoggedIn) return;
+      const caseId = (document.getElementById('editor-case-id')?.value || '').trim();
       const name = (document.getElementById('editor-case-name')?.value || '').trim();
       const category = (document.getElementById('editor-case-category')?.value || 'دية').trim();
       const required = Math.max(1, Number(document.getElementById('editor-case-required')?.value) || 0);
@@ -2777,6 +2815,25 @@
       if (!name || required <= 0) return;
 
       appState.cases = Array.isArray(appState.cases) ? appState.cases : [];
+
+      if (caseId) {
+        const idx = appState.cases.findIndex((c) => String(c.id) === String(caseId));
+        if (idx !== -1) {
+          appState.cases[idx] = {
+            ...appState.cases[idx],
+            name,
+            category,
+            required,
+            description
+          };
+          closeCaseEditorModal();
+          populateTargetSelects();
+          saveAndSync(`تعديل حالة ${name}`);
+          showToast('تم تحديث بيانات الحالة ومزامنتها بنجاح.', 'success');
+          return;
+        }
+      }
+
       appState.cases.unshift({
         id: `case_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
         name,
@@ -2796,9 +2853,15 @@
     }
 
     function openDisburseModal(caseId) {
-      if (!isAdminLoggedIn) return;
+      if (!isAdminLoggedIn) {
+        handleAdminHeaderClick();
+        return;
+      }
       const targetCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
-      if (!targetCase) return;
+      if (!targetCase) {
+        showToast('تعذر العثور على الحالة المطلوبة.', 'error');
+        return;
+      }
       disburseTargetCaseId = String(caseId);
 
       const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
@@ -2872,8 +2935,38 @@
       const targetCase = (appState.cases || []).find((c) => String(c.id) === String(disburseTargetCaseId));
       if (!targetCase) return;
 
+      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
+      const activeApproved = approved.filter((c) => {
+        const isWalletCharge =
+          c.targetType === 'personal_wallet' ||
+          c.targetId === 'personal_wallet' ||
+          String(c.targetLabel || '').includes('المحفظة الشخصية');
+        return !isWalletCharge;
+      });
+      const totalContrib = activeApproved.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+      const totalDisb = disbursements.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+      const avail = Math.max(0, totalContrib - totalDisb);
+      const remaining = Math.max(0, (Number(targetCase.required) || 0) - (Number(targetCase.disbursed) || 0));
+
+      if (avail <= 0) {
+        showToast('رصيد الصندوق صفر، لا يمكن صرف أي مبلغ.', 'error');
+        return;
+      }
+      if (amount > avail) {
+        showToast(`لا يمكن الصرف؛ القيمة المدخلة (${formatCurrency(amount)}) تتجاوز رصيد الصندوق المتاح (${formatCurrency(avail)}).`, 'error');
+        return;
+      }
+      if (remaining <= 0) {
+        showToast('هذه الحالة مكتملة الاحتياج ولا تحتاج إلى صرف إضافي.', 'warning');
+        return;
+      }
+      if (amount > remaining) {
+        showToast(`لا يمكن الصرف؛ القيمة المدخلة (${formatCurrency(amount)}) تتجاوز القيمة المطلوبة للحالة (${formatCurrency(remaining)}).`, 'error');
+        return;
+      }
+
       targetCase.disbursed = (Number(targetCase.disbursed) || 0) + amount;
-      appState.disbursements = Array.isArray(appState.disbursements) ? appState.disbursements : [];
       appState.disbursements.unshift({
         id: `disb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
         caseId: targetCase.id,
