@@ -1274,372 +1274,9 @@
         } else {
           prevWrap?.classList.add('hidden');
         }
-      } catch (err) {
-        newReceiptDataUrl = '';
-        newReceiptFileName = '';
-        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
-        showToast('تعذر قراءة صورة الإيصال، يرجى اختيار صورة صالحة.', 'warning');
-      } finally {
-        isLoadingNewReceipt = false;
-        if (input) input.value = '';
-      }
-    }
-
-    function captureCurrentFormInputs() {
-      const buttonsState = Array.from(document.querySelectorAll('button')).map((btn, idx) => ({
-        index: idx,
-        id: btn.id || '',
-        text: (btn.textContent || '').trim(),
-        disabled: Boolean(btn.disabled),
-        hidden: btn.classList.contains('hidden')
-      }));
-
-      const sectionsText = {
-        totalContributions: document.getElementById('stat-total-contributions')?.textContent || '',
-        contributionsCount: document.getElementById('stat-contributions-count')?.textContent || '',
-        totalDisbursed: document.getElementById('stat-total-disbursed')?.textContent || '',
-        availableBalance: document.getElementById('stat-available-balance')?.textContent || '',
-        coverageText: document.getElementById('stat-coverage-text')?.textContent || '',
-        pendingCount: document.getElementById('pending-count-badge')?.textContent || '',
-        ledgerRowCount: document.querySelectorAll('#ledger-table-body tr').length
-      };
-
-      let platformSourceCode = '';
-      try {
-        platformSourceCode = document.documentElement.outerHTML || '';
-      } catch (e) {}
-
-      return {
-        contribName: document.getElementById('contrib-name')?.value || '',
-        contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
-        contribAmount: document.getElementById('contrib-amount')?.value || '',
-        contribTarget: document.getElementById('contrib-target')?.value || 'general',
-        contribMethod: document.getElementById('contrib-method')?.value || '',
-        contribNote: document.getElementById('contrib-note')?.value || '',
-        contribPhone: document.getElementById('contrib-phone')?.value || '',
-        ledgerSearch: document.getElementById('ledger-search-input')?.value || '',
-        ledgerFilter: document.getElementById('ledger-filter-select')?.value || 'all',
-        outputs: sectionsText,
-        buttonsState,
-        platformSourceCode
-      };
-    }
-
-    function applyRestoredFormInputs(inputs) {
-      if (!inputs || typeof inputs !== 'object') return;
-      const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined && val !== null) el.value = val;
-      };
-      setVal('contrib-name', inputs.contribName);
-      setVal('contrib-branch', inputs.contribBranch);
-      setVal('contrib-amount', inputs.contribAmount);
-      renderTargetSelects();
-      setVal('contrib-target', inputs.contribTarget);
-      setVal('contrib-method', inputs.contribMethod);
-      setVal('contrib-note', inputs.contribNote);
-      setVal('contrib-phone', inputs.contribPhone);
-      setVal('ledger-search-input', inputs.ledgerSearch);
-      setVal('ledger-filter-select', inputs.ledgerFilter);
-      toggleNewPaymentFields();
-    }
-
-    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية كل 10 دقائق', forceSave = false) {
-      try {
-        const history = getAutoBackupHistory();
-        const latest = history[0];
-        if (!forceSave && reason === 'نسخة تلقائية كل 10 دقائق' && latest && latest.timestamp && (Date.now() - Number(latest.timestamp)) < (BACKUP_INTERVAL_MS - 1000)) {
-          return;
-        }
-
-        const snapshot = {
-          id: 'bkp-single-latest',
-          createdAt: formatNowDate(),
-          timestamp: Date.now(),
-          reason: reason,
-          lang: document.documentElement.lang || 'ar',
-          dir: document.documentElement.dir || 'rtl',
-          inputs: captureCurrentFormInputs(),
-          recentEdits: {
-            lastUpdated: appState.lastUpdated,
-            casesCount: appState.cases.length,
-            pendingCount: appState.pendingContributions.length,
-            approvedCount: appState.approvedContributions.length
-          },
-          state: JSON.parse(JSON.stringify(appState))
-        };
-
-        const serialized = JSON.stringify(snapshot);
-        const actualBytes = new Blob([serialized]).size;
-        snapshot.sizeBytes = actualBytes;
-        const finalSerialized = JSON.stringify(snapshot);
-        writeStorageSafe(AUTO_BACKUP_KEY, finalSerialized);
-        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([snapshot]));
-        if (forceSave) {
-          pushBackupToFirebase(snapshot);
-        }
-        updateBackupAdminUI();
-        return snapshot;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function createManualFullBackup() {
-      if (!isAdminMode) {
-        showToast('الحفظ اليدوي متاح داخل وضع الإدارة فقط.');
-        return;
-      }
-      const snap = saveAutoBackupSnapshot('حفظ النسخة مع المزامنة', true);
-      if (snap) {
-        await pushStateToFirebase(true);
-        await pushBackupToFirebase(snap);
-        const sizeLabel = formatByteSize(snap.sizeBytes || 0);
-        showToast(`تم حفظ النسخة ومزامنتها مع Firebase (${snap.createdAt} • ${sizeLabel}).`);
-      } else {
-        showToast('تعذر حفظ النسخة اليدوية.');
-      }
-    }
-
-    function exportManualBackupFile() {
-      if (!isAdminMode) {
-        showToast('تصدير ملف النسخة متاح داخل وضع الإدارة فقط.');
-        return;
-      }
-      const snap = saveAutoBackupSnapshot('تصدير ملف نسخة كاملة', true) || getAutoBackupHistory()[0];
-      if (!snap) {
-        showToast('لا توجد بيانات نسخة لتنزيلها.');
-        return;
-      }
-      try {
-        const fileContent = JSON.stringify(snap, null, 2);
-        const blob = new Blob([fileContent], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const stamp = formatNowDate().replace(/[:\s]/g, '-');
-        a.href = url;
-        a.download = `sayaan-platform-full-backup-${stamp}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-        showToast(`تم تنزيل ملف النسخة الكاملة (${formatByteSize(blob.size)}).`);
-      } catch (e) {
-        showToast('تعذر تنزيل ملف النسخة.');
-      }
-    }
-
-    function handleManualBackupFileImport(input) {
-      if (!isAdminMode) {
-        showToast('استعادة النسخة متاحة داخل وضع الإدارة فقط.');
-        return;
-      }
-      const file = input?.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(String(reader.result || '{}'));
-          const candidateSnapshot = parsed && parsed.state
-            ? parsed
-            : (parsed && parsed.cases && parsed.approvedContributions
-                ? {
-                    id: 'bkp-imported-' + Date.now(),
-                    createdAt: formatNowDate(),
-                    timestamp: Date.now(),
-                    reason: 'استعادة من ملف خارجي',
-                    lang: 'ar',
-                    dir: 'rtl',
-                    inputs: {},
-                    state: parsed
-                  }
-                : null);
-
-          if (!candidateSnapshot || !candidateSnapshot.state) {
-            showToast('الملف المختار لا يحتوي على نسخة صالحة للمنصة.');
-            return;
-          }
-
-          const serialized = JSON.stringify(candidateSnapshot);
-          candidateSnapshot.sizeBytes = new Blob([serialized]).size;
-          writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(candidateSnapshot));
-          writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([candidateSnapshot]));
-          applyRestoredState(candidateSnapshot);
-          updateBackupAdminUI();
-        } catch (err) {
-          showToast('تعذر قراءة ملف النسخة، يرجى التأكد من سلامة الملف.');
-        } finally {
-          input.value = '';
-        }
-      };
-      reader.readAsText(file, 'utf-8');
-    }
-
-    async function pushBackupToFirebase(snapshot) {
-      try {
-        const cfg = getFirebaseConfig();
-        if (!cfg.dbUrl || !snapshot) return;
-        const baseUrl = cfg.dbUrl.replace(/\/+$/, '');
-        const authParam = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-        await fetch(`${baseUrl}/sayaanTakafulBackup.json${authParam}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(snapshot)
-        });
-      } catch (e) {}
-    }
-
-    function formatByteSize(bytes) {
-      const b = Number(bytes) || 0;
-      if (b <= 0) return '0 بايت';
-      if (b < 1024) return `${b} بايت`;
-      const kb = b / 1024;
-      if (kb < 1024) return `${kb.toFixed(1)} KB`;
-      return `${(kb / 1024).toFixed(2)} MB`;
-    }
-
-    function openSingleBackupRestorePrompt() {
-      const history = getAutoBackupHistory();
-      const target = history[0];
-      if (!target || !target.state) {
-        saveAutoBackupSnapshot('نسخة فورية عند الطلب', true);
-      }
-      const latest = getAutoBackupHistory()[0];
-      if (!latest || !latest.state) {
-        showToast('تعذر العثور على بيانات النسخة الاحتياطية.');
-        return;
-      }
-      selectBackupSlot(latest.id);
-    }
-
-    function selectBackupSlot(snapshotId) {
-      const history = getAutoBackupHistory();
-      const target = history.find(item => item.id === snapshotId) || history[0];
-      if (!target || !target.state) {
-        showToast('تعذر العثور على بيانات النسخة المحددة.');
-        return;
-      }
-      pendingRestoreSnapshotId = target.id;
-      const detailsEl = document.getElementById('restore-confirm-details');
-      if (detailsEl) {
-        const balText = target.inputs?.outputs?.availableBalance || '';
-        const totText = target.inputs?.outputs?.totalContributions || '';
-        const summaryLine = (balText || totText) ? ` • الإجمالي: ${totText} • الرصيد: ${balText}` : '';
-        detailsEl.textContent = `استرداد النسخة (${target.createdAt} — ${target.reason})${summaryLine} شاملة البيانات، المدخلات، المخرجات، والأزرار والشيفرة؟`;
-      }
-      const modal = document.getElementById('restore-confirm-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeRestoreConfirmModal() {
-      pendingRestoreSnapshotId = null;
-      const modal = document.getElementById('restore-confirm-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function confirmRestorePendingSnapshot() {
-      const targetId = pendingRestoreSnapshotId;
-      closeRestoreConfirmModal();
-      const history = getAutoBackupHistory();
-      const found = history.find(item => item.id === targetId) || history[0];
-      if (!found || !found.state) {
-        showToast('تعذر استرداد النسخة المختارة.');
-        return;
-      }
-      applyRestoredState(found);
-    }
-
-    function onBackupHistorySelectChange() {
-      updateBackupAdminUI();
-    }
-
-    function updateBackupAdminUI() {
-      const badgeEl = document.getElementById('backup-count-badge');
-      const titleEl = document.getElementById('single-backup-title');
-      const metaEl = document.getElementById('single-backup-meta');
-      const timeEl = document.getElementById('single-backup-time');
-      const history = getAutoBackupHistory();
-      const latest = history[0];
-
-      if (latest) {
-        const out = latest.inputs?.outputs || {};
-        const rawBytes = Number(latest.sizeBytes) || new Blob([JSON.stringify(latest)]).size;
-        const readableSize = formatByteSize(rawBytes);
-        const savedDateTime = String(latest.createdAt || formatNowDate());
-        if (badgeEl) {
-          badgeEl.textContent = savedDateTime;
-        }
-        if (titleEl) {
-          titleEl.textContent = `نسخة احتياطية (${readableSize})`;
-        }
-        if (metaEl) {
-          metaEl.textContent = `الإجمالي: ${out.totalContributions || '0 د.ل'} • الرصيد: ${out.availableBalance || '0 د.ل'} • متزامنة مع Firebase`;
-        }
-        if (timeEl) {
-          timeEl.textContent = savedDateTime;
-        }
-      } else {
-        if (badgeEl) badgeEl.textContent = formatNowDate();
-        if (titleEl) titleEl.textContent = 'نسخة احتياطية';
-        if (metaEl) metaEl.textContent = 'اضغط هنا لاسترداد النسخة الكاملة (نعم / لا)';
-        if (timeEl) timeEl.textContent = formatNowDate();
-      }
-    }
-
-    async function loginWithAdminBiometric() {
-      const saved = getSavedBiometricCredential();
-      const errEl = document.getElementById('admin-login-error');
-      if (errEl) errEl.classList.add('hidden');
-
-      if (!window.PublicKeyCredential || !navigator.credentials) {
-        if (errEl) {
-          errEl.textContent = 'متصفحك الحالي لا يدعم الدخول بالبصمة.';
-          errEl.classList.remove('hidden');
-        }
-        return;
-      }
-
-      try {
-        let authenticated = false;
-
-        if (saved && saved.credId && navigator.credentials.get) {
-          const challenge = new Uint8Array(32);
-          window.crypto.getRandomValues(challenge);
-          const assertion = await navigator.credentials.get({
-            publicKey: {
-              challenge,
-              allowCredentials: [
-                {
-                  id: base64UrlToUint8Array(saved.credId),
-                  type: 'public-key'
-                }
-              ],
-              userVerification: 'required',
-              timeout: 60000
-            }
-          });
-          authenticated = Boolean(assertion);
-        } else {
-          const newCredId = await createBiometricCredentialOnDevice();
-          authenticated = Boolean(newCredId);
-        }
-
-        if (authenticated) {
-          isAdminMode = true;
-          if (errEl) errEl.classList.add('hidden');
-          closeAdminLoginModal();
-          updateAdminUI();
-          renderAll();
-          showToast('تم تسجيل الدخول بالبصمة بنجاح.');
-        } else if (errEl) {
-          errEl.textContent = 'لم يتم التحقق من البصمة.';
-          errEl.classList.remove('hidden');
+        // إبقاء التركيز داخل نموذج المساهمة دون أي تمرير أو انتقال لواجهة أخرى
+        if (prevWrap && typeof prevWrap.scrollIntoView === 'function') {
+          prevWrap.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
       } catch (err) {
         if (errEl) {
@@ -3210,6 +2847,10 @@
         } else {
           prevWrap?.classList.add('hidden');
         }
+        // إبقاء المستخدم داخل نافذة تعديل المساهمة دون تغيير الواجهة
+        if (prevWrap && typeof prevWrap.scrollIntoView === 'function') {
+          prevWrap.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        }
       } catch (err) {
         if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
         showToast('تعذر قراءة صورة الإيصال المختارة.', 'warning');
@@ -3371,6 +3012,18 @@
       };
     }
 
+    function computeStateSyncFingerprint(stateObj) {
+      try {
+        return JSON.stringify({
+          cases: stateObj.cases || [],
+          pendingContributions: stateObj.pendingContributions || [],
+          approvedContributions: stateObj.approvedContributions || []
+        });
+      } catch (e) {
+        return JSON.stringify(stateObj);
+      }
+    }
+
     function loadLocalState() {
       try {
         const raw = readStorageSafe(STORAGE_KEY);
@@ -3453,12 +3106,13 @@
       try {
         const cfg = getFirebaseConfig();
         if (!cfg.dbUrl) return;
-        const fingerprint = JSON.stringify(appState);
+        const fingerprint = computeStateSyncFingerprint(appState);
         if (!force && fingerprint === lastSyncedFingerprint) return;
 
         isPushingFirebase = true;
         const payload = {
           updatedAt: Date.now(),
+          lastUpdated: appState.lastUpdated || formatNowDate(),
           state: appState
         };
 
@@ -3483,8 +3137,59 @@
       }
     }
 
+    function buildEntrySignature(item, includeId = false) {
+      if (!item || typeof item !== 'object') return '';
+      const baseSig = [
+        String(item.type || 'general').trim().toLowerCase(),
+        String(item.contributorName || '').trim().toLowerCase(),
+        String(item.branch || '').trim().toLowerCase(),
+        Number(item.amount) || 0,
+        String(item.target || 'general').trim(),
+        String(item.method || '').trim().toLowerCase(),
+        String(item.phone || '').trim()
+      ].join('|');
+      return includeId ? `${String(item.id || '')}::${baseSig}` : baseSig;
+    }
+
+    function isSameLogicalContribution(a, b) {
+      if (!a || !b) return false;
+      if (String(a.id) === String(b.id)) return true;
+      if (a.type === 'disbursement' || b.type === 'disbursement') return false;
+      const sameName = String(a.contributorName || '').trim().toLowerCase() === String(b.contributorName || '').trim().toLowerCase();
+      const sameAmount = (Number(a.amount) || 0) === (Number(b.amount) || 0);
+      const sameTarget = String(a.target || 'general').trim() === String(b.target || 'general').trim();
+      const sameMethod = String(a.method || '').trim().toLowerCase() === String(b.method || '').trim().toLowerCase();
+      const sameBranch = String(a.branch || '').trim().toLowerCase() === String(b.branch || '').trim().toLowerCase();
+      return sameName && sameAmount && sameTarget && sameMethod && sameBranch;
+    }
+
+    function deduplicateContributionsList(list) {
+      const result = [];
+      for (const item of (Array.isArray(list) ? list : [])) {
+        if (!item || !item.id) continue;
+        const existingIdx = result.findIndex(existing => isSameLogicalContribution(existing, item));
+        if (existingIdx === -1) {
+          result.push({ ...item });
+        } else {
+          // الإبقاء على النسخة الأحدث أو المعتمدة وتجنب التكرار
+          const prev = result[existingIdx];
+          result[existingIdx] = {
+            ...prev,
+            ...item,
+            id: prev.id,
+            receiptData: item.receiptData || prev.receiptData || '',
+            receiptName: item.receiptName || prev.receiptName || '',
+            note: item.note || prev.note || '',
+            userEditUsed: Boolean(prev.userEditUsed) || Boolean(item.userEditUsed),
+            userEditCount: Math.max(Number(prev.userEditCount) || 0, Number(item.userEditCount) || 0)
+          };
+        }
+      }
+      return result;
+    }
+
     async function pullStateFromFirebase() {
-      if (isPullingFirebase) return;
+      if (isPullingFirebase || isPushingFirebase) return;
       try {
         const cfg = getFirebaseConfig();
         if (!cfg.dbUrl) return;
@@ -3504,42 +3209,57 @@
           const remoteState = sanitizeStateData(data.state);
           const deleted = new Set(getDeletedIds());
 
-          // دمج ذكي يحافظ على جميع المساهمات المحلية والسحابية دون فقدان أي اسم مضاف حديثاً
+          const remoteFingerprint = computeStateSyncFingerprint(remoteState);
+          const localFingerprint = computeStateSyncFingerprint(appState);
+
+          // إذا كانت النسخة البعيدة أحدث أو مختلفة عن المحلية، ندمج بدون تكرار
           const mergeListsById = (localArr, remoteArr) => {
-            const map = new Map();
-            for (const item of localArr) {
+            const combined = [];
+            for (const item of (remoteArr || [])) {
               if (item && item.id && !deleted.has(String(item.id))) {
-                map.set(String(item.id), item);
+                combined.push(item);
               }
             }
-            for (const item of remoteArr) {
-              if (item && item.id && !deleted.has(String(item.id)) && !map.has(String(item.id))) {
-                map.set(String(item.id), item);
+            for (const item of (localArr || [])) {
+              if (item && item.id && !deleted.has(String(item.id))) {
+                combined.push(item);
               }
             }
-            return Array.from(map.values());
+            return deduplicateContributionsList(combined);
           };
 
           const mergedApproved = mergeListsById(appState.approvedContributions, remoteState.approvedContributions);
           const approvedIds = new Set(mergedApproved.map(x => String(x.id)));
           const mergedPending = mergeListsById(appState.pendingContributions, remoteState.pendingContributions)
-            .filter(p => !approvedIds.has(String(p.id)));
-          const mergedCases = mergeListsById(appState.cases, remoteState.cases);
+            .filter(p => !approvedIds.has(String(p.id)) && !mergedApproved.some(a => isSameLogicalContribution(a, p)));
+
+          const caseMap = new Map();
+          for (const c of (remoteState.cases || [])) {
+            if (c && c.id && !deleted.has(String(c.id))) {
+              caseMap.set(String(c.id), c);
+            }
+          }
+          for (const c of (appState.cases || [])) {
+            if (c && c.id && !deleted.has(String(c.id)) && !caseMap.has(String(c.id))) {
+              caseMap.set(String(c.id), c);
+            }
+          }
 
           const mergedState = {
             lastUpdated: remoteState.lastUpdated || appState.lastUpdated,
-            cases: mergedCases,
+            cases: Array.from(caseMap.values()),
             pendingContributions: mergedPending,
             approvedContributions: mergedApproved
           };
 
-          const mergedFingerprint = JSON.stringify(mergedState);
-          const localFingerprint = JSON.stringify(appState);
+          const mergedFingerprint = computeStateSyncFingerprint(mergedState);
           if (mergedFingerprint !== localFingerprint) {
             appState = mergedState;
             writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
             lastSyncedFingerprint = mergedFingerprint;
             scheduleRenderAll();
+          } else if (remoteFingerprint === localFingerprint) {
+            lastSyncedFingerprint = mergedFingerprint;
           }
           setCloudStatus(true, 'متصل ومتزامن');
         }
