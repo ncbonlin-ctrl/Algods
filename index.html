@@ -3080,6 +3080,8 @@
     function saveAutoBackupSnapshot(reason = 'نسخة تلقائية', notify = false) {
       try {
         const history = getAutoBackupHistory();
+        const headerEl = document.querySelector('header');
+        const mainEl = document.querySelector('main');
         const snapshot = {
           id: 'bkp-' + Date.now(),
           createdAt: formatNowDate(),
@@ -3087,6 +3089,24 @@
           lang: document.documentElement.lang || 'ar',
           dir: document.documentElement.dir || 'rtl',
           state: sanitizeStateData(appState),
+          deletedIds: getDeletedIds(),
+          deviceVotes: getDeviceVotes(),
+          myContributions: (function () {
+            try {
+              const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
+              return raw ? JSON.parse(raw) : (memoryStore.myContributions || {});
+            } catch (e) {
+              return memoryStore.myContributions || {};
+            }
+          })(),
+          firebaseConfig: getFirebaseConfig(),
+          biometricConfig: getSavedBiometricCredential(),
+          appearance: {
+            bodyClass: document.body ? document.body.className : '',
+            headerClass: headerEl ? headerEl.className : '',
+            mainClass: mainEl ? mainEl.className : '',
+            scrollY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0
+          },
           inputs: {
             contribName: document.getElementById('contrib-name')?.value || '',
             contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
@@ -3096,14 +3116,29 @@
             contribNote: document.getElementById('contrib-note')?.value || '',
             contribPhone: document.getElementById('contrib-phone')?.value || '',
             searchQuery: document.getElementById('ledger-search-input')?.value || '',
-            filterType: document.getElementById('ledger-filter-select')?.value || 'all'
+            filterType: document.getElementById('ledger-filter-select')?.value || 'all',
+            adminEmail: document.getElementById('admin-email-input')?.value || '',
+            rejectReason: document.getElementById('reject-reason-input')?.value || '',
+            disburseAmount: document.getElementById('disburse-amount-input')?.value || '',
+            disburseNote: document.getElementById('disburse-note-input')?.value || '',
+            firebaseDbUrl: document.getElementById('firebase-db-url-input')?.value || '',
+            firebaseAuthSecret: document.getElementById('firebase-auth-secret-input')?.value || ''
+          },
+          outputs: {
+            totalContributionsText: document.getElementById('stat-total-contributions')?.textContent || '',
+            contributionsCountText: document.getElementById('stat-contributions-count')?.textContent || '',
+            totalDisbursedText: document.getElementById('stat-total-disbursed')?.textContent || '',
+            disbursedSummaryText: document.getElementById('stat-disbursed-summary')?.textContent || '',
+            availableBalanceText: document.getElementById('stat-available-balance')?.textContent || '',
+            lastUpdatedText: document.getElementById('stat-last-updated')?.textContent || '',
+            coverageText: document.getElementById('stat-coverage-text')?.textContent || ''
           }
         };
         const updated = [snapshot, ...history].slice(0, MAX_BACKUP_SNAPSHOTS);
         writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(updated));
         writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
         if (isAdminMode) updateBackupAdminUI();
-        if (notify) showToast(`تم حفظ نسخة احتياطية (${reason}).`, 'info');
+        if (notify) showToast(`تم حفظ نسخة احتياطية شاملة (${reason}).`, 'info');
       } catch (e) {}
     }
 
@@ -3131,41 +3166,97 @@
         setVal('contrib-phone', inputs.contribPhone);
         setVal('ledger-search-input', inputs.searchQuery);
         setVal('ledger-filter-select', inputs.filterType);
+        setVal('admin-email-input', inputs.adminEmail);
+        setVal('reject-reason-input', inputs.rejectReason);
+        setVal('disburse-amount-input', inputs.disburseAmount);
+        setVal('disburse-note-input', inputs.disburseNote);
+        setVal('firebase-db-url-input', inputs.firebaseDbUrl);
+        setVal('firebase-auth-secret-input', inputs.firebaseAuthSecret);
         toggleNewPaymentFields();
+        toggleEditPaymentFields();
       } catch (e) {}
+    }
+
+    function applyRestoredState(snap) {
+      if (!snap || !snap.state) return;
+      if (snap.lang) document.documentElement.lang = snap.lang;
+      if (snap.dir) document.documentElement.dir = snap.dir;
+
+      if (Array.isArray(snap.deletedIds)) {
+        setDeletedIdsList(snap.deletedIds);
+      }
+      if (snap.deviceVotes && typeof snap.deviceVotes === 'object') {
+        memoryStore.deviceVotes = snap.deviceVotes;
+        writeStorageSafe(DEVICE_VOTE_KEY, JSON.stringify(snap.deviceVotes));
+      }
+      if (snap.myContributions && typeof snap.myContributions === 'object') {
+        memoryStore.myContributions = snap.myContributions;
+        writeStorageSafe(MY_CONTRIBUTIONS_KEY, JSON.stringify(snap.myContributions));
+      }
+      if (snap.firebaseConfig && typeof snap.firebaseConfig === 'object') {
+        writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify(snap.firebaseConfig));
+      }
+      if (snap.biometricConfig && typeof snap.biometricConfig === 'object') {
+        writeStorageSafe(ADMIN_BIOMETRIC_KEY, JSON.stringify(snap.biometricConfig));
+      }
+
+      appState = sanitizeStateData(snap.state);
+      appState.deletedIds = getDeletedIds();
+      appState.updatedAtMs = Date.now();
+      appState.lastUpdated = formatNowDate();
+      hasLocalStateStored = true;
+      hasUnsyncedLocalChanges = true;
+      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+
+      if (snap.appearance && typeof snap.appearance === 'object') {
+        const headerEl = document.querySelector('header');
+        const mainEl = document.querySelector('main');
+        if (snap.appearance.bodyClass && document.body) document.body.className = snap.appearance.bodyClass;
+        if (snap.appearance.headerClass && headerEl) headerEl.className = snap.appearance.headerClass;
+        if (snap.appearance.mainClass && mainEl) mainEl.className = snap.appearance.mainClass;
+      }
+
+      if (snap.inputs) {
+        applyRestoredFormInputs(snap.inputs);
+      }
+      updateAdminUI();
+      renderAll();
+      if (snap.appearance && typeof snap.appearance.scrollY === 'number' && typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: snap.appearance.scrollY, behavior: 'auto' });
+      }
+      pushStateToFirebase(true);
+      showToast('تم استرداد النسخة الاحتياطية الشاملة بنجاح.', 'success');
     }
 
     function exportManualBackupFile() {
       try {
-        saveAutoBackupSnapshot('تصدير ملف نسخة احتياطية', false);
+        saveAutoBackupSnapshot('تصدير ملف نسخة احتياطية شاملة', false);
+        const latestSnap = getAutoBackupHistory()[0] || {};
         const payload = {
           exportedAt: formatNowDate(),
-          version: '1.0',
+          version: '2.0-full',
           lang: document.documentElement.lang || 'ar',
           dir: document.documentElement.dir || 'rtl',
           state: sanitizeStateData(appState),
-          inputs: {
-            contribName: document.getElementById('contrib-name')?.value || '',
-            contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
-            contribAmount: document.getElementById('contrib-amount')?.value || '',
-            contribTarget: document.getElementById('contrib-target')?.value || 'general',
-            contribMethod: document.getElementById('contrib-method')?.value || '',
-            contribNote: document.getElementById('contrib-note')?.value || '',
-            contribPhone: document.getElementById('contrib-phone')?.value || '',
-            searchQuery: document.getElementById('ledger-search-input')?.value || '',
-            filterType: document.getElementById('ledger-filter-select')?.value || 'all'
-          }
+          deletedIds: latestSnap.deletedIds || getDeletedIds(),
+          deviceVotes: latestSnap.deviceVotes || getDeviceVotes(),
+          myContributions: latestSnap.myContributions || {},
+          firebaseConfig: latestSnap.firebaseConfig || getFirebaseConfig(),
+          biometricConfig: latestSnap.biometricConfig || getSavedBiometricCredential(),
+          appearance: latestSnap.appearance || {},
+          inputs: latestSnap.inputs || {},
+          outputs: latestSnap.outputs || {}
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sayaan-takaful-backup-${Date.now()}.json`;
+        a.download = `sayaan-takaful-full-backup-${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('تم تنزيل ملف النسخة الاحتياطية بنجاح.', 'success');
+        showToast('تم تنزيل ملف النسخة الاحتياطية الشاملة بنجاح.', 'success');
       } catch (e) {
         showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'warning');
       }
@@ -3188,17 +3279,24 @@
           const newSnap = {
             id: snapId,
             createdAt: parsed.exportedAt || formatNowDate(),
-            reason: 'ملف مستورد',
+            reason: 'ملف نسخة شاملة مستورد',
             lang: parsed.lang || 'ar',
             dir: parsed.dir || 'rtl',
             state: sanitizeStateData(candidateState),
-            inputs: parsed.inputs || {}
+            deletedIds: parsed.deletedIds || candidateState.deletedIds || [],
+            deviceVotes: parsed.deviceVotes || {},
+            myContributions: parsed.myContributions || {},
+            firebaseConfig: parsed.firebaseConfig || null,
+            biometricConfig: parsed.biometricConfig || null,
+            appearance: parsed.appearance || null,
+            inputs: parsed.inputs || {},
+            outputs: parsed.outputs || {}
           };
           writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([newSnap, ...history].slice(0, MAX_BACKUP_SNAPSHOTS)));
           pendingRestoreSnapshotId = snapId;
           const detailsEl = document.getElementById('restore-confirm-details');
           if (detailsEl) {
-            detailsEl.textContent = `هل تريد استرداد النسخة المستوردة بتاريخ (${newSnap.createdAt}) بالكامل؟`;
+            detailsEl.textContent = `هل تريد استرداد النسخة الاحتياطية الشاملة بتاريخ (${newSnap.createdAt}) بكل بياناتها ومدخلاتها ومخرجاتها وتصميمها؟`;
           }
           const modal = document.getElementById('restore-confirm-modal');
           if (modal) {
