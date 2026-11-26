@@ -980,6 +980,8 @@
     let isPushingWalletsToFirebase = false;
     let lastPushedAtMs = 0;
     let lastWalletsPushedAtMs = 0;
+    let syncVersionCounter = 0;
+    let lastAppliedRemoteSig = '';
     const clientInstanceId = `cli_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
     function readStorageSafe(key) {
@@ -998,6 +1000,46 @@
         }
       } catch (e) {}
       return null;
+    }
+
+    function writeStorageSafe(key, value) {
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem(key, value);
+        }
+      } catch (e) {}
+      try {
+        let bag = {};
+        if (window.name && window.name.startsWith('SAYaan_WIN_BAG:')) {
+          bag = JSON.parse(window.name.slice('SAYaan_WIN_BAG:'.length)) || {};
+        }
+        bag[key] = value;
+        const serialized = 'SAYaan_WIN_BAG:' + JSON.stringify(bag);
+        if (serialized.length < 1800000) {
+          window.name = serialized;
+        }
+      } catch (e) {}
+    }
+
+    function getStateContentSignature(stateObj) {
+      if (!stateObj || typeof stateObj !== 'object') return '';
+      return JSON.stringify({
+        cases: stateObj.cases || [],
+        pendingContributions: stateObj.pendingContributions || [],
+        approvedContributions: stateObj.approvedContributions || [],
+        disbursements: stateObj.disbursements || [],
+        caseLedgerItems: stateObj.caseLedgerItems || []
+      });
+    }
+
+    function hasAnyMeaningfulData(stateObj) {
+      if (!stateObj || typeof stateObj !== 'object') return false;
+      return (
+        (Array.isArray(stateObj.cases) && stateObj.cases.length > 0) ||
+        (Array.isArray(stateObj.approvedContributions) && stateObj.approvedContributions.length > 0) ||
+        (Array.isArray(stateObj.disbursements) && stateObj.disbursements.length > 0) ||
+        (Array.isArray(stateObj.pendingContributions) && stateObj.pendingContributions.length > 0)
+      );
     }
 
     function escapeHtml(str) {
@@ -1381,6 +1423,40 @@
       isPushingToFirebase = true;
       setCloudStatusUI('syncing');
       try {
+        // تحقق أولاً مما هو موجود في السحابة حتى لا نمسح بيانات أحدث بحالة محلية فارغة أو أقدم
+        const checkRes = await fetch(endpoint, { cache: 'no-store' });
+        if (checkRes.ok) {
+          const cloudRaw = await checkRes.json();
+          if (cloudRaw && typeof cloudRaw === 'object') {
+            const cloudNorm = normalizeState(cloudRaw);
+            const cloudHasData = hasAnyMeaningfulData(cloudNorm);
+            const localHasData = hasAnyMeaningfulData(appState);
+            const cloudVer = Number(cloudNorm.syncVer) || 0;
+            const localVer = Number(appState.syncVer) || 0;
+            const cloudSig = getStateContentSignature(cloudNorm);
+            const localSig = getStateContentSignature(appState);
+
+            if (cloudHasData && !localHasData && !force) {
+              appState = cloudNorm;
+              hasLocalStateStored = true;
+              writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+              renderAll();
+              setCloudStatusUI('online');
+              return;
+            }
+            if (cloudHasData && cloudSig !== localSig && cloudVer > localVer && !force) {
+              appState = cloudNorm;
+              hasLocalStateStored = true;
+              writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+              renderAll();
+              setCloudStatusUI('online');
+              return;
+            }
+          }
+        }
+
+        syncVersionCounter = Math.max(syncVersionCounter + 1, Number(appState.syncVer) || 0) + 1;
+        appState.syncVer = syncVersionCounter;
         appState.updatedAtMs = Date.now();
         appState.originClient = clientInstanceId;
         writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
@@ -1395,6 +1471,7 @@
         if (timeoutId) clearTimeout(timeoutId);
         if (res.ok) {
           lastPushedAtMs = Date.now();
+          lastAppliedRemoteSig = getStateContentSignature(appState);
           setCloudStatusUI('online');
         } else {
           setCloudStatusUI('offline');
@@ -1433,46 +1510,28 @@
           return;
         }
         const remoteNormalized = normalizeState(remote);
+        syncVersionCounter = Math.max(syncVersionCounter, Number(remoteNormalized.syncVer) || 0);
         const remoteMs = Number(remoteNormalized.updatedAtMs) || 0;
         const localMs = Number(appState?.updatedAtMs) || 0;
-        const hasLocalData =
-          (appState?.cases?.length || 0) > 0 ||
-          (appState?.approvedContributions?.length || 0) > 0 ||
-          (appState?.disbursements?.length || 0) > 0 ||
-          (appState?.pendingContributions?.length || 0) > 0;
-        const hasRemoteData =
-          (remoteNormalized.cases?.length || 0) > 0 ||
-          (remoteNormalized.approvedContributions?.length || 0) > 0 ||
-          (remoteNormalized.disbursements?.length || 0) > 0 ||
-          (remoteNormalized.pendingContributions?.length || 0) > 0;
+        const hasLocalData = hasAnyMeaningfulData(appState);
+        const hasRemoteData = hasAnyMeaningfulData(remoteNormalized);
 
-        // توحيد المضمون والوقت عبر المتصفحات حتى مع اختلاف ساعة الجهاز أو المتصفح
         const isDifferentClient = remoteNormalized.originClient && remoteNormalized.originClient !== clientInstanceId;
-        const localSig = JSON.stringify({
-          c: appState?.cases || [],
-          a: appState?.approvedContributions || [],
-          d: appState?.disbursements || [],
-          p: appState?.pendingContributions || []
-        });
-        const remoteSig = JSON.stringify({
-          c: remoteNormalized.cases || [],
-          a: remoteNormalized.approvedContributions || [],
-          d: remoteNormalized.disbursements || [],
-          p: remoteNormalized.pendingContributions || []
-        });
+        const localSig = getStateContentSignature(appState);
+        const remoteSig = getStateContentSignature(remoteNormalized);
 
         if (
-          !hasLocalStateStored ||
+          (hasRemoteData && localSig !== remoteSig && (isDifferentClient || Number(remoteNormalized.syncVer || 0) >= Number(appState?.syncVer || 0) || remoteMs >= localMs)) ||
           (!hasLocalData && hasRemoteData) ||
-          (hasRemoteData && localSig !== remoteSig && (isDifferentClient || remoteMs >= localMs)) ||
-          remoteMs > localMs
+          (!hasLocalStateStored && hasRemoteData) ||
+          (remoteMs > localMs && hasRemoteData)
         ) {
           appState = remoteNormalized;
           hasLocalStateStored = true;
+          lastAppliedRemoteSig = remoteSig;
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
-        } else if (hasLocalData && !hasRemoteData) {
-          // إذا كانت البيانات موجودة في هذا المتصفح (مثل فايرفوكس) وقاعدة البيانات فارغة، ارفعها فوراً لتوحيد كروم وباقي المتصفحات
+        } else if (hasLocalData && !hasRemoteData && (Date.now() - lastPushedAtMs > 2500)) {
           pushStateToFirebase(true);
         } else if (tombstonesChanged && appState) {
           appState = normalizeState(applyTombstonesToState(appState));
@@ -1491,7 +1550,7 @@
       if (firebasePollTimer) clearInterval(firebasePollTimer);
       firebasePollTimer = setInterval(() => {
         pullStateFromFirebase(true);
-      }, 1500);
+      }, 900);
 
       try {
         const cfg = getFirebaseConfig();
@@ -1528,6 +1587,8 @@
 
     function saveAndSync(snapshotLabel = '') {
       if (!appState) appState = getDefaultAppState();
+      syncVersionCounter = Math.max(syncVersionCounter + 1, Number(appState.syncVer) || 0) + 1;
+      appState.syncVer = syncVersionCounter;
       appState.updatedAtMs = Date.now();
       appState.originClient = clientInstanceId;
       hasLocalStateStored = true;
@@ -3426,17 +3487,6 @@
       });
 
       startFirebasePolling();
-      if (hasLocalStateStored) {
-        const hasDataOnBoot =
-          (appState?.cases?.length || 0) > 0 ||
-          (appState?.approvedContributions?.length || 0) > 0 ||
-          (appState?.disbursements?.length || 0) > 0 ||
-          (appState?.pendingContributions?.length || 0) > 0;
-        if (readStorageSafe(RESTORED_LOCK_KEY) || hasDataOnBoot) {
-          pushStateToFirebase(true);
-          pushAllDonorWalletsToFirebase();
-        }
-      }
       if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
       autoBackupMinuteTimer = setInterval(() => {
         if (hasLocalStateStored) {
