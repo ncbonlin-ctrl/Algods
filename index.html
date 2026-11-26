@@ -212,8 +212,8 @@
       <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-slate-500">إجمالي المساهمات المعتمدة</p>
-          <p id="stat-total-contributions" class="text-2xl font-black text-slate-900 mt-1">0 د.ل</p>
-          <p id="stat-contributions-count" class="text-xs font-extrabold text-emerald-700 mt-1">عدد المساهمات: 0</p>
+          <p id="stat-total-contributions" class="text-2xl font-black text-slate-900 mt-1"></p>
+          <p id="stat-contributions-count" class="text-xs font-extrabold text-emerald-700 mt-1"></p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-2xl shrink-0">+</div>
       </div>
@@ -221,8 +221,8 @@
       <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-slate-500">إجمالي المساعدات المصروفة</p>
-          <p id="stat-total-disbursed" class="text-2xl font-black text-rose-600 mt-1">0 د.ل</p>
-          <p id="stat-disbursed-summary" class="text-xs font-extrabold text-slate-500 mt-1">حالات مسددة / مصروفة: 0 من 0</p>
+          <p id="stat-total-disbursed" class="text-2xl font-black text-rose-600 mt-1"></p>
+          <p id="stat-disbursed-summary" class="text-xs font-extrabold text-slate-500 mt-1"></p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-black text-2xl shrink-0">-</div>
       </div>
@@ -230,8 +230,8 @@
       <div class="bg-emerald-50/90 rounded-3xl p-5 shadow-sm border border-emerald-200 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-emerald-900">الرصيد المتاح حالياً بالصندوق</p>
-          <p id="stat-available-balance" class="text-2xl font-black text-emerald-800 mt-1">0 د.ل</p>
-          <p id="stat-last-updated" class="text-xs font-bold text-emerald-700 mt-1">آخر تحديث: الآن</p>
+          <p id="stat-available-balance" class="text-2xl font-black text-emerald-800 mt-1"></p>
+          <p id="stat-last-updated" class="text-xs font-bold text-emerald-700 mt-1"></p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-emerald-700 text-amber-300 flex items-center justify-center text-xl shrink-0">★</div>
       </div>
@@ -239,73 +239,73 @@
       <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between gap-2">
         <div class="flex items-center justify-between">
           <p class="text-xs font-extrabold text-slate-600">نسبة تغطية الحالات</p>
-          <span id="stat-cases-badge" class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">0 حالات</span>
+          <span id="stat-cases-badge" class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full"></span>
         </div>
-        <p id="stat-coverage-text" class="text-sm font-black text-slate-900">0% من 0 د.ل</p>
+        <p id="stat-coverage-text" class="text-sm font-black text-slate-900"></p>
         <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
-          <div id="stat-coverage-bar" class="h-full bg-gradient-to-l from-amber-400 to-emerald-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div id="stat-coverage-bar" class="h-full bg-gradient-to-l from-amber-400 to-emerald-600 rounded-full" style="width: 0%"></div>
         </div>
         <p class="text-[11px] font-bold text-slate-400">مؤشر التغطية الإجمالي</p>
       </div>
     </section>
-
-    <!-- لوحة مراجعة المساهمات وأدوات المشرف (مخفية افتراضياً وتظهر فقط في وضع الإدارة) -->
-    <section id="admin-pending-panel" class="hidden bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 pb-3">
-        <div>
-          <h3 class="text-lg font-black text-amber-950">طلبات المساهمات بانتظار الاعتماد</h3>
-          <p class="text-xs font-bold text-amber-800">
-            يمكنك تعديل الطلب أو حذفه أو نشره (اعتماده) لإضافته إلى رصيد الصندوق أو الحالة ومزامنة السجل فوراً.
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          <button type="button" id="register-biometric-btn" aria-label="البصمة" onclick="registerAdminBiometric()" class="w-14 sm:w-16 h-11 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/50 rounded-2xl shadow-xs transition inline-flex items-center justify-center shrink-0 cursor-pointer">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33" />
-            </svg>
-          </button>
-          <button type="button" id="open-firebase-modal-btn" onclick="openFirebaseConfigModal()" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-emerald-800 hover:bg-emerald-700 text-white font-black text-sm px-5 py-2.5 rounded-2xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
-            إعدادات Firebase
-          </button>
-          <span id="pending-count-badge" class="flex-1 sm:flex-none min-w-[145px] h-11 bg-amber-500 text-emerald-950 font-black text-sm px-5 py-2.5 rounded-2xl inline-flex items-center justify-center">0 طلبات</span>
-        </div>
-      </div>
-
-      <!-- قسم النسخ الاحتياطي الخارجي (تنزيل واستعادة) -->
-      <div id="admin-backup-bar" class="bg-white/95 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3">
-        <div class="flex items-center gap-2">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-          <p class="text-sm sm:text-base font-black text-emerald-950">النسخ الاحتياطي</p>
-        </div>
-
-        <!-- زرا تنزيل النسخة كملف خارجي واستعادة النسخة -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onclick="exportManualBackupFile()"
-            class="h-11 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>تنزيل النسخة</span>
-          </button>
-
-          <label
-            for="manual-backup-file-input"
-            class="h-11 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm px-4 rounded-2xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>استعادة النسخة</span>
-          </label>
-          <input
-            type="file"
-            id="manual-backup-file-input"
-            accept=".json,application/json"
-            onchange="handleManualBackupFileImport(this)"
-            class="hidden"
-          />
-        </div>
-      </div>
-
-      <!-- قائمة طلبات المساهمات بانتظار التعديل أو النشر أو الحذف -->
-      <div id="pending-contributions-list" class="space-y-3"></div>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('sayaan_takaful_state_v1') || localStorage.getItem('sayaan_takaful_auto_backup_latest_v1');
+          if (!raw) return;
+          var parsed = JSON.parse(raw);
+          var s = parsed && parsed.state ? parsed.state : parsed;
+          if (!s || typeof s !== 'object') return;
+          var approved = Array.isArray(s.approvedContributions) ? s.approvedContributions : [];
+          var cases = Array.isArray(s.cases) ? s.cases : [];
+          var totalContrib = 0, contribCount = 0, totalDisb = 0, totalCaseTrans = 0, totalSurplus = 0;
+          for (var i = 0; i < approved.length; i++) {
+            var item = approved[i];
+            if (!item) continue;
+            var amt = Number(item.amount) || 0;
+            if (item.type === 'disbursement') {
+              totalDisb += amt;
+            } else {
+              totalContrib += amt;
+              contribCount += 1;
+              if (item.target && item.target !== 'general' && amt > 0) totalCaseTrans += amt;
+            }
+          }
+          var totalReq = 0, totalCovered = 0, completedCases = 0;
+          for (var j = 0; j < cases.length; j++) {
+            var c = cases[j];
+            if (!c) continue;
+            var req = Number(c.requiredAmount) || 0;
+            var disb = Number(c.disbursedAmount) || 0;
+            var cSum = 0;
+            for (var k = 0; k < approved.length; k++) {
+              if (approved[k] && approved[k].type !== 'disbursement' && approved[k].target === c.id) {
+                cSum += (Number(approved[k].amount) || 0);
+              }
+            }
+            var funded = disb + cSum;
+            if (req > 0 && funded > req) totalSurplus += (funded - req);
+            totalReq += req;
+            totalCovered += Math.min(req, funded);
+            if (req > 0 && funded >= req) completedCases += 1;
+          }
+          var avail = Math.max(0, totalContrib - totalDisb - totalCaseTrans + totalSurplus);
+          var pct = totalReq > 0 ? Math.min(100, Math.round((totalCovered / totalReq) * 100)) : 0;
+          var fmt = function (n) { return (Number(n) || 0).toLocaleString('ar-LY', { maximumFractionDigits: 2 }) + ' د.ل'; };
+          var setTxt = function (id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
+          setTxt('stat-total-contributions', fmt(totalContrib));
+          setTxt('stat-contributions-count', 'عدد المساهمات: ' + contribCount);
+          setTxt('stat-total-disbursed', fmt(totalDisb));
+          setTxt('stat-disbursed-summary', 'حالات مسددة / مصروفة: ' + completedCases + ' من ' + cases.length);
+          setTxt('stat-available-balance', fmt(avail));
+          setTxt('stat-last-updated', 'آخر تحديث: ' + (s.lastUpdated || 'الآن'));
+          setTxt('stat-cases-badge', cases.length + ' حالات');
+          setTxt('stat-coverage-text', pct + '% من ' + fmt(totalReq));
+          var bar = document.getElementById('stat-coverage-bar');
+          if (bar) bar.style.width = pct + '%';
+        } catch (e) {}
+      })();
+    </script>
     </section>
 
     <!-- قسم الحالات المعروضة للتصويت -->
@@ -3691,17 +3691,16 @@
 
     // قراءة الحالة فوراً قبل DOMContentLoaded لتفادي ظهور الصفر المؤقت عند التحديث
     loadLocalState();
-    renderStats();
+    renderAll();
+    startFirebasePolling();
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalState();
       updateAdminUI();
       renderAll();
-      setTimeout(() => {
-        saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
-        startAutoBackupTimer();
-        startFirebasePolling();
-      }, 250);
+      saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
+      startAutoBackupTimer();
+      startFirebasePolling();
     });
   </script>
 </body>
