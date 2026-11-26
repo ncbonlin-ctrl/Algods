@@ -2327,13 +2327,21 @@
       handleContribTargetChange();
       renderDonorWalletPanel();
       saveAndSync(`طلب مساهمة جديد من ${name}`);
-      if (immediateCaseSurplus > 0) {
-        showToast(
-          `تم إرسال المساهمة وإرجاع الفائض (${formatCurrency(immediateCaseSurplus)}) فوراً إلى حافظة ${name}.`,
-          'warning'
-        );
-      } else {
-        showToast('تم إرسال مساهمتك للمراجعة ومزامنتها.', 'success');
+      showToast(
+        immediateCaseSurplus > 0
+          ? `تم إرسال المساهمة للمراجعة واسترجاع ${formatCurrency(immediateCaseSurplus)} فائضاً إلى حافظة ${name} فوراً.`
+          : 'تم إرسال المساهمة إلى لوحة الإدارة للمراجعة والنشر.',
+        'success'
+      );
+    }
+
+    function getDonorWalletsMap() {
+      try {
+        const raw = readStorageSafe(DONOR_WALLETS_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (e) {
+        return {};
       }
     }
 
@@ -3006,7 +3014,7 @@
       listEl.innerHTML = pending
         .map(
           (p) => `
-          <div data-pending-id="${escapeHtml(p.id)}" class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
             <div class="space-y-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="text-sm font-black text-slate-900">${escapeHtml(p.name)}</span>
@@ -3019,37 +3027,137 @@
               <p class="text-[11px] font-bold text-slate-400">${escapeHtml(p.date || '')}</p>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
-              <button type="button" data-pending-action="receipt" data-pending-id="${escapeHtml(p.id)}" onclick="openReceiptViewerModal('pending', '${escapeHtml(p.id)}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">عرض الإيصال</button>
-              <button type="button" data-pending-action="edit" data-pending-id="${escapeHtml(p.id)}" onclick="openEditContributionModal('pending', '${escapeHtml(p.id)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">تعديل</button>
-              <button type="button" data-pending-action="approve" data-pending-id="${escapeHtml(p.id)}" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl cursor-pointer">نشر واعتماد</button>
-              <button type="button" data-pending-action="delete" data-pending-id="${escapeHtml(p.id)}" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">حذف</button>
+              <button type="button" onclick="openReceiptViewerModal('pending', '${escapeHtml(p.id)}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">عرض الإيصال</button>
+              <button type="button" onclick="openEditContributionModal('pending', '${escapeHtml(p.id)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">تعديل</button>
+              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl cursor-pointer">نشر واعتماد</button>
+              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-xs px-3 py-2 rounded-xl cursor-pointer">حذف</button>
             </div>
           </div>`
         )
         .join('');
+    }
 
-      if (!listEl.dataset.delegationBound) {
-        listEl.dataset.delegationBound = '1';
-        listEl.addEventListener('click', (ev) => {
-          const btn = ev.target.closest('button[data-pending-action]');
-          if (!btn) return;
-          const action = btn.getAttribute('data-pending-action');
-          const id = btn.getAttribute('data-pending-id');
-          if (!id) return;
-          if (!isAdminLoggedIn) {
-            handleAdminHeaderClick();
-            return;
-          }
-          if (action === 'receipt') {
-            openReceiptViewerModal('pending', id);
-          } else if (action === 'edit') {
-            openEditContributionModal('pending', id);
-          } else if (action === 'approve') {
-            approvePendingContribution(id);
-          } else if (action === 'delete') {
-            deletePendingContribution(id);
-          }
+    function scheduleLedgerRender() {
+      clearTimeout(ledgerRenderTimer);
+      ledgerRenderTimer = setTimeout(renderLedger, 120);
+    }
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+
+      const query = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
+      const filterType = document.getElementById('ledger-filter-select')?.value || 'all';
+
+      const rows = [];
+      (appState?.approvedContributions || []).forEach((c) => {
+        const isCase = c.targetType === 'case';
+        const isWalletCharge = c.targetType === 'personal_wallet';
+        rows.push({
+          kind: isCase ? 'case' : 'general',
+          typeLabel: isWalletCharge ? 'شحن محفظة شخصية' : isCase ? 'مساهمة حالة' : 'مساهمة عامة',
+          title: c.name || 'متبرع',
+          subtitle: isWalletCharge
+            ? `${c.branch || ''} • تم شحن محفظته الشخصية (${c.method || ''})${c.note ? ` — ${c.note}` : ''}`
+            : `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.note ? ` — ${c.note}` : ''}`,
+          amount: Number(c.amount) || 0,
+          isPositive: true,
+          date: c.date || '',
+          rawId: c.id,
+          scope: 'approved'
         });
+      });
+
+      (appState?.disbursements || []).forEach((d) => {
+        rows.push({
+          kind: 'disbursement',
+          typeLabel: 'صرف مساعدة',
+          title: d.caseName || 'صرف من الصندوق',
+          subtitle: d.note || d.category || '',
+          amount: Number(d.amount) || 0,
+          isPositive: false,
+          date: d.date || '',
+          rawId: d.id,
+          scope: 'disbursement'
+        });
+      });
+
+      const filtered = rows.filter((r) => {
+        if (filterType !== 'all' && r.kind !== filterType) return false;
+        if (!query) return true;
+        return `${r.title} ${r.subtitle} ${r.typeLabel}`.toLowerCase().includes(query);
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-8 px-4 text-center text-xs font-bold text-slate-500">لا توجد قيود مطابقة للعرض حالياً.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered
+        .map((r) => {
+          const badgeCls =
+            r.kind === 'disbursement'
+              ? 'bg-rose-100 text-rose-800'
+              : r.kind === 'case'
+              ? 'bg-amber-100 text-amber-950'
+              : 'bg-emerald-100 text-emerald-900';
+
+          const adminActions = isAdminLoggedIn
+            ? r.scope === 'approved'
+              ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1">
+                  <button type="button" onclick="openReceiptViewerModal('approved', '${escapeHtml(r.rawId)}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-black px-2.5 py-1 rounded-lg cursor-pointer">الإيصال</button>
+                  <button type="button" onclick="openEditContributionModal('approved', '${escapeHtml(r.rawId)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-black px-2.5 py-1 rounded-lg cursor-pointer">تعديل</button>
+                  <button type="button" onclick="deleteApprovedContribution('${escapeHtml(r.rawId)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-black px-2.5 py-1 rounded-lg cursor-pointer">حذف</button>
+                </div>`
+              : `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1">
+                  <button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(r.rawId)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-black px-2.5 py-1 rounded-lg cursor-pointer">تعديل</button>
+                  <button type="button" onclick="deleteDisbursementEntry('${escapeHtml(r.rawId)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-black px-2.5 py-1 rounded-lg cursor-pointer">حذف</button>
+                </div>`
+            : '';
+
+          return `
+            <tr class="hover:bg-slate-50/80 transition">
+              <td class="py-3.5 px-5 align-top">
+                <p class="font-black text-slate-900">${escapeHtml(r.title)}</p>
+                <p class="text-xs font-bold text-slate-500 mt-0.5">${escapeHtml(r.subtitle)}</p>
+              </td>
+              <td class="py-3.5 px-3 text-center align-top">
+                <span class="inline-block ${badgeCls} text-[11px] font-black px-2.5 py-1 rounded-full">${escapeHtml(r.typeLabel)}</span>
+              </td>
+              <td class="py-3.5 px-3 text-center align-top font-black ${r.isPositive ? 'text-emerald-700' : 'text-rose-600'}">
+                ${r.isPositive ? '+' : '-'}${formatCurrency(r.amount)}
+              </td>
+              <td class="py-3.5 px-5 text-left align-top">
+                <p class="text-xs font-bold text-slate-500">${escapeHtml(r.date)}</p>
+                ${adminActions}
+              </td>
+            </tr>`;
+        })
+        .join('');
+    }
+
+    function renderAll() {
+      try {
+        const adminLabel = document.getElementById('admin-toggle-label');
+        if (adminLabel) {
+          adminLabel.textContent = isAdminLoggedIn ? 'خروج الإدارة' : 'وضع الإدارة';
+        }
+        const backupSec = document.getElementById('manual-backup-restore-section');
+        if (backupSec) {
+          backupSec.classList.toggle('hidden', !isAdminLoggedIn);
+        }
+
+        renderStats();
+        renderCases();
+        populateTargetSelects();
+        renderDonorWalletPanel();
+        renderPendingPanel();
+        renderLedger();
+        if (isAdminLoggedIn) {
+          renderAutoSnapshotsList();
+        }
+      } catch (err) {
+        console.error('Render error:', err);
       }
     }
 
