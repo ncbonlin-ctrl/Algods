@@ -2684,20 +2684,35 @@
       if (idx === -1) return;
       const item = appState.pendingContributions[idx];
       appState.pendingContributions.splice(idx, 1);
+      addDeletedIds([pid]);
 
-      if (item.targetType === 'personal_wallet') {
+      const isWalletItem =
+        item.targetType === 'personal_wallet' ||
+        item.targetId === 'personal_wallet' ||
+        String(item.targetLabel || '').includes('المحفظة الشخصية');
+
+      if (isWalletItem) {
         const verifiedAmt = Math.max(0, Number(item.amount) || 0);
-        if (verifiedAmt > 0) {
+        const donorName = String(item.name || '').trim();
+        const donorBranch = String(item.branch || 'الهمايلة').trim();
+
+        if (verifiedAmt > 0 && donorName) {
+          // 1) إضافة الرصيد فوراً إلى حافظة المساهم على هذا الجهاز ومزامنته مع Firebase
           creditDonorWallet(
-            item.name,
-            item.branch,
+            donorName,
+            donorBranch,
             verifiedAmt,
             `اعتماد ونشر شحن المحفظة الشخصية (${item.method || ''})`,
             'المحفظة الشخصية الذكية'
           );
+
+          // 2) تسجيل العملية في الحالة العامة لمزامنة الاعتماد عبر جميع الأجهزة وتحديث السجل
           appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
           appState.approvedContributions.unshift({
             ...item,
+            id: `app_wallet_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            name: donorName,
+            branch: donorBranch,
             amount: verifiedAmt,
             targetType: 'personal_wallet',
             targetId: 'personal_wallet',
@@ -2706,12 +2721,14 @@
             approvedAt: formatNowDate()
           });
         }
+
         const nameInp = document.getElementById('contrib-name');
         const branchSel = document.getElementById('contrib-branch');
-        if (nameInp && !nameInp.value.trim()) nameInp.value = item.name || '';
-        if (branchSel && item.branch) branchSel.value = item.branch;
-        saveAndSync(`اعتماد ونشر شحن محفظة ${item.name}`);
-        showToast(`تم التحقق وإرسال ${formatCurrency(verifiedAmt)} فوراً إلى حافظة ${item.name} ونشرها في السجل.`, 'success');
+        if (nameInp && donorName) nameInp.value = donorName;
+        if (branchSel && donorBranch) branchSel.value = donorBranch;
+
+        saveAndSync(`اعتماد ونشر شحن محفظة ${donorName}`);
+        showToast(`تم التحقق وإرسال ${formatCurrency(verifiedAmt)} فوراً إلى حافظة ${donorName} ونشرها في السجل.`, 'success');
         return;
       }
 
