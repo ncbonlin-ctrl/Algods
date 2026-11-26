@@ -507,7 +507,7 @@
           </div>
           <div class="contribute-field-card">
             <label for="contrib-target" class="block text-xs font-black text-emerald-950 mb-1.5">* وجهة التبرع</label>
-            <select id="contrib-target" required class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
+            <select id="contrib-target" required onchange="handleContribTargetChange()" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
           </div>
         </div>
 
@@ -545,7 +545,7 @@
 
         <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <span class="text-[11px] font-bold text-slate-500">جميع الحقول المسبوقة بعلامة (*) مطلوبة لإرسال الطلب.</span>
-          <button type="submit" class="contribute-submit-btn w-full sm:w-auto active:scale-[0.99] text-white font-black px-8 py-3.5 rounded-2xl text-sm sm:text-base transition cursor-pointer">
+          <button type="submit" id="contrib-submit-btn" class="contribute-submit-btn w-full sm:w-auto active:scale-[0.99] text-white font-black px-8 py-3.5 rounded-2xl text-sm sm:text-base transition cursor-pointer">
             إرسال المساهمة للمراجعة
           </button>
         </div>
@@ -2244,15 +2244,52 @@
         return;
       }
 
+      if (targetVal === 'personal_wallet') {
+        const charged = creditDonorWallet(
+          name,
+          branch,
+          amount,
+          note || `شحن مباشر للمحفظة الشخصية الذكية (${method})`,
+          'المحفظة الشخصية الذكية'
+        );
+        if (!charged) {
+          showToast('تعذر شحن المحفظة الشخصية الذكية.', 'error');
+          return;
+        }
+        document.getElementById('new-contribution-form')?.reset();
+        clearNewReceiptSelection();
+        toggleNewPaymentFields();
+        handleContribTargetChange();
+        renderDonorWalletPanel();
+        showToast(`تم شحن المحفظة الشخصية الذكية لـ ${name} بمبلغ ${formatCurrency(amount)} ومزامنته مع Firebase.`, 'success');
+        return;
+      }
+
       let targetType = 'general';
       let targetId = '';
       let targetLabel = 'الصندوق العام (أورام ودية)';
+      let immediateCaseSurplus = 0;
+
       if (targetVal !== 'general') {
         const foundCase = (appState.cases || []).find((c) => String(c.id) === String(targetVal));
         if (foundCase) {
           targetType = 'case';
           targetId = String(foundCase.id);
           targetLabel = foundCase.name;
+
+          const metrics = computeFinancialMetrics();
+          const currentCovered = Math.max(metrics.caseDirectMap[String(foundCase.id)] || 0, Number(foundCase.disbursed) || 0);
+          const remainingNeeded = Math.max(0, (Number(foundCase.required) || 0) - currentCovered);
+          if (amount > remainingNeeded) {
+            immediateCaseSurplus = amount - remainingNeeded;
+            creditDonorWallet(
+              name,
+              branch,
+              immediateCaseSurplus,
+              `استرجاع فائض فوري لتجاوز سقف الحالة (${foundCase.name})`,
+              foundCase.name
+            );
+          }
         }
       }
 
@@ -2278,29 +2315,28 @@
       document.getElementById('new-contribution-form')?.reset();
       clearNewReceiptSelection();
       toggleNewPaymentFields();
+      handleContribTargetChange();
       renderDonorWalletPanel();
       saveAndSync(`طلب مساهمة جديد من ${name}`);
-      showToast('تم إرسال مساهمتك للمراجعة ومزامنتها.', 'success');
-    }
-
-    function getDonorWalletKey(name, branch) {
-      const cleanName = String(name || '').trim().toLowerCase();
-      const cleanBranch = String(branch || 'الهمايلة').trim().toLowerCase();
-      return cleanName ? `${cleanName}__${cleanBranch}` : '';
-    }
-
-    function getDonorWalletsMap() {
-      try {
-        const raw = readStorageSafe(DONOR_WALLETS_KEY);
-        const parsed = raw ? JSON.parse(raw) : {};
-        return parsed && typeof parsed === 'object' ? parsed : {};
-      } catch (e) {
-        return {};
+      if (immediateCaseSurplus > 0) {
+        showToast(
+          `تم إرسال المساهمة وإرجاع الفائض (${formatCurrency(immediateCaseSurplus)}) فوراً إلى حافظة ${name}.`,
+          'warning'
+        );
+      } else {
+        showToast('تم إرسال مساهمتك للمراجعة ومزامنتها.', 'success');
       }
     }
 
     function saveDonorWalletsMap(map) {
       writeStorageSafe(DONOR_WALLETS_KEY, JSON.stringify(map || {}));
+    }
+
+    function getDonorWalletKey(name, branch) {
+      const cleanName = String(name || '').trim().toLowerCase();
+      const cleanBranch = String(branch || 'الهمايلة').trim().toLowerCase();
+      if (!cleanName) return '';
+      return `${cleanName}__${cleanBranch}`;
     }
 
     function getDonorWalletRecord(name, branch) {
@@ -2447,6 +2483,16 @@
       showToast(`تم شحن حافظة ${nameVal} بمبلغ ${formatCurrency(chargeAmt)} ومزامنته مع Firebase.`, 'success');
     }
 
+    function handleContribTargetChange() {
+      const targetVal = document.getElementById('contrib-target')?.value || 'general';
+      const submitBtn = document.getElementById('contrib-submit-btn');
+      if (submitBtn) {
+        submitBtn.textContent =
+          targetVal === 'personal_wallet' ? 'شحن المحفظة الشخصية الذكية الآن' : 'إرسال المساهمة للمراجعة';
+      }
+      renderDonorWalletPanel();
+    }
+
     function renderDonorWalletPanel() {
       const formEl = document.getElementById('new-contribution-form');
       if (!formEl) return;
@@ -2461,6 +2507,7 @@
 
       const nameVal = (document.getElementById('contrib-name')?.value || '').trim();
       const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
+      const selectedTarget = document.getElementById('contrib-target')?.value || 'general';
       const rec = getDonorWalletRecord(nameVal, branchVal);
       const metrics = computeFinancialMetrics();
       const openCases = (appState?.cases || []).filter((c) => {
@@ -2477,72 +2524,89 @@
         openCases.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`).join('');
 
       panel.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
-          <div>
-            <span class="inline-block bg-amber-400 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full mb-1">خاصة بجهازك ومتصفحك • متزامنة مع Firebase</span>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 mb-1">
+              <span class="inline-block bg-amber-400 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full">خاصة بجهازك ومتصفحك • متزامنة مع Firebase</span>
+              ${
+                selectedTarget === 'personal_wallet'
+                  ? `<span class="inline-block bg-emerald-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">وضع الشحن المباشر للمحفظة مفعّل</span>`
+                  : ''
+              }
+            </div>
             <h3 class="text-sm sm:text-base font-black text-slate-900">
               حافظة المساهم الذكية ${nameVal ? `— ${escapeHtml(nameVal)} (${escapeHtml(branchVal)})` : ''}
             </h3>
-            <p class="text-[11px] font-bold text-slate-600 mt-0.5">
-              أي فائض يتجاوز سقف الحالة يرجع إلى حافظتك بالكامل لتوجيهه للصندوق أو لأي حالة مفتوحة بعدد غير محدود من المرات.
+            <p class="text-[11px] font-bold text-slate-600 mt-0.5 leading-relaxed">
+              يمكنك شحن المحفظة مباشرة من وجهة التبرع أو عبر الشحن السريع، وأي فائض يتجاوز سقف الحالة يرجع إلى حافظتك فوراً لتوجيهه للصندوق أو لأي حالة مفتوحة بعدد غير محدود من المرات.
             </p>
           </div>
-          <div class="bg-emerald-950 text-amber-300 px-4 py-2 rounded-2xl border border-amber-400/50 text-center shrink-0">
+          <div class="bg-emerald-950 text-amber-300 px-4 py-2.5 rounded-2xl border border-amber-400/50 text-center shrink-0 min-w-[140px]">
             <span class="block text-[10px] font-extrabold text-emerald-200">رصيد الحافظة الحالي</span>
             <span class="text-base sm:text-lg font-black">${formatCurrency(rec.balance)}</span>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="bg-white/90 border border-emerald-200 rounded-2xl p-3 space-y-2.5">
-            <label for="wallet-charge-amount" class="block text-xs font-black text-emerald-950">شحن الحافظة (د.ل)</label>
-            <div class="flex items-center gap-2">
-              <input type="number" id="wallet-charge-amount" min="1" step="any" placeholder="مثال: 200" class="flex-1 min-w-0 h-11 bg-slate-50 border border-slate-300 rounded-xl px-3 text-sm font-black text-slate-900 text-right outline-none focus:border-emerald-600" />
-              <button type="button" onclick="handleChargeDonorWallet()" class="h-11 w-36 shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center cursor-pointer">
+        <div class="grid grid-cols-1 gap-3">
+          <div class="bg-white/95 border border-emerald-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2">
+              <label for="wallet-charge-amount" class="block text-xs font-black text-emerald-950">شحن الحافظة (د.ل)</label>
+              <span class="text-[11px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">شحن فوري</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+              <input type="number" id="wallet-charge-amount" min="1" step="any" placeholder="المبلغ" class="sm:col-span-8 w-full h-11 bg-slate-50 border border-slate-300 rounded-xl px-3.5 text-sm font-black text-slate-900 text-right outline-none focus:bg-white focus:border-emerald-600 transition" />
+              <button type="button" onclick="handleChargeDonorWallet()" class="sm:col-span-4 w-full h-11 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center cursor-pointer">
                 شحن الحافظة
               </button>
             </div>
           </div>
 
-          <div class="bg-white/90 border border-amber-200 rounded-2xl p-3 space-y-2.5">
-            <label for="wallet-donate-amount" class="block text-xs font-black text-amber-950">تبرع من الحافظة</label>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <input type="number" id="wallet-donate-amount" min="1" step="any" placeholder="المبلغ" class="w-full sm:w-28 h-11 bg-slate-50 border border-slate-300 rounded-xl px-3 text-sm font-black text-slate-900 text-right outline-none focus:border-amber-500" />
-              <select id="wallet-donate-target" class="flex-1 min-w-0 h-11 bg-slate-50 border border-slate-300 rounded-xl px-2.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500">
+          <div class="bg-white/95 border border-amber-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2">
+              <label for="wallet-donate-amount" class="block text-xs font-black text-amber-950">تبرع من الحافظة</label>
+              <span class="text-[11px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">دعم غير محدود</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+              <input type="number" id="wallet-donate-amount" min="1" step="any" placeholder="المبلغ" class="sm:col-span-3 w-full h-11 bg-slate-50 border border-slate-300 rounded-xl px-3 text-sm font-black text-slate-900 text-right outline-none focus:bg-white focus:border-amber-500 transition" />
+              <select id="wallet-donate-target" class="sm:col-span-5 w-full h-11 bg-slate-50 border border-slate-300 rounded-xl px-3 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-amber-500 transition">
                 ${targetOptionsHtml}
               </select>
-              <button type="button" onclick="handleDonateFromDonorWallet()" class="h-11 w-full sm:w-36 shrink-0 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center cursor-pointer">
+              <button type="button" onclick="handleDonateFromDonorWallet()" class="sm:col-span-4 w-full h-11 bg-gradient-to-l from-amber-500 to-amber-400 hover:from-amber-400 hover:to-yellow-300 text-emerald-950 font-black text-xs rounded-xl shadow-xs transition inline-flex items-center justify-center cursor-pointer">
                 تبرع من الحافظة
               </button>
             </div>
           </div>
         </div>
-
-        ${
-          rec.logs.length
-            ? `<div class="bg-white/85 border border-slate-200/80 rounded-xl p-2.5 space-y-1 max-h-28 overflow-y-auto">
-                <p class="text-[11px] font-black text-slate-700">آخر حركات الحافظة</p>
-                ${rec.logs
-                  .slice(0, 5)
-                  .map(
-                    (lg) => `
-                    <div class="text-[11px] flex items-center justify-between gap-2 py-1 border-b border-slate-100 last:border-0">
-                      <span class="font-bold text-slate-700">${escapeHtml(lg.reason || '')}</span>
-                      <span class="font-black shrink-0 ${lg.type === 'credit' ? 'text-emerald-700' : 'text-rose-600'}">
-                        ${lg.type === 'credit' ? '+' : '-'}${formatCurrency(lg.amount)}
-                      </span>
-                    </div>`
-                  )
-                  .join('')}
-              </div>`
-            : ''
-        }
       `;
 
       const targetSel = document.getElementById('wallet-donate-target');
       if (targetSel && prevTarget && Array.from(targetSel.options).some((o) => o.value === prevTarget)) {
         targetSel.value = prevTarget;
       }
+    }
+
+    function populateTargetSelects() {
+      const sel = document.getElementById('contrib-target');
+      if (!sel) return;
+      const prevVal = sel.value;
+      const metrics = computeFinancialMetrics();
+      const openCases = (appState?.cases || []).filter((c) => {
+        const req = Math.max(0, Number(c.required) || 0);
+        if (req <= 0) return true;
+        const direct = metrics.caseDirectMap[String(c.id)] || 0;
+        const disb = Math.max(0, Number(c.disbursed) || 0);
+        return Math.max(direct, disb) < req;
+      });
+
+      sel.innerHTML =
+        `<option value="general">الصندوق العام (أورام ودية)</option>` +
+        `<option value="personal_wallet">شحن المحفظة الشخصية الذكية</option>` +
+        openCases.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`).join('');
+
+      if (prevVal && Array.from(sel.options).some((o) => o.value === prevVal)) {
+        sel.value = prevVal;
+      }
+      handleContribTargetChange();
     }
 
     function handleDonateFromDonorWallet() {
@@ -3005,23 +3069,27 @@
     }
 
     function renderAll() {
-      const adminLabel = document.getElementById('admin-toggle-label');
-      if (adminLabel) {
-        adminLabel.textContent = isAdminLoggedIn ? 'خروج الإدارة' : 'وضع الإدارة';
-      }
-      const backupSec = document.getElementById('manual-backup-restore-section');
-      if (backupSec) {
-        backupSec.classList.toggle('hidden', !isAdminLoggedIn);
-      }
+      try {
+        const adminLabel = document.getElementById('admin-toggle-label');
+        if (adminLabel) {
+          adminLabel.textContent = isAdminLoggedIn ? 'خروج الإدارة' : 'وضع الإدارة';
+        }
+        const backupSec = document.getElementById('manual-backup-restore-section');
+        if (backupSec) {
+          backupSec.classList.toggle('hidden', !isAdminLoggedIn);
+        }
 
-      renderStats();
-      renderCases();
-      populateTargetSelects();
-      renderDonorWalletPanel();
-      renderPendingPanel();
-      renderLedger();
-      if (isAdminLoggedIn) {
-        renderAutoSnapshotsList();
+        renderStats();
+        renderCases();
+        populateTargetSelects();
+        renderDonorWalletPanel();
+        renderPendingPanel();
+        renderLedger();
+        if (isAdminLoggedIn) {
+          renderAutoSnapshotsList();
+        }
+      } catch (err) {
+        console.error('Render error:', err);
       }
     }
 
