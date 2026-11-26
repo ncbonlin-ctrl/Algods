@@ -151,6 +151,103 @@
       color: #475569;
       font-weight: 700;
     }
+    /* إطارات ولمسات جمالية متميزة ومتنوعة لكل بطاقة حالة */
+    .case-card-theme-0 {
+      background: linear-gradient(160deg, #ffffff 0%, #f0fdf4 65%, #ecfdf5 100%);
+      border: 2px solid #10b981;
+      box-shadow: 0 10px 26px -6px rgba(16, 185, 129, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-0::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #059669, #34d399, #fbbf24);
+    }
+    .case-card-theme-1 {
+      background: linear-gradient(160deg, #ffffff 0%, #fffbeb 65%, #fef3c7 100%);
+      border: 2px solid #f59e0b;
+      box-shadow: 0 10px 26px -6px rgba(245, 158, 11, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-1::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #d97706, #fbbf24, #10b981);
+    }
+    .case-card-theme-2 {
+      background: linear-gradient(160deg, #ffffff 0%, #f0f9ff 65%, #e0f2fe 100%);
+      border: 2px solid #0284c7;
+      box-shadow: 0 10px 26px -6px rgba(2, 132, 199, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-2::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #0369a1, #38bdf8, #34d399);
+    }
+    .case-card-theme-3 {
+      background: linear-gradient(160deg, #ffffff 0%, #fdf2f8 65%, #fce7f3 100%);
+      border: 2px solid #db2777;
+      box-shadow: 0 10px 26px -6px rgba(219, 39, 119, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-3::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #be185d, #f472b6, #fbbf24);
+    }
+    .case-card-theme-4 {
+      background: linear-gradient(160deg, #ffffff 0%, #f5f3ff 65%, #ede9fe 100%);
+      border: 2px solid #7c3aed;
+      box-shadow: 0 10px 26px -6px rgba(124, 58, 237, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-4::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #6d28d9, #a78bfa, #34d399);
+    }
+    .case-card-theme-5 {
+      background: linear-gradient(160deg, #ffffff 0%, #f0fdfa 65%, #ccfbf1 100%);
+      border: 2px solid #0d9488;
+      box-shadow: 0 10px 26px -6px rgba(13, 148, 136, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      position: relative;
+      overflow: hidden;
+    }
+    .case-card-theme-5::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #0f766e, #2dd4bf, #f59e0b);
+    }
     /* تسريع التمرير وقوائم السجل والحالات دون التأثير على الشكل */
     #cases-container,
     #pending-contributions-list,
@@ -1983,8 +2080,8 @@
       try {
         const s = stateObj || appState;
         const cStr = (s.cases || []).map(c => `${c.id}:${c.title}:${c.requiredAmount}:${c.disbursedAmount}:${c.closed}:${c.votesYes}:${c.votesNo}:${(c.rejections || []).length}`).join('|');
-      const pStr = (s.pendingContributions || []).map(p => `${p.id}:${p.amount}:${p.target}:${p.contributorName}`).join('|');
-      const aStr = (s.approvedContributions || []).map(a => `${a.id}:${a.type}:${a.amount}:${a.target}:${a.contributorName}:${a.pendingAdminReapproval ? 1 : 0}`).join('|');
+      const pStr = (s.pendingContributions || []).map(p => `${p.id}:${p.amount}:${p.target}:${p.contributorName}:${p.receiptData ? 1 : 0}:${p.phone || ''}`).join('|');
+      const aStr = (s.approvedContributions || []).map(a => `${a.id}:${a.type}:${a.amount}:${a.target}:${a.contributorName}:${a.pendingAdminReapproval ? 1 : 0}:${a.receiptData ? 1 : 0}:${a.phone || ''}`).join('|');
       return `${cStr}#${pStr}#${aStr}`;
     } catch (e) {
         return '';
@@ -2303,18 +2400,29 @@
     }
 
     function openReceiptViewerModal(id, scope = 'approved') {
+      if (!isAdminMode) {
+        showToast('عرض الإيصال متاح في وضع الإدارة فقط.', 'warning');
+        return;
+      }
       const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
       const item = (list || []).find(x => String(x.id) === String(id));
-      if (!item || !item.receiptData) return;
+      if (!item) return;
       const modal = document.getElementById('receipt-viewer-modal');
       const titleEl = document.getElementById('receipt-viewer-title');
       const bodyEl = document.getElementById('receipt-viewer-body');
       if (titleEl) titleEl.textContent = `إيصال المساهمة: ${item.contributorName || ''}`;
       if (bodyEl) {
-        if (String(item.receiptData).startsWith('data:image')) {
+        if (item.receiptData && String(item.receiptData).startsWith('data:image')) {
           bodyEl.innerHTML = `<img src="${item.receiptData}" alt="إيصال التحويل" class="max-h-[60vh] w-auto object-contain rounded-xl" />`;
-        } else {
+        } else if (item.receiptData) {
           bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-700 py-6">ملف مرفق: ${escapeHtml(item.receiptName || 'مستند الإيصال')}</p>`;
+        } else {
+          bodyEl.innerHTML = `
+            <div class="text-center space-y-2 py-6 px-4">
+              <p class="text-xs font-black text-slate-700">لا توجد صورة إيصال مرفقة لهذه المساهمة.</p>
+              <p class="text-xs font-bold text-slate-500">طريقة الدفع: ${escapeHtml(item.method || 'غير محددة')}${item.phone ? ` — الهاتف: <span dir="ltr" class="font-mono font-black text-slate-800">${escapeHtml(item.phone)}</span>` : ''}</p>
+            </div>
+          `;
         }
       }
       if (modal) {
@@ -2381,7 +2489,53 @@
 
       const deviceVotes = getDeviceVotes();
 
-      container.innerHTML = cases.map(c => {
+      const caseVisualThemes = [
+        {
+          cardClass: 'case-card-theme-0',
+          numberBadge: 'bg-emerald-700 text-white border border-emerald-400/60',
+          categoryBadge: 'bg-emerald-100 text-emerald-950 border border-emerald-300',
+          innerPanel: 'bg-white/90 border-emerald-200/90',
+          cornerOrnament: '❖'
+        },
+        {
+          cardClass: 'case-card-theme-1',
+          numberBadge: 'bg-amber-600 text-white border border-amber-300/70',
+          categoryBadge: 'bg-amber-100 text-amber-950 border border-amber-300',
+          innerPanel: 'bg-white/90 border-amber-200/90',
+          cornerOrnament: '✦'
+        },
+        {
+          cardClass: 'case-card-theme-2',
+          numberBadge: 'bg-sky-700 text-white border border-sky-300/70',
+          categoryBadge: 'bg-sky-100 text-sky-950 border border-sky-300',
+          innerPanel: 'bg-white/90 border-sky-200/90',
+          cornerOrnament: '◈'
+        },
+        {
+          cardClass: 'case-card-theme-3',
+          numberBadge: 'bg-pink-700 text-white border border-pink-300/70',
+          categoryBadge: 'bg-pink-100 text-pink-950 border border-pink-300',
+          innerPanel: 'bg-white/90 border-pink-200/90',
+          cornerOrnament: '❋'
+        },
+        {
+          cardClass: 'case-card-theme-4',
+          numberBadge: 'bg-violet-700 text-white border border-violet-300/70',
+          categoryBadge: 'bg-violet-100 text-violet-950 border border-violet-300',
+          innerPanel: 'bg-white/90 border-violet-200/90',
+          cornerOrnament: '✧'
+        },
+        {
+          cardClass: 'case-card-theme-5',
+          numberBadge: 'bg-teal-700 text-white border border-teal-300/70',
+          categoryBadge: 'bg-teal-100 text-teal-950 border border-teal-300',
+          innerPanel: 'bg-white/90 border-teal-200/90',
+          cornerOrnament: '❈'
+        }
+      ];
+
+      container.innerHTML = cases.map((c, idx) => {
+        const theme = caseVisualThemes[idx % caseVisualThemes.length];
         const req = Math.max(0, Number(c.requiredAmount) || 0);
         const disb = Math.max(0, Number(c.disbursedAmount) || 0);
         const caseContribs = getCaseContributionsList(c.id);
@@ -2455,11 +2609,17 @@
           : '';
 
         return `
-          <article class="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs flex flex-col justify-between gap-4">
+          <article class="${theme.cardClass} rounded-3xl p-5 pt-6 flex flex-col justify-between gap-4 transition-transform duration-200 hover:-translate-y-0.5">
             <div class="space-y-3">
               <div class="flex items-start justify-between gap-2">
-                <span class="inline-block bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category)}</span>
-                <span class="inline-block ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-400 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="inline-flex items-center gap-1 ${theme.numberBadge} text-[11px] font-black px-2.5 py-1 rounded-full shadow-2xs">
+                    <span>${theme.cornerOrnament}</span>
+                    <span>حالة #${idx + 1}</span>
+                  </span>
+                  <span class="inline-block ${theme.categoryBadge} text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category)}</span>
+                </div>
+                <span class="inline-block ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-400 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full shrink-0">
                   ${isCompleted ? 'مكتملة السداد' : 'قيد التصويت والدعم'}
                 </span>
               </div>
@@ -2469,7 +2629,7 @@
                 <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>
               </div>
 
-              <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 space-y-2">
+              <div class="${theme.innerPanel} border rounded-2xl p-3 space-y-2 shadow-2xs">
                 <div class="flex items-center justify-between text-xs font-black">
                   <span class="text-slate-600">المطلوب: <span class="text-slate-900">${formatCurrency(req)}</span></span>
                   <span class="text-emerald-700">المغطى: ${formatCurrency(covered)} (${pct}%)</span>
@@ -3387,7 +3547,7 @@
             <td class="py-3.5 px-5 text-left align-middle">
               <div class="text-xs font-bold text-slate-500">${escapeHtml(formatDateTimeWithPeriod(item.editedAt || item.approvedAt || item.createdAt))}</div>
               <div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
-                ${isAdminMode && item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
+                ${isAdminMode && !isDisb ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
                 ${canUserEdit ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] transition cursor-pointer">تعديل مساهمتي</button>` : ''}
                 ${isAdminMode && item.pendingAdminReapproval ? `<button type="button" onclick="recycleAndReapproveEditedContribution('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[11px] transition cursor-pointer">تدوير واعتماد</button>` : ''}
                 ${isAdminMode ? (
