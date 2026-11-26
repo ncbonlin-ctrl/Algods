@@ -2245,23 +2245,32 @@
       }
 
       if (targetVal === 'personal_wallet') {
-        const charged = creditDonorWallet(
+        const pendingWalletItem = {
+          id: `pend_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
           name,
           branch,
           amount,
-          note || `شحن مباشر للمحفظة الشخصية الذكية (${method})`,
-          'المحفظة الشخصية الذكية'
-        );
-        if (!charged) {
-          showToast('تعذر شحن المحفظة الشخصية الذكية.', 'error');
-          return;
-        }
+          targetType: 'personal_wallet',
+          targetId: 'personal_wallet',
+          targetLabel: 'المحفظة الشخصية الذكية',
+          method,
+          phone,
+          note: note || `طلب شحن المحفظة الشخصية الذكية (${method})`,
+          receiptDataUrl: newReceiptDataUrl,
+          receiptFileName: newReceiptFileName,
+          date: formatNowDate()
+        };
+
+        appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+        appState.pendingContributions.unshift(pendingWalletItem);
+
         document.getElementById('new-contribution-form')?.reset();
         clearNewReceiptSelection();
         toggleNewPaymentFields();
         handleContribTargetChange();
         renderDonorWalletPanel();
-        showToast(`تم شحن المحفظة الشخصية الذكية لـ ${name} بمبلغ ${formatCurrency(amount)} ومزامنته مع Firebase.`, 'success');
+        saveAndSync(`طلب شحن محفظة شخصية من ${name}`);
+        showToast('تم إرسال طلب شحن المحفظة الشخصية للمراجعة والتحقق والنشر.', 'success');
         return;
       }
 
@@ -2466,21 +2475,35 @@
       const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
       const chargeAmt = Number(document.getElementById('wallet-charge-amount')?.value) || 0;
       if (!nameVal) {
-        showToast('يرجى إدخال اسم المساهم أولاً لشحن حافظته.', 'warning');
+        showToast('يرجى إدخال اسم المساهم أولاً لإرسال طلب شحن حافظته.', 'warning');
         return;
       }
       if (chargeAmt <= 0) {
         showToast('يرجى إدخال مبلغ شحن صحيح.', 'error');
         return;
       }
-      if (!creditDonorWallet(nameVal, branchVal, chargeAmt, 'شحن مباشر لحافظة المساهم')) {
-        showToast('تعذر شحن الحافظة.', 'error');
-        return;
-      }
+      const pendingWalletCharge = {
+        id: `pend_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: nameVal,
+        branch: branchVal,
+        amount: chargeAmt,
+        targetType: 'personal_wallet',
+        targetId: 'personal_wallet',
+        targetLabel: 'المحفظة الشخصية الذكية',
+        method: 'شحن مباشر للمحفظة الشخصية',
+        phone: '',
+        note: 'طلب شحن مباشر لحافظة المساهم بانتظار التحقق والنشر',
+        receiptDataUrl: '',
+        receiptFileName: '',
+        date: formatNowDate()
+      };
+      appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+      appState.pendingContributions.unshift(pendingWalletCharge);
       const inp = document.getElementById('wallet-charge-amount');
       if (inp) inp.value = '';
       renderDonorWalletPanel();
-      showToast(`تم شحن حافظة ${nameVal} بمبلغ ${formatCurrency(chargeAmt)} ومزامنته مع Firebase.`, 'success');
+      saveAndSync(`طلب شحن محفظة ${nameVal} (${formatCurrency(chargeAmt)})`);
+      showToast(`تم إرسال طلب شحن حافظة ${nameVal} للمراجعة والتحقق والنشر.`, 'success');
     }
 
     function handleContribTargetChange() {
@@ -2488,7 +2511,7 @@
       const submitBtn = document.getElementById('contrib-submit-btn');
       if (submitBtn) {
         submitBtn.textContent =
-          targetVal === 'personal_wallet' ? 'شحن المحفظة الشخصية الذكية الآن' : 'إرسال المساهمة للمراجعة';
+          targetVal === 'personal_wallet' ? 'إرسال طلب شحن المحفظة للمراجعة' : 'إرسال المساهمة للمراجعة';
       }
       renderDonorWalletPanel();
     }
@@ -2548,19 +2571,6 @@
         </div>
 
         <div class="grid grid-cols-1 gap-3">
-          <div class="bg-white/95 border border-emerald-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
-            <div class="flex items-center justify-between gap-2">
-              <label for="wallet-charge-amount" class="block text-xs font-black text-emerald-950">شحن الحافظة (د.ل)</label>
-              <span class="text-[11px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">شحن فوري</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-              <input type="number" id="wallet-charge-amount" min="1" step="any" placeholder="المبلغ" class="sm:col-span-8 w-full h-11 bg-slate-50 border border-slate-300 rounded-xl px-3.5 text-sm font-black text-slate-900 text-right outline-none focus:bg-white focus:border-emerald-600 transition" />
-              <button type="button" onclick="handleChargeDonorWallet()" class="sm:col-span-4 w-full h-11 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-2xs transition inline-flex items-center justify-center cursor-pointer">
-                شحن الحافظة
-              </button>
-            </div>
-          </div>
-
           <div class="bg-white/95 border border-amber-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
             <div class="flex items-center justify-between gap-2">
               <label for="wallet-donate-amount" class="block text-xs font-black text-amber-950">تبرع من الحافظة</label>
@@ -2674,6 +2684,36 @@
       if (idx === -1) return;
       const item = appState.pendingContributions[idx];
       appState.pendingContributions.splice(idx, 1);
+
+      if (item.targetType === 'personal_wallet') {
+        const verifiedAmt = Math.max(0, Number(item.amount) || 0);
+        if (verifiedAmt > 0) {
+          creditDonorWallet(
+            item.name,
+            item.branch,
+            verifiedAmt,
+            `اعتماد ونشر شحن المحفظة الشخصية (${item.method || ''})`,
+            'المحفظة الشخصية الذكية'
+          );
+          appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+          appState.approvedContributions.unshift({
+            ...item,
+            amount: verifiedAmt,
+            targetType: 'personal_wallet',
+            targetId: 'personal_wallet',
+            targetLabel: 'المحفظة الشخصية الذكية',
+            note: item.note || 'تم شحن محفظته الشخصية بعد التحقق والنشر',
+            approvedAt: formatNowDate()
+          });
+        }
+        const nameInp = document.getElementById('contrib-name');
+        const branchSel = document.getElementById('contrib-branch');
+        if (nameInp && !nameInp.value.trim()) nameInp.value = item.name || '';
+        if (branchSel && item.branch) branchSel.value = item.branch;
+        saveAndSync(`اعتماد ونشر شحن محفظة ${item.name}`);
+        showToast(`تم التحقق وإرسال ${formatCurrency(verifiedAmt)} فوراً إلى حافظة ${item.name} ونشرها في السجل.`, 'success');
+        return;
+      }
 
       let acceptedAmount = Math.max(0, Number(item.amount) || 0);
       let surplusAmount = 0;
@@ -2987,11 +3027,14 @@
       const rows = [];
       (appState?.approvedContributions || []).forEach((c) => {
         const isCase = c.targetType === 'case';
+        const isWalletCharge = c.targetType === 'personal_wallet';
         rows.push({
           kind: isCase ? 'case' : 'general',
-          typeLabel: isCase ? 'مساهمة حالة' : 'مساهمة عامة',
+          typeLabel: isWalletCharge ? 'شحن محفظة شخصية' : isCase ? 'مساهمة حالة' : 'مساهمة عامة',
           title: c.name || 'متبرع',
-          subtitle: `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.note ? ` — ${c.note}` : ''}`,
+          subtitle: isWalletCharge
+            ? `${c.branch || ''} • تم شحن محفظته الشخصية (${c.method || ''})${c.note ? ` — ${c.note}` : ''}`
+            : `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.note ? ` — ${c.note}` : ''}`,
           amount: Number(c.amount) || 0,
           isPositive: true,
           date: c.date || '',
