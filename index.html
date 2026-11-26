@@ -951,6 +951,7 @@
     const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v1';
     const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contribs_v1';
     const DONOR_WALLETS_KEY = 'sayaan_takaful_donor_wallets_v1';
+    const WALLET_TOMBSTONE_KEY = 'sayaan_takaful_wallet_deleted_v1';
     const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v1';
     const RESTORED_LOCK_KEY = 'sayaan_takaful_restored_lock_v1';
     const AUTO_SNAPSHOTS_KEY = 'sayaan_takaful_auto_snapshots_v1';
@@ -973,24 +974,30 @@
     let autoBackupMinuteTimer = null;
     let firebasePollTimer = null;
     let firebaseEventSource = null;
+    let walletsEventSource = null;
     let ledgerRenderTimer = null;
     let isPushingToFirebase = false;
+    let isPushingWalletsToFirebase = false;
     let lastPushedAtMs = 0;
+    let lastWalletsPushedAtMs = 0;
+    const clientInstanceId = `cli_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
     function readStorageSafe(key) {
       try {
-        return window.localStorage ? window.localStorage.getItem(key) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function writeStorageSafe(key, value) {
-      try {
         if (window.localStorage) {
-          window.localStorage.setItem(key, value);
+          const v = window.localStorage.getItem(key);
+          if (v !== null && v !== undefined) return v;
         }
       } catch (e) {}
+      try {
+        if (window.name && window.name.startsWith('SAYaan_WIN_BAG:')) {
+          const bag = JSON.parse(window.name.slice('SAYaan_WIN_BAG:'.length));
+          if (bag && Object.prototype.hasOwnProperty.call(bag, key)) {
+            return bag[key];
+          }
+        }
+      } catch (e) {}
+      return null;
     }
 
     function escapeHtml(str) {
@@ -1088,6 +1095,69 @@
         }
       });
       writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(Array.from(set)));
+      pushDeletedIdsToFirebase(Array.from(set));
+    }
+
+    function buildFirebaseTombstonesEndpoint() {
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return '';
+      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${cfg.dbUrl}/sayaanTakafulDeletedIds.json${secret}`;
+    }
+
+    async function pushDeletedIdsToFirebase(idsArray) {
+      const endpoint = buildFirebaseTombstonesEndpoint();
+      if (!endpoint) return;
+      try {
+        await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: Array.isArray(idsArray) ? idsArray : [],
+            updatedAtMs: Date.now(),
+            originClient: clientInstanceId
+          })
+        });
+      } catch (e) {}
+    }
+
+    async function pullDeletedIdsFromFirebase() {
+      const endpoint = buildFirebaseTombstonesEndpoint();
+      if (!endpoint) return false;
+      try {
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) return false;
+        const remote = await res.json();
+        const remoteIds = Array.isArray(remote?.ids) ? remote.ids : Array.isArray(remote) ? remote : [];
+        if (!remoteIds.length) return false;
+        const localSet = getDeletedIdsSet();
+        const beforeSize = localSet.size;
+        remoteIds.forEach((id) => {
+          if (id !== undefined && id !== null && String(id).trim() !== '') {
+            localSet.add(String(id));
+          }
+        });
+        writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(Array.from(localSet)));
+        return localSet.size !== beforeSize;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function applyTombstonesToState(stateObj) {
+      if (!stateObj || typeof stateObj !== 'object') return stateObj;
+      const deletedSet = getDeletedIdsSet();
+      if (!deletedSet.size) return stateObj;
+      const filterArr = (arr) =>
+        (Array.isArray(arr) ? arr : []).filter((item) => item && item.id && !deletedSet.has(String(item.id)));
+      return {
+        ...stateObj,
+        cases: filterArr(stateObj.cases),
+        pendingContributions: filterArr(stateObj.pendingContributions),
+        approvedContributions: filterArr(stateObj.approvedContributions),
+        disbursements: filterArr(stateObj.disbursements),
+        caseLedgerItems: filterArr(stateObj.caseLedgerItems)
+      };
     }
 
     function normalizeState(raw) {
@@ -1099,6 +1169,7 @@
 
       return {
         updatedAtMs: Number(raw.updatedAtMs) || Date.now(),
+        originClient: String(raw.originClient || ''),
         cases: filterDeleted(raw.cases).map((c) => ({
           ...c,
           id: String(c.id),
@@ -1303,9 +1374,10 @@
       setCloudStatusUI('syncing');
       try {
         appState.updatedAtMs = Date.now();
+        appState.originClient = clientInstanceId;
         writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 6000) : null;
         const res = await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -1330,6 +1402,7 @@
       const endpoint = buildFirebaseStateEndpoint();
       if (!endpoint) return;
       try {
+        const tombstonesChanged = await pullDeletedIdsFromFirebase();
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
         const timeoutId = controller ? setTimeout(() => controller.abort(), 4500) : null;
         const res = await fetch(endpoint, {
@@ -1343,6 +1416,11 @@
         }
         const remote = await res.json();
         if (!remote || typeof remote !== 'object') {
+          if (tombstonesChanged && appState) {
+            appState = normalizeState(applyTombstonesToState(appState));
+            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+            renderAll();
+          }
           setCloudStatusUI('online');
           return;
         }
@@ -1360,12 +1438,19 @@
           (remoteNormalized.disbursements?.length || 0) > 0 ||
           (remoteNormalized.pendingContributions?.length || 0) > 0;
 
-        if (!hasLocalStateStored || (!hasLocalData && hasRemoteData) || remoteMs > localMs) {
+        // توحيد البيانات بالكامل عبر المتصفحات: اعتماد أحدث نسخة من قاعدة البيانات أو دمج العناصر الجديدة إذا اختلفت الطوابع
+        const isDifferentClient = remoteNormalized.originClient && remoteNormalized.originClient !== clientInstanceId;
+        if (!hasLocalStateStored || (!hasLocalData && hasRemoteData) || remoteMs > localMs || (isDifferentClient && remoteMs >= localMs - 5000)) {
           appState = remoteNormalized;
           hasLocalStateStored = true;
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
+        } else if (tombstonesChanged && appState) {
+          appState = normalizeState(applyTombstonesToState(appState));
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+          renderAll();
         }
+        await pullAllDonorWalletsFromFirebase();
         setCloudStatusUI('online');
       } catch (e) {
         if (!silent) setCloudStatusUI('offline');
@@ -1377,7 +1462,7 @@
       if (firebasePollTimer) clearInterval(firebasePollTimer);
       firebasePollTimer = setInterval(() => {
         pullStateFromFirebase(true);
-      }, 2500);
+      }, 1500);
 
       try {
         const cfg = getFirebaseConfig();
@@ -1395,6 +1480,19 @@
             pullStateFromFirebase(true);
           });
           firebaseEventSource.onerror = () => {};
+
+          if (walletsEventSource) {
+            try { walletsEventSource.close(); } catch (e) {}
+          }
+          const walletsSseUrl = `${cfg.dbUrl}/sayaanDonorWallets.json${secret}`;
+          walletsEventSource = new EventSource(walletsSseUrl);
+          walletsEventSource.addEventListener('put', () => {
+            pullAllDonorWalletsFromFirebase();
+          });
+          walletsEventSource.addEventListener('patch', () => {
+            pullAllDonorWalletsFromFirebase();
+          });
+          walletsEventSource.onerror = () => {};
         }
       } catch (e) {}
     }
@@ -1402,6 +1500,7 @@
     function saveAndSync(snapshotLabel = '') {
       if (!appState) appState = getDefaultAppState();
       appState.updatedAtMs = Date.now();
+      appState.originClient = clientInstanceId;
       hasLocalStateStored = true;
       writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
       if (snapshotLabel) {
@@ -1409,6 +1508,7 @@
       }
       renderAll();
       pushStateToFirebase(true);
+      pushAllDonorWalletsToFirebase();
     }
 
     function openFirebaseConfigModal() {
@@ -2405,19 +2505,86 @@
       return `${cfg.dbUrl}/sayaanDonorWallets/${encodeURIComponent(key)}.json${secret}`;
     }
 
-    async function pushDonorWalletToFirebase(name, branch, record) {
-      const endpoint = buildDonorWalletFirebaseEndpoint(name, branch);
-      if (!endpoint || !record) return;
+    function buildAllDonorWalletsFirebaseEndpoint() {
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return '';
+      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${cfg.dbUrl}/sayaanDonorWallets.json${secret}`;
+    }
+
+    async function pushAllDonorWalletsToFirebase() {
+      const endpoint = buildAllDonorWalletsFirebaseEndpoint();
+      if (!endpoint || isPushingWalletsToFirebase) return;
+      isPushingWalletsToFirebase = true;
       try {
+        const map = getDonorWalletsMap();
         await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            balance: Math.max(0, Number(record.balance) || 0),
-            logs: Array.isArray(record.logs) ? record.logs : [],
-            updatedAtMs: Number(record.updatedAtMs) || Date.now()
+            wallets: map,
+            updatedAtMs: Date.now(),
+            originClient: clientInstanceId
           })
         });
+        lastWalletsPushedAtMs = Date.now();
+      } catch (e) {}
+      finally {
+        isPushingWalletsToFirebase = false;
+      }
+    }
+
+    async function pullAllDonorWalletsFromFirebase() {
+      const endpoint = buildAllDonorWalletsFirebaseEndpoint();
+      if (!endpoint) return;
+      try {
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) return;
+        const remote = await res.json();
+        if (!remote || typeof remote !== 'object') return;
+        const remoteWallets = remote.wallets && typeof remote.wallets === 'object' ? remote.wallets : remote;
+        const localMap = getDonorWalletsMap();
+        let changed = false;
+
+        Object.keys(remoteWallets || {}).forEach((k) => {
+          if (!k || k === 'updatedAtMs' || k === 'originClient' || k === 'wallets') return;
+          const rRec = remoteWallets[k];
+          if (!rRec || typeof rRec !== 'object') return;
+          const rMs = Number(rRec.updatedAtMs) || 0;
+          const lMs = Number(localMap[k]?.updatedAtMs) || 0;
+          if (!localMap[k] || rMs > lMs) {
+            localMap[k] = {
+              balance: Math.max(0, Number(rRec.balance) || 0),
+              logs: Array.isArray(rRec.logs) ? rRec.logs : [],
+              updatedAtMs: rMs || Date.now()
+            };
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          saveDonorWalletsMap(localMap);
+          renderDonorWalletPanel();
+        }
+      } catch (e) {}
+    }
+
+    async function pushDonorWalletToFirebase(name, branch, record) {
+      const endpoint = buildDonorWalletFirebaseEndpoint(name, branch);
+      if (!endpoint || !record) return;
+      try {
+        const payload = {
+          balance: Math.max(0, Number(record.balance) || 0),
+          logs: Array.isArray(record.logs) ? record.logs : [],
+          updatedAtMs: Number(record.updatedAtMs) || Date.now(),
+          originClient: clientInstanceId
+        };
+        await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        await pushAllDonorWalletsToFirebase();
       } catch (e) {}
     }
 
@@ -2469,6 +2636,7 @@
       map[key] = nextRec;
       saveDonorWalletsMap(map);
       pushDonorWalletToFirebase(name, branch, nextRec);
+      pushStateToFirebase(true);
       return true;
     }
 
@@ -2497,6 +2665,7 @@
       map[key] = nextRec;
       saveDonorWalletsMap(map);
       pushDonorWalletToFirebase(name, branch, nextRec);
+      pushStateToFirebase(true);
       return true;
     }
 
@@ -3197,6 +3366,13 @@
       nameInput?.addEventListener('input', renderDonorWalletPanel);
       nameInput?.addEventListener('change', onDonorIdentityChange);
       branchSelect?.addEventListener('change', onDonorIdentityChange);
+
+      // مزامنة أي تغييرات في الحقول أو النماذج فوراً مع Firebase
+      const formEl = document.getElementById('new-contribution-form');
+      formEl?.addEventListener('change', () => {
+        pushStateToFirebase(true);
+        pushAllDonorWalletsToFirebase();
+      });
 
       window.addEventListener('storage', (ev) => {
         if (ev.key === STORAGE_KEY && ev.newValue) {
