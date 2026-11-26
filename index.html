@@ -837,8 +837,8 @@
         </div>
         <div id="edit-contrib-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث صورة الإيصال (اختياري)</label>
-            <button type="button" id="clear-edit-receipt-btn" onclick="clearEditReceiptSelection()" class="hidden text-[11px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-lg transition cursor-pointer">إزالة الصورة</button>
+            <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث أو حذف صورة الإيصال (اختياري)</label>
+            <button type="button" id="clear-edit-receipt-btn" onclick="clearEditReceiptSelection()" class="hidden text-[11px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-lg transition cursor-pointer">حذف الإيصال</button>
           </div>
           <input type="file" id="edit-contrib-receipt" accept="image/*,.pdf" onclick="this.value=''" onchange="handleEditReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
           <p id="edit-contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
@@ -1011,6 +1011,199 @@
       myContributions: {},
       deletedIds: []
     };
+
+    function getFirebaseConfig() {
+      try {
+        const raw = readStorageSafe(FIREBASE_CFG_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.dbUrl) {
+            return {
+              dbUrl: String(parsed.dbUrl).trim().replace(/\/+$/, ''),
+              authSecret: String(parsed.authSecret || '').trim()
+            };
+          }
+        }
+      } catch (e) {}
+      return {
+        dbUrl: DEFAULT_FIREBASE_DB_URL,
+        authSecret: ''
+      };
+    }
+
+    function buildFirebaseEndpoint(cfg) {
+      const base = (cfg && cfg.dbUrl ? cfg.dbUrl : DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, '');
+      const auth = cfg && cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${base}/sayaanTakafulState.json${auth}`;
+    }
+
+    function setCloudStatus(connected, label) {
+      const dot = document.getElementById('cloud-status-dot');
+      const txt = document.getElementById('cloud-status-text');
+      if (txt && label) txt.textContent = label;
+      if (dot) {
+        dot.classList.toggle('bg-emerald-400', Boolean(connected));
+        dot.classList.toggle('bg-amber-400', !connected);
+      }
+    }
+
+    function isSameLogicalContribution(a, b) {
+      if (!a || !b) return false;
+      if (String(a.id) === String(b.id)) return true;
+      return (
+        String(a.contributorName || '').trim() === String(b.contributorName || '').trim() &&
+        Number(a.amount || 0) === Number(b.amount || 0) &&
+        String(a.target || 'general') === String(b.target || 'general') &&
+        String(a.createdAt || '').trim() === String(b.createdAt || '').trim()
+      );
+    }
+
+    function deduplicateContributionsList(list) {
+      if (!Array.isArray(list)) return [];
+      const seenIds = new Set();
+      const result = [];
+      for (const item of list) {
+        if (!item || !item.id) continue;
+        const idStr = String(item.id);
+        if (seenIds.has(idStr)) continue;
+        if (result.some(existing => isSameLogicalContribution(existing, item))) continue;
+        seenIds.add(idStr);
+        result.push(item);
+      }
+      return result;
+    }
+
+    async function pushStateToFirebase(force = false) {
+      if (isPushingFirebase) return;
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return;
+      const fp = computeStateSyncFingerprint(appState);
+      if (!force && fp && fp === lastSyncedFingerprint) return;
+
+      isPushingFirebase = true;
+      try {
+        const payload = {
+          updatedAt: Number(appState.updatedAtMs) || Date.now(),
+          lastUpdated: appState.lastUpdated || formatNowDate(),
+          deletedIds: getDeletedIds(),
+          state: {
+            lastUpdated: appState.lastUpdated || formatNowDate(),
+            cases: appState.cases || [],
+            pendingContributions: appState.pendingContributions || [],
+            approvedContributions: appState.approvedContributions || []
+          }
+        };
+        const res = await fetch(buildFirebaseEndpoint(cfg), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          lastSyncedFingerprint = fp;
+          hasUnsyncedLocalChanges = false;
+          setCloudStatus(true, 'متصل ومتزامن');
+        }
+      } catch (e) {
+        setCloudStatus(false, 'وضع غير متصل');
+      } finally {
+        isPushingFirebase = false;
+      }
+    }
+
+    async function pullStateFromFirebase() {
+      if (isPullingFirebase || isPushingFirebase || hasUnsyncedLocalChanges) return;
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return;
+      isPullingFirebase = true;
+      try {
+        const res = await fetch(buildFirebaseEndpoint(cfg), { cache: 'no-store' });
+        if (!res.ok) return;
+        const remote = await res.json();
+        if (!remote || !remote.state || typeof remote.state !== 'object') {
+          setCloudStatus(true, 'متصل ومتزامن');
+          return;
+        }
+        const remoteMs = Number(remote.updatedAt) || 0;
+        const localMs = Number(appState.updatedAtMs) || 0;
+        const deletedSet = new Set(getDeletedIds().map(String));
+
+        const remoteSanitized = sanitizeStateData({
+          ...remote.state,
+          cases: (Array.isArray(remote.state.cases) ? remote.state.cases : []).filter(c => c && !deletedSet.has(String(c.id))),
+          pendingContributions: (Array.isArray(remote.state.pendingContributions) ? remote.state.pendingContributions : []).filter(p => p && !deletedSet.has(String(p.id))),
+          approvedContributions: (Array.isArray(remote.state.approvedContributions) ? remote.state.approvedContributions : []).filter(a => a && !deletedSet.has(String(a.id)))
+        });
+
+        const remoteFp = computeStateSyncFingerprint(remoteSanitized);
+        const currentFp = computeStateSyncFingerprint(appState);
+
+        if (remoteMs > localMs || (!hasLocalStateStored && (remoteSanitized.cases.length || remoteSanitized.approvedContributions.length))) {
+          if (remoteFp && remoteFp !== currentFp) {
+            appState = {
+              ...remoteSanitized,
+              updatedAtMs: remoteMs || Date.now()
+            };
+            hasLocalStateStored = true;
+            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+            lastSyncedFingerprint = remoteFp;
+            scheduleRenderAll();
+          }
+        }
+        setCloudStatus(true, 'متصل ومتزامن');
+      } catch (e) {
+        setCloudStatus(false, 'وضع غير متصل');
+      } finally {
+        isPullingFirebase = false;
+      }
+    }
+
+    function startFirebasePolling() {
+      pullStateFromFirebase();
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      firebasePollTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        pullStateFromFirebase();
+      }, 6000);
+    }
+
+    function openFirebaseConfigModal() {
+      const cfg = getFirebaseConfig();
+      const urlInp = document.getElementById('firebase-db-url-input');
+      const secInp = document.getElementById('firebase-auth-secret-input');
+      if (urlInp) urlInp.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
+      if (secInp) secInp.value = cfg.authSecret || '';
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleFirebaseConfigSubmit(e) {
+      e.preventDefault();
+      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || '').trim().replace(/\/+$/, '') || DEFAULT_FIREBASE_DB_URL;
+      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
+      closeFirebaseConfigModal();
+      hasUnsyncedLocalChanges = true;
+      pushStateToFirebase(true);
+      showToast('تم حفظ إعدادات المزامنة السحابية والاتصال.', 'success');
+    }
+
+    function disconnectFirebaseCloud() {
+      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
+      setCloudStatus(false, 'غير متصل');
+      closeFirebaseConfigModal();
+      showToast('تم فصل الربط السحابي.', 'info');
+    }
 
     function getDeletedIds() {
       try {
@@ -1571,180 +1764,63 @@
           el.value = prev;
         }
       }
+      syncEditTargetCaseOption();
     }
 
-    function renderCases() {
-      const container = document.getElementById('cases-container');
-      if (!container) return;
-      const cases = Array.isArray(appState.cases) ? appState.cases : [];
-      if (!cases.length) {
-        container.innerHTML = '<div class="col-span-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد حالات معروضة حالياً. يمكنك إضافة حالة جديدة من وضع الإدارة.</div>';
+    function isCaseFullySettled(caseObj, excludeContributionId = null) {
+      if (!caseObj) return false;
+      const req = Number(caseObj.requiredAmount) || 0;
+      const disb = Number(caseObj.disbursedAmount) || 0;
+      const caseContribs = (appState.approvedContributions || [])
+        .filter(x =>
+          x &&
+          x.type !== 'disbursement' &&
+          String(x.target) === String(caseObj.id) &&
+          (!excludeContributionId || String(x.id) !== String(excludeContributionId))
+        )
+        .reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
+      const funded = disb + caseContribs;
+      return Boolean(caseObj.closed) || (req > 0 && funded >= req);
+    }
+
+    function syncEditTargetCaseOption(currentTargetId = null, currentItem = null) {
+      const sel = document.getElementById('edit-contrib-target');
+      if (!sel) return;
+      const targetId = currentTargetId || sel.value || 'general';
+      if (targetId && targetId !== 'general') {
+        const c = (appState.cases || []).find(x => String(x.id) === String(targetId));
+        if (c && !Array.from(sel.options).some(o => o.value === String(c.id))) {
+          const opt = document.createElement('option');
+          opt.value = String(c.id);
+          opt.textContent = `${c.title} (${c.category}) — مسددة`;
+          sel.appendChild(opt);
+        }
+        sel.value = String(targetId);
+      }
+      applySettledCaseEditRules(currentItem);
+    }
+
+    function applySettledCaseEditRules(currentItem = null) {
+      const sel = document.getElementById('edit-contrib-target');
+      const amtInput = document.getElementById('edit-contrib-amount');
+      if (!sel || !amtInput) return;
+      const targetVal = sel.value || 'general';
+      if (targetVal === 'general') {
+        amtInput.removeAttribute('max');
         return;
       }
-
-      const deviceVotes = getDeviceVotes();
-      container.innerHTML = cases.map(c => {
-        const req = Number(c.requiredAmount) || 0;
-        const disb = Number(c.disbursedAmount) || 0;
-        const caseContribsList = (appState.approvedContributions || [])
-          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id));
-        const caseContribs = caseContribsList
-          .reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
-        const fundContributionAmt = disb + (appState.approvedContributions || [])
-          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id) &&
-            (String(x.method || '').includes('الصندوق') || String(x.contributorName || '').includes('الصندوق') || String(x.branch || '').includes('الصندوق')))
-          .reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
-        const funded = disb + caseContribs;
-        const remainingAmount = Math.max(0, req - funded);
-        const surplusAmount = req > 0 ? Math.max(0, funded - req) : 0;
-        const pct = req > 0 ? Math.min(100, Math.round((funded / req) * 100)) : 0;
-        const isCompleted = Boolean(c.closed) || (req > 0 && funded >= req);
-        const myVote = deviceVotes[String(c.id)] || '';
-        const approveCount = Number(c.votes?.approve) || 0;
-        const rejectCount = Number(c.votes?.reject) || 0;
-        const rejections = Array.isArray(c.rejections) ? c.rejections : [];
-
-        const caseContributorsHtml = (caseContribsList.length || fundContributionAmt > 0)
-          ? `<div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-2.5 space-y-1.5">
-              <p class="text-[11px] font-black text-emerald-900">المساهمات المضافة للحالة (${caseContribsList.length + (fundContributionAmt > 0 && disb > 0 ? 1 : 0)})</p>
-              <div class="space-y-1.5">
-                ${fundContributionAmt > 0 ? `
-                  <div class="bg-amber-50/90 border border-amber-300 text-amber-950 text-[11px] font-extrabold px-3 py-2 rounded-xl flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="font-black text-emerald-900">مساهمة الإدارة (رصيد الصندوق)</span>
-                      <span class="bg-white/90 border border-amber-300 text-amber-900 px-2 py-0.5 rounded-full text-[10px]">رصيد الصندوق</span>
-                      <span class="text-emerald-800 font-black">${formatCurrency(fundContributionAmt)}</span>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-600" dir="ltr">${escapeHtml(c.lastDisbursedAt || appState.lastUpdated || formatNowDate())}</span>
-                  </div>
-                ` : ''}
-                ${caseContribsList.map(m => `
-                  <div class="bg-white border border-emerald-200 text-slate-800 text-[11px] font-extrabold px-3 py-2 rounded-xl flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="font-black text-slate-900">${escapeHtml(m.contributorName || 'مساهم')}</span>
-                      ${m.branch ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full text-[10px]">${escapeHtml(m.branch)}</span>` : ''}
-                      <span class="text-emerald-700 font-black">${formatCurrency(m.amount)}</span>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-500" dir="ltr">${escapeHtml(m.createdAt || '')}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>`
-          : '';
-
-        const rejectionsHtml = rejections.length
-          ? `<div class="bg-rose-50/90 border border-rose-200 rounded-2xl p-3 space-y-2 mt-3">
-              <p class="text-xs font-black text-rose-800">ملاحظات وأسباب التحفظ (${rejections.length})</p>
-              ${rejections.map((r, idx) => `
-                <div class="bg-white border border-rose-100 rounded-xl p-2.5 text-xs flex items-start justify-between gap-2">
-                  <div class="space-y-0.5">
-                    <p class="font-bold text-slate-800">${escapeHtml(r.reason || '')}</p>
-                    <p class="text-[10px] text-slate-400">${escapeHtml(r.createdAt || '')}</p>
-                  </div>
-                  ${isAdminMode ? `
-                    <div class="flex items-center gap-1 shrink-0">
-                      <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', ${idx})" class="bg-amber-100 text-amber-950 font-black text-[10px] px-2 py-0.5 rounded-lg cursor-pointer">تعديل</button>
-                      <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}', ${idx})" class="bg-rose-100 text-rose-800 font-black text-[10px] px-2 py-0.5 rounded-lg cursor-pointer">حذف</button>
-                    </div>
-                  ` : ''}
-                </div>
-              `).join('')}
-            </div>`
-          : '';
-
-        return `
-          <article class="bg-slate-50/80 border border-slate-200 rounded-3xl p-5 flex flex-col justify-between gap-4">
-            <div class="space-y-2.5">
-              <div class="flex items-center justify-between gap-2 flex-wrap">
-                <span class="bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category)}</span>
-                <span class="${isCompleted ? 'bg-emerald-700 text-white' : 'bg-amber-400 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full">
-                  ${isCompleted ? 'مكتملة التغطية' : 'قيد الدعم والتصويت'}
-                </span>
-              </div>
-              <h3 class="text-lg font-black text-slate-900">${escapeHtml(c.title)}</h3>
-              <p class="text-xs sm:text-sm font-bold text-slate-600 leading-relaxed">${escapeHtml(c.description)}</p>
-
-              <div class="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-2">
-                <div class="flex items-center justify-between text-xs font-black">
-                  <span class="text-slate-600">المغطى: <span class="text-emerald-700">${formatCurrency(funded)}</span></span>
-                  <span class="text-slate-800">المطلوب: ${formatCurrency(req)}</span>
-                </div>
-                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full transition-all ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'}" style="width: ${pct}%"></div>
-                </div>
-                <div class="flex items-center justify-between text-[11px] font-black">
-                  <span class="${remainingAmount > 0 ? 'text-amber-800' : 'text-emerald-700'}">
-                    ${remainingAmount > 0 ? `القيمة المتبقية: ${formatCurrency(remainingAmount)}` : 'تم استكمال القيمة المطلوبة بالكامل'}
-                  </span>
-                  <span class="text-emerald-800">${pct}%</span>
-                </div>
-                ${surplusAmount > 0 ? `
-                  <div class="text-[11px] font-extrabold text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1">
-                    تم تحويل الفائض (${formatCurrency(surplusAmount)}) تلقائياً إلى رصيد الصندوق العام.
-                  </div>
-                ` : ''}
-              </div>
-
-              ${caseContributorsHtml}
-
-              ${rejectionsHtml}
-            </div>
-
-            <div class="space-y-2.5 pt-1">
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="voteOnCase('${escapeHtml(c.id)}', 'approve')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer ${myVote === 'approve' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900'}">
-                  موافق (${approveCount})
-                </button>
-                <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer ${myVote === 'reject' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-100 hover:bg-rose-200 text-rose-900'}">
-                  غير موافق (${rejectCount})
-                </button>
-              </div>
-
-              <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition cursor-pointer">
-                ساهم في هذه الحالة
-              </button>
-
-              ${isAdminMode ? `
-                <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200">
-                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="py-2 px-2 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs rounded-xl transition cursor-pointer">صرف من الصندوق</button>
-                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="py-2 px-2 bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-xs rounded-xl transition cursor-pointer">تعديل</button>
-                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="py-2 px-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs rounded-xl transition cursor-pointer">حذف</button>
-                </div>
-              ` : ''}
-            </div>
-          </article>
-        `;
-      }).join('');
-    }
-
-    function voteOnCase(caseId, voteType) {
-      const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
-      if (!c) return;
-      const votes = getDeviceVotes();
-      const prev = votes[String(caseId)];
-      if (prev === voteType) {
-        showToast('تم تسجيل صوتك مسبقاً على هذه الحالة.', 'info');
+      const c = (appState.cases || []).find(x => String(x.id) === String(targetVal));
+      if (!c) {
+        amtInput.removeAttribute('max');
         return;
       }
-      c.votes = c.votes || { approve: 0, reject: 0 };
-      if (prev === 'approve') c.votes.approve = Math.max(0, (c.votes.approve || 0) - 1);
-      if (prev === 'reject') c.votes.reject = Math.max(0, (c.votes.reject || 0) - 1);
-      if (voteType === 'approve') c.votes.approve = (c.votes.approve || 0) + 1;
-      if (voteType === 'reject') c.votes.reject = (c.votes.reject || 0) + 1;
-      setDeviceVote(caseId, voteType);
-      saveAppState('تصويت على حالة');
-      renderCases();
-      showToast('تم تسجيل تصويتك بنجاح.', 'success');
-    }
-
-    function openRejectVoteModal(caseId) {
-      pendingRejectCaseId = String(caseId);
-      const input = document.getElementById('reject-reason-input');
-      if (input) input.value = '';
-      const modal = document.getElementById('reject-vote-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+      const itemId = currentItem?.id || document.getElementById('edit-contrib-id')?.value || null;
+      const settled = isCaseFullySettled(c, itemId);
+      const currentAmt = Number(amtInput.value) || 0;
+      if (settled && currentAmt > 0) {
+        amtInput.max = String(currentAmt);
+      } else {
+        amtInput.removeAttribute('max');
       }
     }
 
@@ -2065,21 +2141,27 @@
         showToast('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.', 'warning');
         return;
       }
-
       if (method.includes('المصرف') && !newReceiptDataUrl) {
         showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.', 'warning');
         return;
       }
-
-      if (method.includes('النقال') && phone.length < 9) {
-        showToast('يرجى إدخال رقم الهاتف المرسل منه الرصيد بشكل صحيح.', 'warning');
+      if (method.includes('النقال') && !/^09\d{8}$/.test(phone)) {
+        showToast('يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام يبدأ بـ 09.', 'warning');
         return;
       }
 
+      if (target && target !== 'general') {
+        const targetCaseObj = (appState.cases || []).find(c => String(c.id) === String(target));
+        if (targetCaseObj && isCaseFullySettled(targetCaseObj)) {
+          showToast('تم إغلاق الحالة بالسداد الكامل؛ لا يمكن استقبال قيمة إضافية لها.', 'warning');
+          return;
+        }
+      }
+
       const targetCase = (appState.cases || []).find(c => String(c.id) === String(target));
-      const id = 'contrib-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-      const entryObj = {
-        id,
+      const newId = 'contrib-' + Date.now();
+      const pendingItem = {
+        id: newId,
         type: target === 'general' ? 'general' : 'case',
         contributorName,
         branch,
@@ -2088,468 +2170,39 @@
         targetLabel: targetCase ? targetCase.title : 'رصيد الصندوق العام',
         method,
         note,
-        phone: method.includes('النقال') ? phone : '',
         receiptData: method.includes('المصرف') ? newReceiptDataUrl : '',
         receiptName: method.includes('المصرف') ? newReceiptFileName : '',
+        phone: method.includes('النقال') ? phone : '',
         createdAt: formatNowDate(),
         userEditUsed: false,
         userEditCount: 0
       };
 
-      if (isAdminMode) {
-        appState.approvedContributions.push(entryObj);
-      } else {
-        appState.pendingContributions.unshift(entryObj);
-        markAsMyContribution(id);
-      }
+      appState.pendingContributions.unshift(pendingItem);
+      markAsMyContribution(newId);
 
-      document.getElementById('new-contribution-form')?.reset();
+      const form = document.getElementById('new-contribution-form');
+      if (form) form.reset();
       clearNewReceiptSelection();
       toggleNewPaymentFields();
 
-      saveAppState(isAdminMode ? 'إضافة ونشر مساهمة في أسفل السجل' : 'إرسال مساهمة جديدة للوحة الإدارة');
+      saveAppState('إرسال مساهمة جديدة للمراجعة');
       renderAll();
-
-      if (isAdminMode) {
-        showToast(`تم نشر مساهمة ${contributorName} (${formatCurrency(amount)}) في أسفل شريط المساهمات!`, 'success');
-        setTimeout(() => {
-          const tbody = document.getElementById('ledger-table-body');
-          const lastRow = tbody?.lastElementChild;
-          if (lastRow) {
-            lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          } else {
-            document.getElementById('ledger-section')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          }
-        }, 150);
-      } else {
-        showToast(`تم إرسال مساهمة ${contributorName} (${formatCurrency(amount)}) إلى لوحة الإدارة للمراجعة والنشر.`, 'success');
-      }
+      showToast('تم إرسال مساهمتك إلى لوحة الإدارة للمراجعة والنشر.', 'success');
     }
 
-    function renderPendingContributions() {
-      const listEl = document.getElementById('pending-contributions-list');
-      const badgeEl = document.getElementById('pending-count-badge');
-      const count = (appState.pendingContributions || []).length;
-      if (badgeEl) badgeEl.textContent = `${count} طلبات`;
-      if (!listEl) return;
-
-      if (!isAdminMode) {
-        listEl.innerHTML = '';
-        return;
-      }
-
-      if (!count) {
-        listEl.innerHTML = '<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs sm:text-sm font-bold text-amber-900">لا توجد طلبات مساهمات معلقة حالياً.</div>';
-        return;
-      }
-
-      listEl.innerHTML = appState.pendingContributions.map(item => `
-        <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-xs flex flex-col gap-3">
-          <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="font-black text-sm text-slate-900">${escapeHtml(item.contributorName)}</span>
-              <span class="text-[11px] font-extrabold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>
-              <span class="text-xs font-black bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">${formatCurrency(item.amount)}</span>
-            </div>
-            <p class="text-xs font-bold text-slate-600">الوجهة: <span class="text-emerald-800">${escapeHtml(item.targetLabel)}</span> • الطريقة: ${escapeHtml(item.method)}</p>
-            ${item.phone ? `<p class="text-xs font-bold text-amber-800" dir="ltr">الهاتف: ${escapeHtml(item.phone)}</p>` : ''}
-            ${item.note ? `<p class="text-xs text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
-            <p class="text-[11px] text-slate-400">${escapeHtml(item.createdAt)}</p>
-          </div>
-          <div class="w-full overflow-x-auto pb-1">
-            <div class="flex flex-nowrap items-center justify-center gap-2.5 min-w-max mx-auto">
-              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[120px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">عرض الإيصال</button>` : ''}
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[110px] px-4 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">تعديل</button>
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[115px] px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">نشر</button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[110px] px-4 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">حذف</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function approvePendingContribution(id) {
-      if (!isAdminMode) return;
-      const idx = appState.pendingContributions.findIndex(p => String(p.id) === String(id));
-      if (idx === -1) return;
-      const [item] = appState.pendingContributions.splice(idx, 1);
-
-      const normalizedItem = {
-        ...item,
-        id: String(item.id),
-        amount: Number(item.amount) || 0,
-        target: item.target || 'general',
-        type: (item.target && item.target !== 'general') ? 'case' : 'general',
-        createdAt: item.createdAt || formatNowDate(),
-        userEditUsed: Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1,
-        userEditCount: Math.min(1, Number(item.userEditCount) || (item.userEditUsed ? 1 : 0))
-      };
-
-      appState.approvedContributions = appState.approvedContributions.filter(
-        a => String(a.id) !== String(normalizedItem.id)
-      );
-      appState.approvedContributions.push(normalizedItem);
-
-      const searchInput = document.getElementById('ledger-search-input');
-      const filterSelect = document.getElementById('ledger-filter-select');
-      if (searchInput) searchInput.value = '';
-      if (filterSelect) filterSelect.value = 'all';
-
-      let toastMsg = `تم اعتماد ونشر مساهمة ${normalizedItem.contributorName} في أسفل شريط المساهمات.`;
-      if (normalizedItem.target && normalizedItem.target !== 'general') {
-        const targetCase = appState.cases.find(c => String(c.id) === String(normalizedItem.target));
-        if (targetCase) {
-          const req = Number(targetCase.requiredAmount) || 0;
-          const caseContribs = appState.approvedContributions
-            .filter(x => x.type !== 'disbursement' && String(x.target) === String(targetCase.id))
-            .reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          const effectiveFunded = (Number(targetCase.disbursedAmount) || 0) + caseContribs;
-          if (req > 0 && effectiveFunded >= req) {
-            targetCase.closed = true;
-            const surplus = Math.max(0, effectiveFunded - req);
-            toastMsg = surplus > 0
-              ? `تم النشر في أسفل شريط المساهمات واكتملت التغطية، وتحويل الفائض (${formatCurrency(surplus)}) إلى رصيد الصندوق.`
-              : 'تم النشر في أسفل شريط المساهمات واكتملت تغطية الحالة.';
-          }
-        }
-      }
-
-      saveAppState('اعتماد ونشر مساهمة في أسفل السجل');
-      renderAll();
-      showToast(toastMsg);
-
-      setTimeout(() => {
-        const tbody = document.getElementById('ledger-table-body');
-        const lastRow = tbody?.lastElementChild;
-        if (lastRow) {
-          lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        } else {
-          document.getElementById('ledger-section')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-      }, 150);
-    }
-
-    function renderPendingContributions() {
-      const listEl = document.getElementById('pending-contributions-list');
-      const badgeEl = document.getElementById('pending-count-badge');
-      const count = appState.pendingContributions.length;
-      if (badgeEl) badgeEl.textContent = `${count} طلبات`;
-      if (!listEl) return;
-
-      if (!count) {
-        listEl.innerHTML = '<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs sm:text-sm font-bold text-amber-900">لا توجد طلبات مساهمات معلقة حالياً.</div>';
-        return;
-      }
-
-      listEl.innerHTML = appState.pendingContributions.map(item => `
-        <div class="bg-white rounded-2xl p-4 border border-amber-300 shadow-xs flex flex-col gap-3">
-          <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="font-black text-sm text-slate-900">${escapeHtml(item.contributorName)}</span>
-              <span class="text-[11px] font-extrabold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>
-              <span class="text-xs font-black bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">${formatCurrency(item.amount)}</span>
-            </div>
-            <p class="text-xs font-bold text-slate-600">الوجهة: <span class="text-emerald-800">${escapeHtml(item.targetLabel)}</span> • الطريقة: ${escapeHtml(item.method)}</p>
-            ${item.phone ? `<p class="text-xs font-bold text-amber-800" dir="ltr">الهاتف: ${escapeHtml(item.phone)}</p>` : ''}
-            ${item.note ? `<p class="text-xs text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
-            <p class="text-[11px] text-slate-400">${escapeHtml(item.createdAt)}</p>
-          </div>
-          <div class="w-full overflow-x-auto pb-1">
-            <div class="flex flex-nowrap items-center justify-center gap-2.5 min-w-max mx-auto">
-              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[120px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">عرض الإيصال</button>` : ''}
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[110px] px-4 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">تعديل</button>
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[115px] px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">نشر</button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[110px] px-4 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">حذف</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function approvePendingContribution(id) {
-      if (!isAdminMode) return;
-      const idx = appState.pendingContributions.findIndex(p => String(p.id) === String(id));
-      if (idx === -1) return;
-      const [item] = appState.pendingContributions.splice(idx, 1);
-
-      // ضمان عدم بقاء المعرف في سجل المحذوفات وضبط حالة التعديل لمرة واحدة فقط
-      const normalizedItem = {
-        ...item,
-        id: String(item.id),
-        amount: Number(item.amount) || 0,
-        target: item.target || 'general',
-        type: (item.target && item.target !== 'general') ? 'case' : 'general',
-        createdAt: item.createdAt || formatNowDate(),
-        userEditUsed: Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1,
-        userEditCount: Math.min(1, Number(item.userEditCount) || (item.userEditUsed ? 1 : 0))
-      };
-
-      // إزالة أي نسخة قديمة بنفس المعرف ثم إدراج المساهمة المعتمدة في مقدمة سجل المساهمات دون سقف
-      appState.approvedContributions = appState.approvedContributions.filter(
-        a => String(a.id) !== String(normalizedItem.id)
-      );
-      appState.approvedContributions.unshift(normalizedItem);
-
-      // تفريغ البحث والفلتر لضمان رؤية المساهمة المنشورة فوراً
-      const searchInput = document.getElementById('ledger-search-input');
-      const filterSelect = document.getElementById('ledger-filter-select');
-      if (searchInput) searchInput.value = '';
-      if (filterSelect) filterSelect.value = 'all';
-
-      let toastMsg = `تم اعتماد ونشر مساهمة ${normalizedItem.contributorName} وإضافتها إلى سجل المساهمات.`;
-      if (normalizedItem.target && normalizedItem.target !== 'general') {
-        const targetCase = appState.cases.find(c => String(c.id) === String(normalizedItem.target));
-        if (targetCase) {
-          const req = Number(targetCase.requiredAmount) || 0;
-          const caseContribs = appState.approvedContributions
-            .filter(x => x.type !== 'disbursement' && String(x.target) === String(targetCase.id))
-            .reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          const effectiveFunded = Math.max(Number(targetCase.disbursedAmount) || 0, caseContribs);
-          if (req > 0 && effectiveFunded >= req) {
-            targetCase.closed = true;
-            const surplus = Math.max(0, effectiveFunded - req);
-            toastMsg = surplus > 0
-              ? `تم النشر والاعتماد في سجل المساهمات واكتملت التغطية، وتحويل الفائض (${formatCurrency(surplus)}) إلى رصيد الصندوق.`
-              : 'تم النشر والاعتماد في سجل المساهمات واكتملت تغطية الحالة.';
-          }
-        }
-      }
-
-      saveAppState('اعتماد ونشر مساهمة في السجل');
-      renderAll();
-      showToast(toastMsg);
-
-      // تمرير سلس إلى سجل المساهمات بالأسفل لإظهار القيد المنشور مباشرة
-      setTimeout(() => {
-        const ledgerSection = document.getElementById('ledger-section');
-        if (ledgerSection) {
-          ledgerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 150);
-    }
-
-    function deletePendingContribution(id) {
-      if (!isAdminMode) return;
-      addDeletedId(id);
-      appState.pendingContributions = appState.pendingContributions.filter(p => String(p.id) !== String(id));
-      saveAppState('حذف طلب مساهمة');
-      renderAll();
-      showToast('تم حذف طلب المساهمة.');
-    }
-
-    function openAdminDisbursementEditModal(id) {
-      if (!isAdminMode) return;
-      const entry = appState.approvedContributions.find(a => String(a.id) === String(id) && a.type === 'disbursement');
-      if (!entry) return;
-      document.getElementById('edit-disb-entry-id').value = entry.id;
-      document.getElementById('edit-disb-amount').value = entry.amount;
-      document.getElementById('edit-disb-note').value = entry.note || '';
-      const modal = document.getElementById('admin-disbursement-edit-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeAdminDisbursementEditModal() {
-      const modal = document.getElementById('admin-disbursement-edit-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function deleteApprovedEntry(id) {
-      if (!isAdminMode) return;
-      const idx = appState.approvedContributions.findIndex(a => String(a.id) === String(id));
-      if (idx === -1) return;
-      const [removed] = appState.approvedContributions.splice(idx, 1);
-      addDeletedId(id);
-      if (removed.type === 'disbursement' && removed.target) {
-        const targetCase = appState.cases.find(c => String(c.id) === String(removed.target));
-        if (targetCase) {
-          targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) - (Number(removed.amount) || 0));
-        }
-      }
-      saveAppState('حذف قيد من السجل');
-      renderAll();
-      showToast('تم حذف القيد وتحديث الإحصائيات.');
-    }
-
-    function scheduleLedgerRender() {
-      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
-      ledgerSearchTimer = setTimeout(() => renderLedger(), 120);
-    }
-
-    function renderLedger() {
-      const tbody = document.getElementById('ledger-table-body');
-      if (!tbody) return;
-
-      const query = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
-      const filterType = document.getElementById('ledger-filter-select')?.value || 'all';
-
-      const maxContributionAmt = appState.approvedContributions
-        .filter(x => x.type !== 'disbursement')
-        .reduce((max, x) => Math.max(max, Number(x.amount) || 0), 0);
-
-      // حساب إجمالي مساهمات كل مساهم (سواء دفعة واحدة أو متقطعة) لتمييز من بلغ 10,000 د.ل فأكثر
-      const contributorTotalsMap = new Map();
-      for (const entry of appState.approvedContributions) {
-        if (!entry || entry.type === 'disbursement') continue;
-        const key = `${String(entry.contributorName || '').trim().toLowerCase()}||${String(entry.branch || '').trim().toLowerCase()}`;
-        contributorTotalsMap.set(key, (contributorTotalsMap.get(key) || 0) + (Number(entry.amount) || 0));
-      }
-
-      const filteredItems = appState.approvedContributions.filter(item => {
-        if (!item) return false;
-        const isDisb = item.type === 'disbursement';
-        if (filterType === 'general' && (isDisb || (item.target && item.target !== 'general'))) return false;
-        if (filterType === 'case' && (isDisb || !item.target || item.target === 'general')) return false;
-        if (filterType === 'disbursement' && !isDisb) return false;
-
-        if (query) {
-          const hay = [
-            item.contributorName,
-            item.branch,
-            item.targetLabel,
-            item.note,
-            item.method
-          ].map(v => String(v || '').toLowerCase()).join(' ');
-          if (!hay.includes(query)) return false;
-        }
-        return true;
-      });
-
-      // إعطاء الأولوية الدائمة للمساهمين في صدارة السجل ثم عمليات الصرف مع الحفاظ على ترتيب الإضافة
-      const prioritizedItems = [
-        ...filteredItems.filter(item => item.type !== 'disbursement'),
-        ...filteredItems.filter(item => item.type === 'disbursement')
-      ];
-
-      if (!prioritizedItems.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد قيود مطابقة للبحث أو التصفية الحالية.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = prioritizedItems.map(item => {
-        const isDisb = item.type === 'disbursement';
-        const amt = Number(item.amount) || 0;
-        const contributorKey = `${String(item.contributorName || '').trim().toLowerCase()}||${String(item.branch || '').trim().toLowerCase()}`;
-        const contributorTotalAmt = contributorTotalsMap.get(contributorKey) || amt;
-        const isFeaturedContributor = !isDisb && (amt >= 10000 || contributorTotalAmt >= 10000);
-        const isHighlightedDonor = isFeaturedContributor || (!isDisb && maxContributionAmt > 0 && amt === maxContributionAmt);
-        const canUserEdit = !isAdminMode && !isDisb && isMyContribution(item.id) && !(Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1);
-
-        const typeBadge = isDisb
-          ? '<span class="inline-block bg-rose-100 text-rose-800 text-xs font-black px-2.5 py-1 rounded-full">صرف</span>'
-          : (item.target && item.target !== 'general'
-              ? '<span class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>'
-              : '<span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
-
-        const actionBtns = [];
-        if (isAdminMode) {
-          if (item.receiptData) {
-            actionBtns.push(`<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">الإيصال</button>`);
-          }
-          if (isDisb) {
-            actionBtns.push(`<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل الصرف</button>`);
-          } else {
-            actionBtns.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل</button>`);
-          }
-          actionBtns.push(`<button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">حذف</button>`);
-        } else if (canUserEdit) {
-          actionBtns.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل (1/1)</button>`);
-        }
-
-        const actionsHtml = actionBtns.length
-          ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">${actionBtns.join('')}</div>`
-          : '';
-
-        return `
-          <tr class="hover:bg-slate-50/90 transition">
-            <td class="py-3.5 px-5">
-              <div class="space-y-1.5">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="font-black text-slate-900 ${isHighlightedDonor ? 'high-donor-glow inline-flex items-center gap-1' : ''}">
-                    ${isHighlightedDonor ? '<span class="high-donor-star">★</span>' : ''}<span>${escapeHtml(item.contributorName)}</span>
-                  </span>
-                  ${item.branch ? `<span class="text-[11px] ${isHighlightedDonor ? 'high-donor-glow font-black bg-white' : 'font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full'}">${escapeHtml(item.branch)}</span>` : ''}
-                </div>
-                ${
-                  isFeaturedContributor
-                    ? `<div><span class="high-donor-glow text-[11px] font-black inline-flex items-center gap-1"><span class="high-donor-star">★</span><span>مساهم مميز</span></span></div>`
-                    : ''
-                }
-              </div>
-              <p class="text-xs font-bold text-slate-500 mt-0.5">${escapeHtml(item.targetLabel || '')}${item.note ? ` • ${escapeHtml(item.note)}` : ''}</p>
-            </td>
-            <td class="py-3.5 px-3 text-center whitespace-nowrap">${typeBadge}</td>
-            <td class="py-3.5 px-3 text-center whitespace-nowrap font-black ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
-              ${isDisb ? '-' : '+'}${formatCurrency(amt)}
-            </td>
-            <td class="py-3.5 px-5 text-left">
-              <span class="block text-xs font-extrabold text-slate-500" dir="ltr">${escapeHtml(item.createdAt || '')}</span>
-              ${actionsHtml}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function handleAdminDisbursementEditSubmit(e) {
-      e.preventDefault();
-      if (!isAdminMode) return;
-      const id = document.getElementById('edit-disb-entry-id').value;
-      const newAmount = Math.max(0, Number(document.getElementById('edit-disb-amount').value) || 0);
-      const newNote = (document.getElementById('edit-disb-note').value || '').trim();
-      const entry = appState.approvedContributions.find(a => String(a.id) === String(id) && a.type === 'disbursement');
-      if (!entry) return;
-      const diff = newAmount - (Number(entry.amount) || 0);
-      if (entry.target) {
-        const targetCase = appState.cases.find(c => String(c.id) === String(entry.target));
-        if (targetCase) {
-          targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) + diff);
-        }
-      }
-      if (newAmount <= 0) {
-        addDeletedId(id);
-        appState.approvedContributions = appState.approvedContributions.filter(a => String(a.id) !== String(id));
-        closeAdminDisbursementEditModal();
-        saveAppState('إزالة قيد صرف بقيمة صفر');
-        renderAll();
-        showToast('تمت إزالة قيد الصرف لأن قيمته أصبحت 0 د.ل.');
-        return;
-      }
-      entry.amount = newAmount;
-      entry.note = newNote;
-      closeAdminDisbursementEditModal();
-      saveAppState('تعديل قيد صرف');
-      renderAll();
-      showToast('تم تعديل قيد الصرف وتحديث الرصيد.');
-    }
-
-    /* =====================================================================
-       تعديل المساهمة ومعاينة الإيصالات
-       ===================================================================== */
-    function openEditContributionModal(id, scope) {
+    function openEditContributionModal(id, scope = 'approved') {
       const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
-      const item = list.find(x => x.id === id);
+      const item = (list || []).find(x => String(x.id) === String(id));
       if (!item) return;
 
-      const editUsed = Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1;
-      const remainingEdits = editUsed ? 0 : 1;
-
-      if (!isAdminMode) {
-        if (!isMyContribution(id)) {
-          showToast('يمكنك تعديل المساهمات المسجلة من جهازك فقط.');
-          return;
-        }
-        if (editUsed || remainingEdits <= 0) {
-          showToast('يُسمح بتعديل المساهمة مرة واحدة فقط (1/1) وقد تم استخدامها.');
-          return;
-        }
+      const used = Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1;
+      if (!isAdminMode && (!isMyContribution(item.id) || used)) {
+        showToast('تم استنفاد محاولة تعديل هذه المساهمة أو أن التعديل متاح لصاحبها/للإدارة.', 'warning');
+        return;
       }
 
+      const remainingEdits = used ? 0 : 1;
       renderTargetSelects();
       document.getElementById('edit-contrib-id').value = item.id;
       document.getElementById('edit-contrib-scope').value = scope;
@@ -2559,22 +2212,21 @@
       document.getElementById('edit-contrib-target').value = item.target || 'general';
       document.getElementById('edit-contrib-method').value = item.method.includes('النقال') ? 'النقال (تحويل رصيد)' : 'المصرف (تحويل مصرفي)';
       document.getElementById('edit-contrib-note').value = item.note || '';
-      document.getElementById('edit-contrib-phone').value = isAdminMode ? (item.phone || '') : '';
+      document.getElementById('edit-contrib-phone').value = item.phone || '';
 
       const phoneWrap = document.getElementById('edit-contrib-mobile-fields');
       const bankWrap = document.getElementById('edit-contrib-bank-fields');
-      if (!isAdminMode) {
-        phoneWrap?.classList.add('hidden');
-        bankWrap?.classList.add('hidden');
-      }
+      const methodVal = document.getElementById('edit-contrib-method').value;
+      phoneWrap?.classList.toggle('hidden', !methodVal.includes('النقال'));
+      bankWrap?.classList.toggle('hidden', !methodVal.includes('المصرف'));
 
       const badge = document.getElementById('edit-contrib-attempts-badge');
       if (badge) {
         badge.textContent = isAdminMode ? 'صلاحية المشرف' : `المحاولات المتبقية: ${remainingEdits}/1`;
       }
 
-      editReceiptDataUrl = isAdminMode ? (item.receiptData || '') : '';
-      editReceiptFileName = isAdminMode ? (item.receiptName || '') : '';
+      editReceiptDataUrl = item.receiptData || '';
+      editReceiptFileName = item.receiptName || '';
       isLoadingEditReceipt = false;
       const editInput = document.getElementById('edit-contrib-receipt');
       if (editInput) editInput.value = '';
@@ -2584,21 +2236,19 @@
       const clearEditBtn = document.getElementById('clear-edit-receipt-btn');
 
       if (nameEl) nameEl.textContent = editReceiptFileName ? `الملف الحالي: ${editReceiptFileName}` : 'لم يتم اختيار أي ملف';
-      if (isAdminMode && editReceiptDataUrl) {
+      if (editReceiptDataUrl) {
         clearEditBtn?.classList.remove('hidden');
       } else {
         clearEditBtn?.classList.add('hidden');
       }
-      if (isAdminMode && editReceiptDataUrl && editReceiptDataUrl.startsWith('data:image')) {
+      if (editReceiptDataUrl && editReceiptDataUrl.startsWith('data:image')) {
         prevWrap?.classList.remove('hidden');
         if (prevImg) prevImg.src = editReceiptDataUrl;
       } else {
         prevWrap?.classList.add('hidden');
       }
 
-      if (isAdminMode) {
-        toggleEditPaymentFields();
-      }
+      syncEditTargetCaseOption(item.target || 'general', item);
       const modal = document.getElementById('edit-contribution-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -2692,6 +2342,20 @@
         return;
       }
 
+      if (target && target !== 'general') {
+        const chosenCase = (appState.cases || []).find(c => String(c.id) === String(target));
+        if (chosenCase && isCaseFullySettled(chosenCase, item.id)) {
+          if (String(prevTarget) !== String(target)) {
+            showToast('الحالة مختومة بالسداد الكامل؛ لا يمكن إسناد مساهمة جديدة أو إضافية لها.', 'warning');
+            return;
+          }
+          if (amount > prevAmount) {
+            showToast('الحالة تم تسديدها بالكامل؛ يُسمح بإنقاص القيمة فقط ولا يمكن زيادتها.', 'warning');
+            return;
+          }
+        }
+      }
+
       if (!isAdminMode) {
         const alreadyUsed = Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1;
         if (alreadyUsed) {
@@ -2713,11 +2377,9 @@
         : (target === 'general' ? 'general' : 'case');
       item.method = method;
       item.note = note;
-      if (isAdminMode) {
-        item.phone = method.includes('النقال') ? phone : '';
-        item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
-        item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
-      }
+      item.phone = method.includes('النقال') ? phone : '';
+      item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
+      item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
 
       if (scope === 'approved' && target && target !== 'general') {
         const newCase = appState.cases.find(c => String(c.id) === String(target));
@@ -3599,8 +3261,8 @@
         };
         if (saved && saved.credId) {
           publicKey.allowCredentials = [{
-            type: 'public-key',
-            id: base64UrlToUint8Array(saved.credId)
+            id: base64UrlToUint8Array(saved.credId),
+            type: 'public-key'
           }];
         }
         const assertion = await navigator.credentials.get({ publicKey });
@@ -3610,298 +3272,322 @@
           closeAdminLoginModal();
           updateAdminUI();
           renderAll();
-          showToast('تم الدخول إلى وضع الإدارة بالبصمة بنجاح.');
+          showToast('تم الدخول إلى وضع الإدارة بالبصمة بنجاح.', 'success');
         }
-      } catch (err) {
+      } catch (e) {
         if (errEl) {
-          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على هذا الجهاز.';
+          errEl.textContent = 'تعذر التحقق بالبصمة، يرجى المحاولة أو الدخول بالبريد وكلمة المرور.';
           errEl.classList.remove('hidden');
         }
       }
     }
 
-    function getFirebaseConfig() {
-      try {
-        const raw = readStorageSafe(FIREBASE_CFG_KEY);
-        const parsed = raw ? JSON.parse(raw) : {};
-        return {
-          dbUrl: String(parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, ''),
-          authSecret: String(parsed.authSecret || '').trim()
-        };
-      } catch (e) {
-        return { dbUrl: DEFAULT_FIREBASE_DB_URL, authSecret: '' };
-      }
-    }
-
-    function setCloudStatus(connected, labelText) {
-      const dot = document.getElementById('cloud-status-dot');
-      const textEl = document.getElementById('cloud-status-text');
-      if (dot) {
-        dot.classList.toggle('bg-emerald-400', Boolean(connected));
-        dot.classList.toggle('bg-amber-400', !connected);
-      }
-      if (textEl) {
-        textEl.textContent = labelText || (connected ? 'متصل ومتزامن' : 'وضع محلي');
-      }
-    }
-
-    function buildFirebaseEndpoint(cfg) {
-      const baseUrl = (cfg?.dbUrl || DEFAULT_FIREBASE_DB_URL).replace(/\/+$/, '');
-      const authParam = cfg?.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-      return `${baseUrl}/sayaanTakafulState.json${authParam}`;
-    }
-
-    async function pushStateToFirebase(force = false) {
-      if (isPushingFirebase) return;
-      try {
-        const cfg = getFirebaseConfig();
-        if (!cfg.dbUrl) return;
-        const stampMs = Number(appState.updatedAtMs) || Date.now();
-        appState.updatedAtMs = stampMs;
-        appState.deletedIds = getDeletedIds();
-        const fingerprint = computeStateSyncFingerprint(appState);
-        if (!force && fingerprint === lastSyncedFingerprint) return;
-
-        isPushingFirebase = true;
-        const payload = {
-          updatedAt: stampMs,
-          lastUpdated: appState.lastUpdated || formatNowDate(),
-          deletedIds: appState.deletedIds,
-          state: appState
-        };
-
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
-
-        const res = await fetch(buildFirebaseEndpoint(cfg), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller ? controller.signal : undefined
-        });
-        if (timeoutId) clearTimeout(timeoutId);
-        if (res.ok) {
-          lastSyncedFingerprint = fingerprint;
-          hasUnsyncedLocalChanges = false;
-          setCloudStatus(true, 'متصل ومتزامن');
+    function voteOnCase(caseId, voteType) {
+      const c = (appState.cases || []).find(x => String(x.id) === String(caseId));
+      if (!c) return;
+      if (voteType === 'reject') {
+        pendingRejectCaseId = String(caseId);
+        const inp = document.getElementById('reject-reason-input');
+        if (inp) inp.value = '';
+        const modal = document.getElementById('reject-vote-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
         }
-      } catch (e) {
-        setCloudStatus(false, 'متصل محلياً');
-      } finally {
-        isPushingFirebase = false;
+        return;
       }
+      const votes = getDeviceVotes();
+      const prev = votes[String(c.id)];
+      c.votes = c.votes || { approve: 0, reject: 0 };
+      if (prev === 'reject') c.votes.reject = Math.max(0, (c.votes.reject || 0) - 1);
+      if (prev !== 'approve') c.votes.approve = (c.votes.approve || 0) + 1;
+      setDeviceVote(c.id, 'approve');
+      saveAppState('تصويت بالموافقة على حالة');
+      renderCases();
+      showToast('تم تسجيل موافقتك على الحالة.', 'success');
     }
 
-    function buildEntrySignature(item, includeId = false) {
-      if (!item || typeof item !== 'object') return '';
-      const baseSig = [
-        String(item.type || 'general').trim().toLowerCase(),
-        String(item.contributorName || '').trim().toLowerCase(),
-        String(item.branch || '').trim().toLowerCase(),
-        Number(item.amount) || 0,
-        String(item.target || 'general').trim(),
-        String(item.method || '').trim().toLowerCase(),
-        String(item.phone || '').trim()
-      ].join('|');
-      return includeId ? `${String(item.id || '')}::${baseSig}` : baseSig;
-    }
+    function renderCases() {
+      const container = document.getElementById('cases-container');
+      if (!container) return;
+      const cases = Array.isArray(appState.cases) ? appState.cases : [];
+      const approved = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
 
-    function isSameLogicalContribution(a, b) {
-      if (!a || !b) return false;
-      if (String(a.id) === String(b.id)) return true;
-      if (a.type === 'disbursement' || b.type === 'disbursement') return false;
-      const sameName = String(a.contributorName || '').trim().toLowerCase() === String(b.contributorName || '').trim().toLowerCase();
-      const sameAmount = (Number(a.amount) || 0) === (Number(b.amount) || 0);
-      const sameTarget = String(a.target || 'general').trim() === String(b.target || 'general').trim();
-      const sameMethod = String(a.method || '').trim().toLowerCase() === String(b.method || '').trim().toLowerCase();
-      const sameBranch = String(a.branch || '').trim().toLowerCase() === String(b.branch || '').trim().toLowerCase();
-      return sameName && sameAmount && sameTarget && sameMethod && sameBranch;
-    }
-
-    function deduplicateContributionsList(list) {
-      const result = [];
-      for (const item of (Array.isArray(list) ? list : [])) {
-        if (!item || !item.id) continue;
-        const existingIdx = result.findIndex(existing => isSameLogicalContribution(existing, item));
-        if (existingIdx === -1) {
-          result.push({ ...item });
-        } else {
-          // الإبقاء على النسخة الأحدث أو المعتمدة وتجنب التكرار
-          const prev = result[existingIdx];
-          result[existingIdx] = {
-            ...prev,
-            ...item,
-            id: prev.id,
-            receiptData: item.receiptData || prev.receiptData || '',
-            receiptName: item.receiptName || prev.receiptName || '',
-            note: item.note || prev.note || '',
-            userEditUsed: Boolean(prev.userEditUsed) || Boolean(item.userEditUsed),
-            userEditCount: Math.max(Number(prev.userEditCount) || 0, Number(item.userEditCount) || 0)
-          };
-        }
+      if (!cases.length) {
+        container.innerHTML = `
+          <div class="col-span-full bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-2">
+            <p class="text-sm font-black text-slate-700">لا توجد حالات معروضة للتصويت حالياً</p>
+            <p class="text-xs font-bold text-slate-500">يمكن للمشرف إضافة حالة جديدة من وضع الإدارة لتظهر هنا فوراً.</p>
+          </div>
+        `;
+        return;
       }
-      return result;
+
+      const deviceVotes = getDeviceVotes();
+      container.innerHTML = cases.map(c => {
+        const req = Math.max(0, Number(c.requiredAmount) || 0);
+        const disb = Math.max(0, Number(c.disbursedAmount) || 0);
+        const caseContribs = approved.filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id));
+        const contribSum = caseContribs.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+        const funded = disb + contribSum;
+        const isCompleted = Boolean(c.closed) || (req > 0 && funded >= req);
+        const pct = req > 0 ? Math.min(100, Math.round((funded / req) * 100)) : (isCompleted ? 100 : 0);
+        const remaining = Math.max(0, req - funded);
+        const surplus = req > 0 && funded > req ? (funded - req) : 0;
+        const myVote = deviceVotes[String(c.id)] || '';
+        const approveCount = Number(c.votes?.approve) || 0;
+        const rejectCount = Number(c.votes?.reject) || 0;
+
+        const contribsHtml = caseContribs.length
+          ? caseContribs.map(item => `
+              <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs">
+                <div class="font-bold text-slate-800">
+                  <span class="font-black text-emerald-900">${escapeHtml(item.contributorName)}</span>
+                  ${item.branch ? `<span class="text-slate-500">(${escapeHtml(item.branch)})</span>` : ''}
+                  <span class="block text-[11px] text-slate-400 mt-0.5">${escapeHtml(formatNumericDateOnly(item.createdAt))} • ${escapeHtml(formatNumericTimeAmPm(item.createdAt))}</span>
+                </div>
+                <span class="font-black text-emerald-700">${formatCurrency(item.amount)}</span>
+              </div>
+            `).join('')
+          : '<p class="text-xs font-bold text-slate-400">لا توجد مساهمات مسجلة لهذه الحالة بعد.</p>';
+
+        const rejectionsHtml = Array.isArray(c.rejections) && c.rejections.length
+          ? `<div class="mt-3 pt-3 border-t border-slate-100 space-y-2">
+              <p class="text-xs font-black text-rose-700">ملاحظات وأسباب عدم الموافقة (${c.rejections.length}):</p>
+              ${c.rejections.map((r, idx) => `
+                <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-2.5 text-xs flex items-start justify-between gap-2">
+                  <div class="text-rose-950 font-bold leading-relaxed">${escapeHtml(r.reason)}</div>
+                  ${isAdminMode ? `
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', ${idx})" class="text-[11px] font-black bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer">تعديل</button>
+                      <button type="button" onclick="deleteRejectionReason('${escapeHtml(c.id)}', ${idx})" class="text-[11px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-lg cursor-pointer">حذف</button>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>`
+          : '';
+
+        return `
+          <article class="bg-white border ${isCompleted ? 'border-emerald-300' : 'border-slate-200'} rounded-3xl p-5 shadow-xs flex flex-col justify-between gap-4">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <span class="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category)}</span>
+                <span class="inline-block text-xs font-black px-3 py-1 rounded-full ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-400 text-emerald-950 status-badge-glow'}">
+                  ${isCompleted ? 'مكتملة السداد' : 'قيد التغطية'}
+                </span>
+              </div>
+
+              <div>
+                <h3 class="text-lg font-black text-slate-900">${escapeHtml(c.title)}</h3>
+                <p class="text-xs sm:text-sm font-bold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                <div class="flex items-center justify-between text-xs font-black">
+                  <span class="text-slate-600">المغطى: <strong class="text-emerald-800">${formatCurrency(funded)}</strong></span>
+                  <span class="text-slate-600">المطلوب: <strong class="text-slate-900">${formatCurrency(req)}</strong></span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'}" style="width: ${pct}%"></div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-black pt-0.5">
+                  <span class="text-slate-700">النسبة: ${pct}%</span>
+                  ${remaining > 0
+                    ? `<span class="text-amber-800">المتبقي: ${formatCurrency(remaining)}</span>`
+                    : `<span class="text-emerald-700">تم السداد بالكامل</span>`
+                  }
+                </div>
+                ${disb > 0 ? `<div class="text-xs font-black text-sky-800">مساهمة من الصندوق: ${formatCurrency(disb)}</div>` : ''}
+                ${surplus > 0 ? `<div class="text-xs font-black text-emerald-700">فائض محول لرصيد الصندوق: ${formatCurrency(surplus)}</div>` : ''}
+              </div>
+
+              <div class="space-y-1.5">
+                <p class="text-xs font-black text-slate-700">مساهمات الحالة:</p>
+                <div class="space-y-1.5 max-h-40 overflow-y-auto">${contribsHtml}</div>
+              </div>
+
+              ${rejectionsHtml}
+            </div>
+
+            <div class="space-y-2.5 pt-2 border-t border-slate-100">
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="voteOnCase('${escapeHtml(c.id)}', 'approve')" class="py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer ${myVote === 'approve' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200'}">
+                  موافق (${approveCount})
+                </button>
+                <button type="button" onclick="voteOnCase('${escapeHtml(c.id)}', 'reject')" class="py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer ${myVote === 'reject' ? 'bg-rose-600 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'}">
+                  غير موافق (${rejectCount})
+                </button>
+              </div>
+
+              ${!isCompleted ? `
+                <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm transition cursor-pointer">
+                  المساهمة في هذه الحالة
+                </button>
+              ` : ''}
+
+              ${isAdminMode ? `
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">صرف مساعدة</button>
+                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
+                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
+                </div>
+              ` : ''}
+            </div>
+          </article>
+        `;
+      }).join('');
     }
 
-    async function pullStateFromFirebase() {
-      if (isPullingFirebase || isPushingFirebase) return;
-      try {
-        const cfg = getFirebaseConfig();
-        if (!cfg.dbUrl) return;
-        isPullingFirebase = true;
+    function approvePendingContribution(id) {
+      if (!isAdminMode) return;
+      const idx = (appState.pendingContributions || []).findIndex(x => String(x.id) === String(id));
+      if (idx === -1) return;
+      const [item] = appState.pendingContributions.splice(idx, 1);
+      item.approvedAt = formatNowDate();
+      appState.approvedContributions.push(item);
 
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
-
-        const res = await fetch(buildFirebaseEndpoint(cfg), {
-          cache: 'no-store',
-          signal: controller ? controller.signal : undefined
-        });
-        if (timeoutId) clearTimeout(timeoutId);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && data.state && typeof data.state === 'object') {
-          const remoteState = sanitizeStateData(data.state);
-          const remoteUpdatedAt = Number(data.updatedAt || remoteState.updatedAtMs || 0) || 0;
-          const localUpdatedAt = Number(appState.updatedAtMs || 0) || 0;
-
-          const combinedDeleted = setDeletedIdsList([
-            ...getDeletedIds(),
-            ...(Array.isArray(data.deletedIds) ? data.deletedIds : []),
-            ...(Array.isArray(remoteState.deletedIds) ? remoteState.deletedIds : [])
-          ]);
-          const deletedSet = new Set(combinedDeleted.map(String));
-
-          const remoteFingerprint = computeStateSyncFingerprint({ ...remoteState, deletedIds: combinedDeleted });
-          const localFingerprint = computeStateSyncFingerprint({ ...appState, deletedIds: combinedDeleted });
-
-          let nextState;
-
-          // اعتماد الحالة السحابية إذا لم تكن هناك تغييرات محلية غير مرفوعة أو إذا كانت السحابة أحدث
-          const shouldAcceptRemote = !hasUnsyncedLocalChanges && (!hasLocalStateStored || remoteUpdatedAt >= localUpdatedAt);
-
-          if (shouldAcceptRemote) {
-            const cleanApproved = deduplicateContributionsList(
-              (remoteState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
-            );
-            const approvedIds = new Set(cleanApproved.map(x => String(x.id)));
-            const cleanPending = deduplicateContributionsList(
-              (remoteState.pendingContributions || []).filter(
-                p => p && p.id && !deletedSet.has(String(p.id)) && !approvedIds.has(String(p.id)) && !cleanApproved.some(a => isSameLogicalContribution(a, p))
-              )
-            );
-            const cleanCases = (remoteState.cases || []).filter(c => c && c.id && !deletedSet.has(String(c.id)));
-
-            nextState = {
-              updatedAtMs: remoteUpdatedAt || Date.now(),
-              lastUpdated: remoteState.lastUpdated || data.lastUpdated || appState.lastUpdated,
-              deletedIds: combinedDeleted,
-              cases: cleanCases,
-              pendingContributions: cleanPending,
-              approvedContributions: cleanApproved
-            };
-          } else {
-            // النسخة المحلية أحدث أو بها تعديلات لم تُرفع بعد؛ نحافظ عليها ونستبعد أي محذوفات
-            const cleanApproved = deduplicateContributionsList(
-              (appState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
-            );
-            const approvedIds = new Set(cleanApproved.map(x => String(x.id)));
-            const cleanPending = deduplicateContributionsList(
-              (appState.pendingContributions || []).filter(
-                p => p && p.id && !deletedSet.has(String(p.id)) && !approvedIds.has(String(p.id)) && !cleanApproved.some(a => isSameLogicalContribution(a, p))
-              )
-            );
-            const cleanCases = (appState.cases || []).filter(c => c && c.id && !deletedSet.has(String(c.id)));
-
-            nextState = {
-              updatedAtMs: localUpdatedAt || Date.now(),
-              lastUpdated: appState.lastUpdated || formatNowDate(),
-              deletedIds: combinedDeleted,
-              cases: cleanCases,
-              pendingContributions: cleanPending,
-              approvedContributions: cleanApproved
-            };
+      if (item.target && item.target !== 'general') {
+        const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
+        if (c) {
+          const caseContribs = appState.approvedContributions
+            .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id))
+            .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          const funded = (Number(c.disbursedAmount) || 0) + caseContribs;
+          if ((Number(c.requiredAmount) || 0) > 0 && funded >= (Number(c.requiredAmount) || 0)) {
+            c.closed = true;
           }
-
-          const nextFingerprint = computeStateSyncFingerprint(nextState);
-          if (nextFingerprint !== localFingerprint || remoteFingerprint !== localFingerprint || !hasLocalStateStored) {
-            appState = nextState;
-            hasLocalStateStored = true;
-            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            lastSyncedFingerprint = nextFingerprint;
-            scheduleRenderAll();
-            if (hasUnsyncedLocalChanges || (shouldAcceptRemote && remoteFingerprint !== localFingerprint)) {
-              await pushStateToFirebase(false);
-            }
-          } else {
-            lastSyncedFingerprint = nextFingerprint;
-          }
-          setCloudStatus(true, 'متصل ومتزامن');
         }
-      } catch (e) {
-        setCloudStatus(false, 'متصل محلياً');
-      } finally {
-        isPullingFirebase = false;
       }
+
+      saveAppState('اعتماد ونشر مساهمة');
+      renderAll();
+      showToast('تم نشر المساهمة وإضافتها إلى سجل المساهمات.', 'success');
     }
 
-    function startFirebasePolling() {
-      pullStateFromFirebase();
-      if (firebasePollTimer) clearInterval(firebasePollTimer);
-      firebasePollTimer = setInterval(() => {
-        if (typeof document !== 'undefined' && document.hidden) return;
-        pullStateFromFirebase();
-      }, 6000);
+    function deletePendingContribution(id) {
+      if (!isAdminMode) return;
+      addDeletedId(id);
+      appState.pendingContributions = (appState.pendingContributions || []).filter(x => String(x.id) !== String(id));
+      saveAppState('حذف طلب مساهمة معلق');
+      renderAll();
+      showToast('تم حذف طلب المساهمة.', 'success');
     }
 
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-          pullStateFromFirebase();
-        }
+    function deleteApprovedContribution(id) {
+      if (!isAdminMode) return;
+      addDeletedId(id);
+      appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== String(id));
+      saveAppState('حذف قيد من السجل المعتمد');
+      renderAll();
+      showToast('تم حذف القيد من السجل المعتمد.', 'success');
+    }
+
+    function renderPendingContributions() {
+      const listEl = document.getElementById('pending-contributions-list');
+      const badgeEl = document.getElementById('pending-count-badge');
+      if (!listEl) return;
+      const pending = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+      if (badgeEl) badgeEl.textContent = `${pending.length} طلبات`;
+
+      if (!pending.length) {
+        listEl.innerHTML = '<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs font-bold text-amber-900">لا توجد مساهمات معلقة بانتظار المراجعة حالياً.</div>';
+        return;
+      }
+
+      listEl.innerHTML = pending.map(item => `
+        <div class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-black text-slate-900">${escapeHtml(item.contributorName)}</span>
+              ${item.branch ? `<span class="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>` : ''}
+              <span class="text-xs font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${formatCurrency(item.amount)}</span>
+            </div>
+            <p class="text-xs font-bold text-slate-600">الوجهة: ${escapeHtml(item.targetLabel || 'رصيد الصندوق العام')} • الطريقة: ${escapeHtml(item.method || '')}</p>
+            ${item.phone ? `<p class="text-xs font-mono font-bold text-amber-900">هاتف التحويل: ${escapeHtml(item.phone)}</p>` : ''}
+            ${item.note ? `<p class="text-xs font-semibold text-slate-500">ملاحظة: ${escapeHtml(item.note)}</p>` : ''}
+            <p class="text-[11px] font-bold text-slate-400">${escapeHtml(item.createdAt || '')}</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-xs transition cursor-pointer">عرض الإيصال</button>` : ''}
+            <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">نشر</button>
+            <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
+            <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function scheduleLedgerRender() {
+      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
+      ledgerSearchTimer = setTimeout(() => {
+        renderLedger();
+      }, 120);
+    }
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+      const query = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
+      const filterType = document.getElementById('ledger-filter-select')?.value || 'all';
+      const approved = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+
+      const filtered = approved.filter(item => {
+        if (!item) return false;
+        const type = item.type === 'disbursement' ? 'disbursement' : (item.target && item.target !== 'general' ? 'case' : 'general');
+        if (filterType !== 'all' && type !== filterType) return false;
+        if (!query) return true;
+        const hay = `${item.contributorName || ''} ${item.branch || ''} ${item.targetLabel || ''} ${item.note || ''}`.toLowerCase();
+        return hay.includes(query);
       });
-    }
 
-    function openFirebaseConfigModal() {
-      if (!isAdminMode) return;
-      const cfg = getFirebaseConfig();
-      const urlInput = document.getElementById('firebase-db-url-input');
-      const secretInput = document.getElementById('firebase-auth-secret-input');
-      if (urlInput) urlInput.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
-      if (secretInput) secretInput.value = cfg.authSecret || '';
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+      if (!filtered.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-500">
+              لا توجد قيود مطابقة للبحث أو التصفية الحالية.
+            </td>
+          </tr>
+        `;
+        return;
       }
-    }
 
-    function closeFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
+      tbody.innerHTML = filtered.map(item => {
+        const isDisb = item.type === 'disbursement';
+        const typeBadge = isDisb
+          ? '<span class="inline-block bg-rose-100 text-rose-700 text-xs font-black px-2.5 py-1 rounded-full">صرف</span>'
+          : (item.target && item.target !== 'general'
+            ? '<span class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>'
+            : '<span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
 
-    function handleFirebaseConfigSubmit(e) {
-      e.preventDefault();
-      if (!isAdminMode) return;
-      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_DB_URL).trim().replace(/\/+$/, '');
-      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
-      closeFirebaseConfigModal();
-      pushStateToFirebase(true);
-      pullStateFromFirebase();
-      showToast('تم حفظ إعدادات Firebase وتحديث الاتصال.');
-    }
+        const canUserEdit = !isDisb && isMyContribution(item.id) && !item.userEditUsed && (Number(item.userEditCount) || 0) < 1;
 
-    function disconnectFirebaseCloud() {
-      if (!isAdminMode) return;
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
-      closeFirebaseConfigModal();
-      setCloudStatus(false, 'وضع محلي');
-      showToast('تم فصل المزامنة السحابية.');
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3.5 px-5">
+              <div class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</div>
+              <div class="text-[11px] font-bold text-slate-500 mt-0.5">
+                ${item.branch ? `${escapeHtml(item.branch)} • ` : ''}${escapeHtml(item.targetLabel || 'رصيد الصندوق العام')}
+                ${item.note ? ` • ${escapeHtml(item.note)}` : ''}
+              </div>
+              ${isAdminMode && item.phone ? `<div class="text-[11px] font-mono font-bold text-amber-900 mt-0.5">هاتف: ${escapeHtml(item.phone)}</div>` : ''}
+            </td>
+            <td class="py-3.5 px-3 text-center whitespace-nowrap">${typeBadge}</td>
+            <td class="py-3.5 px-3 text-center whitespace-nowrap font-black text-xs sm:text-sm ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
+              ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
+            </td>
+            <td class="py-3.5 px-5 text-left">
+              <div class="text-[11px] font-bold text-slate-400 mb-1.5">${escapeHtml(item.createdAt || '')}</div>
+              <div class="flex flex-wrap items-center justify-end gap-1.5">
+                ${isAdminMode && item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-[11px] cursor-pointer">الإيصال</button>` : ''}
+                ${(isAdminMode || canUserEdit) ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] cursor-pointer">تعديل</button>` : ''}
+                ${isAdminMode ? `<button type="button" onclick="deleteApprovedContribution('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] cursor-pointer">حذف</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     /* =====================================================================
