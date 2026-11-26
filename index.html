@@ -1347,6 +1347,8 @@
             lastSyncedFingerprint = remoteFp;
             scheduleRenderAll();
           }
+        } else if (remoteMs === localMs && remoteFp && remoteFp !== currentFp && hasUnsyncedLocalChanges) {
+          await pushStateToFirebase(true);
         }
         setCloudStatus(true, 'متصل ومتزامن');
       } catch (e) {
@@ -1362,7 +1364,7 @@
       firebasePollTimer = setInterval(() => {
         if (typeof document !== 'undefined' && document.hidden) return;
         pullStateFromFirebase();
-      }, 6000);
+      }, 2500);
     }
 
     function openFirebaseConfigModal() {
@@ -1878,8 +1880,8 @@
       if (targetRow) {
         setTimeout(() => {
           targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          targetRow.classList.add('ring-2', 'ring-amber-500');
-          setTimeout(() => targetRow.classList.remove('ring-2', 'ring-amber-500'), 1800);
+          targetRow.classList.add('ring-4', 'ring-emerald-500', 'bg-emerald-50/50');
+          setTimeout(() => targetRow.classList.remove('ring-4', 'ring-emerald-500', 'bg-emerald-50/50'), 2200);
         }, 160);
       }
     }
@@ -3316,13 +3318,16 @@
       appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
       appState.pendingContributions.unshift(entry);
       markAsMyContribution(newId);
-      saveAppState('إرسال مساهمة جديدة للمراجعة');
+      // دفع التحديث فوراً إلى Firebase ليظهر إشعار المساهم الجديد في وضع الإدارة عبر المتصفحات
+      saveAppState('إرسال مساهمة جديدة للمراجعة', true);
+      pushStateToFirebase(true);
 
       document.getElementById('new-contribution-form')?.reset();
       clearNewReceiptSelection();
       toggleNewPaymentFields();
       renderPendingContributions();
-      showToast('تم إرسال مساهمتك بنجاح وهي الآن بانتظار اعتماد الإدارة.', 'success');
+      renderAdminNotifications();
+      showToast('تم إرسال مساهمتك ومزامنتها، وهي الآن بانتظار اعتماد الإدارة.', 'success');
     }
 
     function clearEditReceiptSelection() {
@@ -3544,13 +3549,14 @@
         }
       }
 
-      saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف');
+      saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف', true);
+      pushStateToFirebase(true);
       closeEditContributionModal();
       renderAll();
       showToast(
         isAdminMode
-          ? 'تم حفظ تعديل المساهمة بنجاح.'
-          : 'تم حفظ تعديلك وإرساله للمشرف للمراجعة وإعادة الاعتماد والنشر.',
+          ? 'تم حفظ تعديل المساهمة وتحديث الرصيد ومزامنته.'
+          : 'تم حفظ تعديلك ومزامنته وإرساله للمشرف للمراجعة وإعادة الاعتماد والنشر.',
         'success'
       );
     }
@@ -3562,9 +3568,21 @@
       item.pendingAdminReapproval = false;
       item.previousSnapshot = null;
       item.approvedAt = formatNowDate();
-      saveAppState('إعادة تدوير واعتماد تعديل مساهمة');
+
+      if (item.target && item.target !== 'general') {
+        const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
+        if (c) {
+          const req = Math.max(0, Number(c.requiredAmount) || 0);
+          const disb = Math.max(0, Number(c.disbursedAmount) || 0);
+          const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          c.closed = req > 0 && (disb + contribSum) >= req;
+        }
+      }
+
+      saveAppState('إعادة تدوير واعتماد تعديل مساهمة', true);
+      pushStateToFirebase(true);
       renderAll();
-      showToast('تمت مراجعة التعديل وإعادة تدويره واعتماده ونشره في سجل المساهمات.', 'success');
+      showToast('تمت مراجعة التعديل واعتماده وتحديث الرصيد ومزامنته في السجل.', 'success');
     }
 
     function renderPendingContributions() {
@@ -3649,29 +3667,38 @@
       const item = appState.pendingContributions[idx];
       appState.pendingContributions.splice(idx, 1);
 
-      // ضبط القيمة إذا كانت الحالة مكتملة السداد
-      if (item.target && item.target !== 'general') {
-        const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
+      const approvedAmount = Math.max(0, Number(item.amount) || 0);
+      const targetId = String(item.target || 'general');
+      let resolvedTargetLabel = item.targetLabel || 'رصيد الصندوق العام';
+
+      if (targetId !== 'general') {
+        const c = (appState.cases || []).find(x => String(x.id) === targetId);
         if (c) {
+          resolvedTargetLabel = c.title;
           const req = Math.max(0, Number(c.requiredAmount) || 0);
           const disb = Math.max(0, Number(c.disbursedAmount) || 0);
           const existingSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-          if (req > 0 && (disb + existingSum) >= req) {
-            item.amount = 0;
-          }
-          if (req > 0 && (disb + existingSum + (Number(item.amount) || 0)) >= req) {
+          if (req > 0 && (disb + existingSum + approvedAmount) >= req) {
             c.closed = true;
           }
         }
       }
 
+      appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
       appState.approvedContributions.unshift({
         ...item,
+        amount: approvedAmount,
+        target: targetId,
+        targetLabel: resolvedTargetLabel,
+        pendingAdminReapproval: false,
         approvedAt: formatNowDate()
       });
-      saveAppState('اعتماد مساهمة');
+
+      // حفظ ودفع فوري إلى Firebase لتحديث رصيد الصندوق ورصيد الحالة في جميع المتصفحات
+      saveAppState('اعتماد مساهمة وتحديث الرصيد', true);
+      pushStateToFirebase(true);
       renderAll();
-      showToast('تم اعتماد المساهمة وإضافتها إلى السجل.', 'success');
+      showToast(`تم اعتماد مساهمة (${formatCurrency(approvedAmount)}) وتحديث الرصيد ومزامنتها.`, 'success');
     }
 
     function rejectPendingContribution(id) {
