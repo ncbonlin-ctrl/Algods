@@ -1869,18 +1869,16 @@
         showToast('يرجى الدخول إلى وضع الإدارة أولاً.', 'warning');
         return;
       }
-      const panel = document.getElementById('admin-pending-panel');
+      const panel = document.getElementById('admin-notifications-panel') || document.getElementById('admin-pending-panel');
       if (panel) {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       const notifEl = document.getElementById(`admin-notif-item-${id}`);
       if (notifEl) {
+        notifEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         notifEl.classList.add('ring-2', 'ring-amber-500');
-        setTimeout(() => notifEl.classList.remove('ring-2', 'ring-amber-500'), 1500);
+        setTimeout(() => notifEl.classList.remove('ring-2', 'ring-amber-500'), 1600);
       }
-      setTimeout(() => {
-        openEditContributionModal(id, scope);
-      }, 180);
     }
 
     function jumpToLatestAdminNotificationAndEdit() {
