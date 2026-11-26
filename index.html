@@ -1279,10 +1279,11 @@
           prevWrap.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
       } catch (err) {
-        if (errEl) {
-          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على هذا الجهاز.';
-          errEl.classList.remove('hidden');
-        }
+        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
+        showToast('تعذر قراءة صورة الإيصال المختارة.', 'warning');
+      } finally {
+        isLoadingNewReceipt = false;
+        if (input) input.value = '';
       }
     }
 
@@ -2879,84 +2880,92 @@
       const branch = document.getElementById('edit-contrib-branch').value;
       const amount = Math.max(0, Number(document.getElementById('edit-contrib-amount').value) || 0);
       const target = document.getElementById('edit-contrib-target').value || 'general';
-      const method = document.getElementById('edit-contrib-method').value;
+      const method = document.getElementById('edit-contrib-method').value || 'المصرف (تحويل مصرفي)';
       const note = (document.getElementById('edit-contrib-note').value || '').trim();
       const phone = (document.getElementById('edit-contrib-phone').value || '').trim();
 
-      // في حال تعديل المشرف مباشرة لمساهمة معتمدة، نحدّث رصيد الحالة فوراً
-      if (isAdminMode && scope === 'approved' && item.type !== 'disbursement') {
-        if (prevTarget !== 'general' && prevTarget === target) {
-          const sameCase = appState.cases.find(c => c.id === target);
-          if (sameCase) {
-            const diff = amount - prevAmount;
-            sameCase.disbursedAmount = Math.max(0, (Number(sameCase.disbursedAmount) || 0) + diff);
-          }
-        } else {
-          if (prevTarget !== 'general') {
-            const oldCase = appState.cases.find(c => c.id === prevTarget);
-            if (oldCase) {
-              oldCase.disbursedAmount = Math.max(0, (Number(oldCase.disbursedAmount) || 0) - prevAmount);
-            }
-          }
-          if (target !== 'general') {
-            const newCase = appState.cases.find(c => c.id === target);
-            if (newCase) {
-              newCase.disbursedAmount = Math.max(0, (Number(newCase.disbursedAmount) || 0) + amount);
-            }
-          }
-        }
+      if (!name || !method) {
+        showToast('يرجى تعبئة الحقول المطلوبة.', 'warning');
+        return;
       }
 
-      const targetCase = appState.cases.find(c => c.id === target);
-      item.contributorName = name || item.contributorName;
+      if (!isAdminMode) {
+        const alreadyUsed = Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1;
+        if (alreadyUsed) {
+          showToast('لقد قمت باستخدام محاولة التعديل المتاحة (1/1) مسبقاً.', 'warning');
+          return;
+        }
+        item.userEditUsed = true;
+        item.userEditCount = 1;
+      }
+
+      const targetCase = appState.cases.find(c => String(c.id) === String(target));
+      item.contributorName = name;
       item.branch = branch;
       item.amount = amount;
       item.target = target;
       item.targetLabel = targetCase ? targetCase.title : 'رصيد الصندوق العام';
-      item.type = target === 'general' ? 'general' : 'case';
+      item.type = (scope === 'approved' && item.type === 'disbursement')
+        ? 'disbursement'
+        : (target === 'general' ? 'general' : 'case');
       item.method = method;
       item.note = note;
       item.phone = method.includes('النقال') ? phone : '';
-      item.receiptData = editReceiptDataUrl;
-      item.receiptName = editReceiptFileName;
+      item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
+      item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
 
-      if (!isAdminMode) {
-        item.userEditCount = 1;
-        item.userEditUsed = true;
-      }
-
-      closeEditContributionModal();
-      saveAppState(!isAdminMode ? 'تعديل مساهمة (مرة واحدة)' : 'تعديل مساهمة من الإدارة');
-      renderAll();
-      showToast(
-        !isAdminMode
-          ? `تم حفظ وتحديث مساهمة ${item.contributorName} ومزامنتها (متاح مرة واحدة فقط).`
-          : `تم حفظ وتعديل مساهمة ${item.contributorName} ونشرها ومزامنتها.`,
-        'success'
-      );
-    }
-
-    function openReceiptViewerModal(id, scope) {
-      if (!isAdminMode) {
-        showToast('الاطلاع على الإيصالات متاح للمشرف فقط.');
-        return;
-      }
-      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
-      const item = list.find(x => x.id === id);
-      if (!item || !item.receiptData) return;
-
-      const titleEl = document.getElementById('receipt-viewer-title');
-      const bodyEl = document.getElementById('receipt-viewer-body');
-      if (titleEl) titleEl.textContent = `إيصال المساهمة - ${item.contributorName}`;
-      if (bodyEl) {
-        if (item.receiptData.startsWith('data:image')) {
-          bodyEl.innerHTML = `<img src="${item.receiptData}" alt="إيصال التحويل" class="max-h-[60vh] w-auto rounded-xl object-contain" />`;
-        } else {
-          bodyEl.innerHTML = `<a href="${item.receiptData}" download="${escapeHtml(item.receiptName || 'receipt.pdf')}" class="bg-emerald-700 text-white font-black text-sm px-5 py-3 rounded-xl">تنزيل ملف الإيصال (${escapeHtml(item.receiptName || 'ملف')})</a>`;
+      if (scope === 'approved' && prevTarget && prevTarget !== 'general' && prevAmount > 0) {
+        const oldCase = appState.cases.find(c => String(c.id) === String(prevTarget));
+        if (oldCase && oldCase.closed) {
+          const remainingCaseContribs = appState.approvedContributions
+            .filter(x => x.type !== 'disbursement' && String(x.target) === String(oldCase.id))
+            .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          const effectiveFunded = Math.max(Number(oldCase.disbursedAmount) || 0, remainingCaseContribs);
+          if (effectiveFunded < (Number(oldCase.requiredAmount) || 0)) {
+            oldCase.closed = false;
+          }
         }
       }
 
+      if (scope === 'approved' && target && target !== 'general') {
+        const newCase = appState.cases.find(c => String(c.id) === String(target));
+        if (newCase) {
+          const caseContribs = appState.approvedContributions
+            .filter(x => x.type !== 'disbursement' && String(x.target) === String(newCase.id))
+            .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          const effectiveFunded = Math.max(Number(newCase.disbursedAmount) || 0, caseContribs);
+          if ((Number(newCase.requiredAmount) || 0) > 0 && effectiveFunded >= (Number(newCase.requiredAmount) || 0)) {
+            newCase.closed = true;
+          }
+        }
+      }
+
+      closeEditContributionModal();
+      saveAppState('تعديل مساهمة ونشرها للمزامنة');
+      renderAll();
+      showToast('تم حفظ وتعديل المساهمة ونشرها للمزامنة بنجاح!', 'success');
+    }
+
+    function openReceiptViewerModal(id, scope) {
+      const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
+      const item = list.find(x => String(x.id) === String(id));
       const modal = document.getElementById('receipt-viewer-modal');
+      const titleEl = document.getElementById('receipt-viewer-title');
+      const bodyEl = document.getElementById('receipt-viewer-body');
+      if (!modal || !bodyEl) return;
+
+      if (titleEl) {
+        titleEl.textContent = item ? `إيصال المساهمة: ${item.contributorName} (${formatCurrency(item.amount)})` : 'معاينة إيصال المساهمة';
+      }
+
+      if (!item || !item.receiptData) {
+        bodyEl.innerHTML = '<p class="text-xs font-bold text-slate-500 py-6">لا توجد صورة إيصال مرفقة لهذا القيد.</p>';
+      } else if (String(item.receiptData).startsWith('data:image')) {
+        bodyEl.innerHTML = `<img src="${item.receiptData}" alt="صورة الإيصال" class="max-h-[60vh] w-auto object-contain rounded-xl" />`;
+      } else {
+        bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-700 py-4">تم إرفاق ملف: ${escapeHtml(item.receiptName || 'مرفق')}</p>`;
+      }
+
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
@@ -2969,40 +2978,59 @@
       }
     }
 
-    /* =====================================================================
-       حفظ البيانات محلياً واستعادتها ومزامنتها مع Firebase
-       ===================================================================== */
     function sanitizeStateData(rawState) {
-      const base = getInitialState();
-      if (!rawState || typeof rawState !== 'object') return base;
-      const deleted = new Set(getDeletedIds());
-
+      const fallback = getInitialState();
+      if (!rawState || typeof rawState !== 'object') return fallback;
       const cases = Array.isArray(rawState.cases)
-        ? rawState.cases
-            .filter(c => c && c.id && !deleted.has(String(c.id)))
-            .map(c => ({
-              id: String(c.id),
-              title: String(c.title || 'حالة بدون عنوان'),
-              category: c.category === 'دية' ? 'دية' : 'علاج مرضى الأورام',
-              requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
-              disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
-              closed: Boolean(c.closed),
-              description: String(c.description || ''),
-              votes: {
-                approve: Math.max(0, Number(c.votes?.approve) || 0),
-                reject: Math.max(0, Number(c.votes?.reject) || 0)
-              },
-              rejections: Array.isArray(c.rejections) ? c.rejections : []
-            }))
-        : base.cases;
+        ? rawState.cases.filter(c => c && c.id).map(c => ({
+            id: String(c.id),
+            title: String(c.title || 'حالة تكافل'),
+            category: String(c.category || 'علاج مرضى الأورام'),
+            requiredAmount: Math.max(0, Number(c.requiredAmount) || 0),
+            disbursedAmount: Math.max(0, Number(c.disbursedAmount) || 0),
+            closed: Boolean(c.closed),
+            description: String(c.description || ''),
+            votes: {
+              approve: Math.max(0, Number(c.votes?.approve) || 0),
+              reject: Math.max(0, Number(c.votes?.reject) || 0)
+            },
+            rejections: Array.isArray(c.rejections) ? c.rejections : []
+          }))
+        : fallback.cases;
 
-      const pendingContributions = Array.isArray(rawState.pendingContributions)
-        ? rawState.pendingContributions.filter(p => p && p.id && !deleted.has(String(p.id)))
-        : [];
+      const normalizeEntry = (item, isDisb = false) => ({
+        id: String(item.id || ('item-' + Math.random().toString(36).slice(2, 9))),
+        type: isDisb ? 'disbursement' : (item.type === 'case' || (item.target && item.target !== 'general') ? 'case' : 'general'),
+        contributorName: String(item.contributorName || 'مساهم'),
+        branch: String(item.branch || ''),
+        amount: Math.max(0, Number(item.amount) || 0),
+        target: String(item.target || 'general'),
+        targetLabel: String(item.targetLabel || 'رصيد الصندوق العام'),
+        method: String(item.method || (isDisb ? 'صرف من الصندوق' : 'المصرف (تحويل مصرفي)')),
+        note: String(item.note || ''),
+        receiptData: String(item.receiptData || ''),
+        receiptName: String(item.receiptName || ''),
+        phone: String(item.phone || ''),
+        createdAt: String(item.createdAt || formatNowDate()),
+        userEditUsed: Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1,
+        userEditCount: Math.min(1, Number(item.userEditCount) || (item.userEditUsed ? 1 : 0))
+      });
 
-      const approvedContributions = Array.isArray(rawState.approvedContributions)
-        ? rawState.approvedContributions.filter(a => a && a.id && !deleted.has(String(a.id)))
-        : [];
+      const approvedContributions = deduplicateContributionsList(
+        Array.isArray(rawState.approvedContributions)
+          ? rawState.approvedContributions.filter(x => x && x.id).map(x => normalizeEntry(x, x.type === 'disbursement'))
+          : fallback.approvedContributions
+      );
+
+      const approvedIds = new Set(approvedContributions.map(x => String(x.id)));
+      const pendingContributions = deduplicateContributionsList(
+        Array.isArray(rawState.pendingContributions)
+          ? rawState.pendingContributions
+              .filter(x => x && x.id && !approvedIds.has(String(x.id)))
+              .map(x => normalizeEntry(x, false))
+              .filter(p => !approvedContributions.some(a => isSameLogicalContribution(a, p)))
+          : []
+      );
 
       return {
         lastUpdated: String(rawState.lastUpdated || formatNowDate()),
@@ -3014,13 +3042,37 @@
 
     function computeStateSyncFingerprint(stateObj) {
       try {
-        return JSON.stringify({
-          cases: stateObj.cases || [],
-          pendingContributions: stateObj.pendingContributions || [],
-          approvedContributions: stateObj.approvedContributions || []
-        });
+        const s = stateObj || appState;
+        const casesSig = (s.cases || []).map(c => [
+          c.id, c.title, c.category, c.requiredAmount, c.disbursedAmount, c.closed ? 1 : 0,
+          c.description, c.votes?.approve || 0, c.votes?.reject || 0, (c.rejections || []).length
+        ].join('~')).join('|');
+        const pendSig = (s.pendingContributions || []).map(p => [
+          p.id, p.contributorName, p.branch, p.amount, p.target, p.method, p.note, p.phone, p.userEditUsed ? 1 : 0
+        ].join('~')).join('|');
+        const apprSig = (s.approvedContributions || []).map(a => [
+          a.id, a.type, a.contributorName, a.branch, a.amount, a.target, a.method, a.note, a.phone, a.userEditUsed ? 1 : 0
+        ].join('~')).join('|');
+        return `${casesSig}##${pendSig}##${apprSig}`;
       } catch (e) {
-        return JSON.stringify(stateObj);
+        return String(Date.now());
+      }
+    }
+
+    function saveAppState(reason = 'تحديث البيانات') {
+      try {
+        appState.lastUpdated = formatNowDate();
+        appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions);
+        const approvedIds = new Set(appState.approvedContributions.map(x => String(x.id)));
+        appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions)
+          .filter(p => !approvedIds.has(String(p.id)) && !appState.approvedContributions.some(a => isSameLogicalContribution(a, p)));
+
+        const serialized = JSON.stringify(appState);
+        writeStorageSafe(STORAGE_KEY, serialized);
+        pushStateToFirebase(false);
+        return reason;
+      } catch (e) {
+        return reason;
       }
     }
 
@@ -3028,46 +3080,229 @@
       try {
         const raw = readStorageSafe(STORAGE_KEY);
         if (raw) {
-          appState = sanitizeStateData(JSON.parse(raw));
+          const parsed = JSON.parse(raw);
+          appState = sanitizeStateData(parsed);
         } else {
           appState = getInitialState();
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
         }
+        lastSyncedFingerprint = computeStateSyncFingerprint(appState);
       } catch (e) {
         appState = getInitialState();
       }
     }
 
-    function applyRestoredState(snapshot) {
-      try {
-        if (!snapshot || !snapshot.state) return;
-        appState = sanitizeStateData(snapshot.state);
-        appState.lastUpdated = formatNowDate();
-        if (snapshot.lang) document.documentElement.lang = snapshot.lang;
-        if (snapshot.dir) document.documentElement.dir = snapshot.dir;
-        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        applyRestoredFormInputs(snapshot.inputs);
-        renderAll();
-        pushStateToFirebase(true);
-        showToast(`تم استرداد النسخة (${snapshot.createdAt}) بالكامل.`);
-      } catch (e) {
-        showToast('حدث خطأ أثناء استرداد النسخة.');
+    function applyRestoredState(snap) {
+      if (!snap || !snap.state) return;
+      appState = sanitizeStateData(snap.state);
+      appState.lastUpdated = formatNowDate();
+      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+      if (snap.inputs) {
+        applyRestoredFormInputs(snap.inputs);
       }
-    }
-
-    function saveAppState(reason = 'تحديث البيانات') {
-      try {
-        appState.lastUpdated = formatNowDate();
-        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        saveAutoBackupSnapshot(reason, true);
-        pushStateToFirebase(false);
-      } catch (e) {}
+      renderAll();
+      pushStateToFirebase(true);
+      showToast('تم استرداد النسخة الاحتياطية بنجاح.', 'success');
     }
 
     function startAutoBackupTimer() {
       if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
       autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('نسخة تلقائية كل 10 دقائق', true);
+        if (typeof document !== 'undefined' && document.hidden) return;
+        saveAutoBackupSnapshot('نسخة دورية تلقائية', false);
       }, BACKUP_INTERVAL_MS);
+    }
+
+    function saveAutoBackupSnapshot(reason = 'نسخة تلقائية', notify = false) {
+      try {
+        const history = getAutoBackupHistory();
+        const snapshot = {
+          id: 'bkp-' + Date.now(),
+          createdAt: formatNowDate(),
+          reason,
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          state: sanitizeStateData(appState),
+          inputs: {
+            contribName: document.getElementById('contrib-name')?.value || '',
+            contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
+            contribAmount: document.getElementById('contrib-amount')?.value || '',
+            contribTarget: document.getElementById('contrib-target')?.value || 'general',
+            contribMethod: document.getElementById('contrib-method')?.value || '',
+            contribNote: document.getElementById('contrib-note')?.value || '',
+            contribPhone: document.getElementById('contrib-phone')?.value || '',
+            searchQuery: document.getElementById('ledger-search-input')?.value || '',
+            filterType: document.getElementById('ledger-filter-select')?.value || 'all'
+          }
+        };
+        const updated = [snapshot, ...history].slice(0, MAX_BACKUP_SNAPSHOTS);
+        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify(updated));
+        writeStorageSafe(AUTO_BACKUP_KEY, JSON.stringify(snapshot));
+        if (isAdminMode) updateBackupAdminUI();
+        if (notify) showToast(`تم حفظ نسخة احتياطية (${reason}).`, 'info');
+      } catch (e) {}
+    }
+
+    function updateBackupAdminUI() {
+      // مزامنة حالة أزرار النسخ الاحتياطي داخل لوحة الإدارة
+      const backupBar = document.getElementById('admin-backup-bar');
+      if (backupBar && isAdminMode) {
+        backupBar.classList.remove('hidden');
+      }
+    }
+
+    function applyRestoredFormInputs(inputs) {
+      if (!inputs || typeof inputs !== 'object') return;
+      try {
+        const setVal = (id, val) => {
+          const el = document.getElementById(id);
+          if (el && val !== undefined && val !== null) el.value = String(val);
+        };
+        setVal('contrib-name', inputs.contribName);
+        setVal('contrib-branch', inputs.contribBranch);
+        setVal('contrib-amount', inputs.contribAmount);
+        setVal('contrib-target', inputs.contribTarget);
+        setVal('contrib-method', inputs.contribMethod);
+        setVal('contrib-note', inputs.contribNote);
+        setVal('contrib-phone', inputs.contribPhone);
+        setVal('ledger-search-input', inputs.searchQuery);
+        setVal('ledger-filter-select', inputs.filterType);
+        toggleNewPaymentFields();
+      } catch (e) {}
+    }
+
+    function exportManualBackupFile() {
+      try {
+        saveAutoBackupSnapshot('تصدير ملف نسخة احتياطية', false);
+        const payload = {
+          exportedAt: formatNowDate(),
+          version: '1.0',
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          state: sanitizeStateData(appState),
+          inputs: {
+            contribName: document.getElementById('contrib-name')?.value || '',
+            contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
+            contribAmount: document.getElementById('contrib-amount')?.value || '',
+            contribTarget: document.getElementById('contrib-target')?.value || 'general',
+            contribMethod: document.getElementById('contrib-method')?.value || '',
+            contribNote: document.getElementById('contrib-note')?.value || '',
+            contribPhone: document.getElementById('contrib-phone')?.value || ''
+          }
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sayaan-backup-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('تم تنزيل ملف النسخة الاحتياطية بنجاح.', 'success');
+      } catch (e) {
+        showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'warning');
+      }
+    }
+
+    function handleManualBackupFileImport(input) {
+      const file = input?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          const candidateState = parsed.state || (Array.isArray(parsed.cases) ? parsed : null);
+          if (!candidateState) {
+            showToast('ملف النسخة الاحتياطية غير صالح.', 'warning');
+            return;
+          }
+          const snapId = 'imported-' + Date.now();
+          const history = getAutoBackupHistory();
+          const newSnap = {
+            id: snapId,
+            createdAt: parsed.exportedAt || formatNowDate(),
+            reason: 'ملف مستورد',
+            lang: parsed.lang || 'ar',
+            dir: parsed.dir || 'rtl',
+            state: sanitizeStateData(candidateState),
+            inputs: parsed.inputs || {}
+          };
+          writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([newSnap, ...history].slice(0, MAX_BACKUP_SNAPSHOTS)));
+          pendingRestoreSnapshotId = snapId;
+          const detailsEl = document.getElementById('restore-confirm-details');
+          if (detailsEl) {
+            detailsEl.textContent = `هل تريد استرداد النسخة المستوردة بتاريخ (${newSnap.createdAt}) بالكامل؟`;
+          }
+          const modal = document.getElementById('restore-confirm-modal');
+          if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+          }
+        } catch (err) {
+          showToast('تعذر قراءة ملف النسخة الاحتياطية.', 'warning');
+        } finally {
+          if (input) input.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function closeRestoreConfirmModal() {
+      pendingRestoreSnapshotId = null;
+      const modal = document.getElementById('restore-confirm-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function confirmRestorePendingSnapshot() {
+      if (!pendingRestoreSnapshotId) return;
+      const snap = getAutoBackupHistory().find(s => s.id === pendingRestoreSnapshotId);
+      closeRestoreConfirmModal();
+      if (snap) applyRestoredState(snap);
+    }
+
+    async function loginWithAdminBiometric() {
+      const errEl = document.getElementById('admin-login-error');
+      try {
+        const saved = getSavedBiometricCredential();
+        if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.get) {
+          if (errEl) {
+            errEl.textContent = 'المصادقة بالبصمة غير مدعومة في هذا المتصفح، استخدم البريد وكلمة المرور.';
+            errEl.classList.remove('hidden');
+          }
+          return;
+        }
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        const publicKey = {
+          challenge,
+          userVerification: 'required',
+          timeout: 60000
+        };
+        if (saved && saved.credId) {
+          publicKey.allowCredentials = [{
+            type: 'public-key',
+            id: base64UrlToUint8Array(saved.credId)
+          }];
+        }
+        const assertion = await navigator.credentials.get({ publicKey });
+        if (assertion) {
+          isAdminMode = true;
+          if (errEl) errEl.classList.add('hidden');
+          closeAdminLoginModal();
+          updateAdminUI();
+          renderAll();
+          showToast('تم الدخول إلى وضع الإدارة بالبصمة بنجاح.');
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = 'تعذر إتمام المصادقة بالبصمة على هذا الجهاز.';
+          errEl.classList.remove('hidden');
+        }
+      }
     }
 
     function getFirebaseConfig() {
