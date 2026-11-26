@@ -318,17 +318,39 @@
       </div>
 
       <!-- شارة الاتصال بقاعدة البيانات -->
-      <div class="max-w-xl mx-auto flex items-center justify-start mt-2">
+      <div class="max-w-xl mx-auto flex items-center justify-between gap-2 mt-2">
         <span id="cloud-status-badge" class="inline-flex items-center gap-1.5 bg-emerald-950/65 border border-emerald-400/30 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full max-w-fit">
           <span id="cloud-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]"></span>
           <span id="cloud-status-text">متصل ومتزامن</span>
         </span>
+
+        <!-- زر إشعارات المساهمات الجديدة والتعديلات (يظهر في وضع الإدارة) -->
+        <button type="button" id="admin-notifications-btn" onclick="jumpToLatestAdminNotificationAndEdit()" class="hidden items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 border border-amber-200 text-[11px] font-black px-3 py-1 rounded-full shadow-md transition cursor-pointer">
+          <span class="w-2 h-2 rounded-full bg-rose-600 animate-ping"></span>
+          <span id="admin-notifications-btn-label">إشعار جديد</span>
+          <span id="admin-notifications-count-badge" class="bg-emerald-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+        </button>
       </div>
     </div>
   </header>
 
   <!-- المحتوى الرئيسي -->
   <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+    <!-- شريط ولوحة إشعارات المساهمات الجديدة وتعديلات المساهمات -->
+    <section id="admin-notifications-panel" class="hidden bg-gradient-to-l from-amber-50 via-white to-emerald-50 border-2 border-amber-400 rounded-3xl p-4 sm:p-5 shadow-md space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-amber-400 text-emerald-950 font-black text-sm shadow-2xs">🔔</span>
+          <div>
+            <h2 class="text-sm sm:text-base font-black text-slate-900">شريط إشعارات المساهمات الجديدة والتعديلات</h2>
+            <p class="text-[11px] font-bold text-slate-600">اضغط على زر «معاينة وتعديل» للانتقال مباشرة إلى الإشعار وفتح نافذة تعديله.</p>
+          </div>
+        </div>
+        <span id="admin-notifications-panel-count" class="bg-emerald-700 text-white text-xs font-black px-3 py-1 rounded-full">0 إشعارات</span>
+      </div>
+      <div id="admin-notifications-list" class="space-y-2.5"></div>
+    </section>
+
     <!-- لافتة الآية الكريمة والتعريف -->
     <section class="quran-banner text-white rounded-3xl p-6 sm:p-8 text-center shadow-lg border border-emerald-600/40 space-y-4">
       <span class="inline-block bg-emerald-950/60 border border-amber-400/40 text-amber-300 text-xs font-extrabold px-4 py-1 rounded-full">
@@ -1752,12 +1774,128 @@
       const addCaseBtn = document.getElementById('admin-add-case-btn');
       const pendingPanel = document.getElementById('admin-pending-panel');
       const backupSection = document.getElementById('manual-backup-restore-section');
+      const notifBtn = document.getElementById('admin-notifications-btn');
+      const notifPanel = document.getElementById('admin-notifications-panel');
       if (label) label.textContent = isAdminMode ? 'خروج من الإدارة' : 'وضع الإدارة';
       if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminMode);
       if (pendingPanel) pendingPanel.classList.toggle('hidden', !isAdminMode);
       if (backupSection) backupSection.classList.toggle('hidden', !isAdminMode);
+      if (notifBtn) {
+        notifBtn.classList.toggle('hidden', !isAdminMode);
+        notifBtn.classList.toggle('inline-flex', isAdminMode);
+      }
+      if (notifPanel) notifPanel.classList.toggle('hidden', !isAdminMode);
+      renderAdminNotifications();
       updateBiometricButtonsUI();
       updateBackupAdminUI();
+    }
+
+    function getAdminNotificationsList() {
+      const pending = (Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [])
+        .filter(Boolean)
+        .map(p => ({
+          id: String(p.id),
+          scope: 'pending',
+          kind: 'new',
+          kindLabel: 'مساهم جديد',
+          title: p.contributorName || 'فاعل خير',
+          branch: p.branch || '',
+          amount: Number(p.amount) || 0,
+          targetLabel: p.targetLabel || 'رصيد الصندوق العام',
+          timeStr: formatDateTimeWithPeriod(p.createdAt || formatNowDate())
+        }));
+
+      const edited = (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
+        .filter(x => x && x.type !== 'disbursement' && x.pendingAdminReapproval)
+        .map(ed => ({
+          id: String(ed.id),
+          scope: 'approved',
+          kind: 'edit',
+          kindLabel: 'تعديل مساهمة',
+          title: ed.contributorName || 'فاعل خير',
+          branch: ed.branch || '',
+          amount: Number(ed.amount) || 0,
+          targetLabel: ed.targetLabel || 'رصيد الصندوق العام',
+          timeStr: formatDateTimeWithPeriod(ed.editedAt || ed.createdAt || formatNowDate())
+        }));
+
+      return [...edited, ...pending];
+    }
+
+    function renderAdminNotifications() {
+      const btnLabel = document.getElementById('admin-notifications-btn-label');
+      const btnCount = document.getElementById('admin-notifications-count-badge');
+      const panelCount = document.getElementById('admin-notifications-panel-count');
+      const listEl = document.getElementById('admin-notifications-list');
+      const notifications = getAdminNotificationsList();
+
+      if (btnCount) btnCount.textContent = String(notifications.length);
+      if (panelCount) panelCount.textContent = `${notifications.length} إشعارات`;
+      if (btnLabel) {
+        if (!notifications.length) {
+          btnLabel.textContent = 'لا توجد إشعارات';
+        } else {
+          const first = notifications[0];
+          btnLabel.textContent = `${first.kindLabel}: ${first.title}`;
+        }
+      }
+
+      if (!listEl) return;
+      if (!notifications.length) {
+        listEl.innerHTML = `<div class="bg-white/80 border border-amber-200 rounded-2xl p-3 text-center text-xs font-bold text-slate-600">لا توجد إشعارات جديدة لمساهمات أو تعديلات حالياً.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = notifications.map((n, idx) => `
+        <div id="admin-notif-item-${escapeHtml(n.id)}" class="bg-white border ${n.kind === 'edit' ? 'border-amber-400' : 'border-emerald-300'} rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs transition">
+          <div class="space-y-0.5 text-xs">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black ${n.kind === 'edit' ? 'bg-amber-400 text-emerald-950' : 'bg-emerald-600 text-white'}">${escapeHtml(n.kindLabel)}</span>
+              <span class="font-black text-slate-900">${escapeHtml(n.title)}</span>
+              ${n.branch ? `<span class="text-[11px] font-bold text-emerald-700">(${escapeHtml(n.branch)})</span>` : ''}
+              <span class="font-black text-emerald-700">${formatCurrency(n.amount)}</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-500">الوجهة: ${escapeHtml(n.targetLabel)} • ${escapeHtml(n.timeStr)}</p>
+          </div>
+          <button type="button" onclick="navigateToNotificationAndEdit('${escapeHtml(n.id)}', '${escapeHtml(n.scope)}')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow-2xs transition cursor-pointer">
+            معاينة وتعديل
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function navigateToNotificationAndEdit(id, scope = 'pending') {
+      if (!isAdminMode) {
+        showToast('يرجى الدخول إلى وضع الإدارة أولاً.', 'warning');
+        return;
+      }
+      const panel = document.getElementById('admin-pending-panel');
+      if (panel) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      const notifEl = document.getElementById(`admin-notif-item-${id}`);
+      if (notifEl) {
+        notifEl.classList.add('ring-2', 'ring-amber-500');
+        setTimeout(() => notifEl.classList.remove('ring-2', 'ring-amber-500'), 1500);
+      }
+      setTimeout(() => {
+        openEditContributionModal(id, scope);
+      }, 180);
+    }
+
+    function jumpToLatestAdminNotificationAndEdit() {
+      if (!isAdminMode) {
+        openAdminLoginModal();
+        return;
+      }
+      const notifications = getAdminNotificationsList();
+      if (!notifications.length) {
+        document.getElementById('admin-notifications-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast('لا توجد إشعارات لمساهمات جديدة أو تعديلات حالياً.', 'info');
+        return;
+      }
+      const latest = notifications[0];
+      navigateToNotificationAndEdit(latest.id, latest.scope);
     }
 
     function getDeviceVotes() {
@@ -3627,6 +3765,7 @@
       renderTargetSelects();
       renderCases();
       renderPendingContributions();
+      renderAdminNotifications();
       renderLedger();
       if (isAdminMode) {
         updateBackupAdminUI();
