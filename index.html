@@ -957,6 +957,8 @@
     let isPushingFirebase = false;
     let isPullingFirebase = false;
     let lastSyncedFingerprint = '';
+    let hasLocalStateStored = false;
+    let hasUnsyncedLocalChanges = false;
     let renderAllFrameId = null;
     let pendingRestoreSnapshotId = null;
     const memoryStore = {
@@ -2909,7 +2911,7 @@
         ].join('~')).join('|');
         return `${casesSig}##${pendSig}##${apprSig}`;
       } catch (e) {
-        return String(Date.now());
+        return '';
       }
     }
 
@@ -2924,6 +2926,8 @@
         appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions)
           .filter(p => !approvedIds.has(String(p.id)) && !appState.approvedContributions.some(a => isSameLogicalContribution(a, p)));
 
+        hasLocalStateStored = true;
+        hasUnsyncedLocalChanges = true;
         const serialized = JSON.stringify(appState);
         writeStorageSafe(STORAGE_KEY, serialized);
         pushStateToFirebase(true);
@@ -2951,6 +2955,7 @@
         ];
         const raw = readStorageSafe(STORAGE_KEY);
         if (raw) {
+          hasLocalStateStored = true;
           const parsed = JSON.parse(raw);
           const mergedDeleted = Array.from(new Set([
             ...getDeletedIds(),
@@ -2967,14 +2972,16 @@
             approvedContributions: (Array.isArray(parsed.approvedContributions) ? parsed.approvedContributions : []).filter(a => a && !deletedSet.has(String(a.id)))
           };
           appState = sanitizeStateData(cleanParsed);
+          appState.updatedAtMs = Number(parsed.updatedAtMs) || 0;
         } else {
+          hasLocalStateStored = false;
           setDeletedIdsList(seededDeletedIds);
           appState = {
             ...initialClean,
+            updatedAtMs: 0,
             deletedIds: seededDeletedIds
           };
         }
-        appState.updatedAtMs = Math.max(Number(appState.updatedAtMs) || 0, Date.now());
         writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
         lastSyncedFingerprint = computeStateSyncFingerprint(appState);
       } catch (e) {
@@ -3077,18 +3084,20 @@
             contribTarget: document.getElementById('contrib-target')?.value || 'general',
             contribMethod: document.getElementById('contrib-method')?.value || '',
             contribNote: document.getElementById('contrib-note')?.value || '',
-            contribPhone: document.getElementById('contrib-phone')?.value || ''
+            contribPhone: document.getElementById('contrib-phone')?.value || '',
+            searchQuery: document.getElementById('ledger-search-input')?.value || '',
+            filterType: document.getElementById('ledger-filter-select')?.value || 'all'
           }
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sayaan-backup-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+        a.download = `sayaan-takaful-backup-${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         showToast('تم تنزيل ملف النسخة الاحتياطية بنجاح.', 'success');
       } catch (e) {
         showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'warning');
@@ -3257,6 +3266,7 @@
         if (timeoutId) clearTimeout(timeoutId);
         if (res.ok) {
           lastSyncedFingerprint = fingerprint;
+          hasUnsyncedLocalChanges = false;
           setCloudStatus(true, 'متصل ومتزامن');
         }
       } catch (e) {
@@ -3351,8 +3361,10 @@
 
           let nextState;
 
-          // إذا كانت التحديثات في Firebase أحدث من النسخة المحلية، نعتمد المصدر السحابي بعد استبعاد المحذوفات
-          if (remoteUpdatedAt >= localUpdatedAt) {
+          // اعتماد الحالة السحابية إذا لم تكن هناك تغييرات محلية غير مرفوعة أو إذا كانت السحابة أحدث
+          const shouldAcceptRemote = !hasUnsyncedLocalChanges && (!hasLocalStateStored || remoteUpdatedAt >= localUpdatedAt);
+
+          if (shouldAcceptRemote) {
             const cleanApproved = deduplicateContributionsList(
               (remoteState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
             );
@@ -3373,7 +3385,7 @@
               approvedContributions: cleanApproved
             };
           } else {
-            // النسخة المحلية أحدث من السحابة؛ نحافظ عليها ونستبعد أي محذوفات
+            // النسخة المحلية أحدث أو بها تعديلات لم تُرفع بعد؛ نحافظ عليها ونستبعد أي محذوفات
             const cleanApproved = deduplicateContributionsList(
               (appState.approvedContributions || []).filter(item => item && item.id && !deletedSet.has(String(item.id)))
             );
@@ -3396,12 +3408,13 @@
           }
 
           const nextFingerprint = computeStateSyncFingerprint(nextState);
-          if (nextFingerprint !== localFingerprint || remoteFingerprint !== localFingerprint) {
+          if (nextFingerprint !== localFingerprint || remoteFingerprint !== localFingerprint || !hasLocalStateStored) {
             appState = nextState;
+            hasLocalStateStored = true;
             writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
             lastSyncedFingerprint = nextFingerprint;
             scheduleRenderAll();
-            if (remoteUpdatedAt > localUpdatedAt) {
+            if (hasUnsyncedLocalChanges || (shouldAcceptRemote && remoteFingerprint !== localFingerprint)) {
               await pushStateToFirebase(false);
             }
           } else {
