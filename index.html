@@ -616,6 +616,21 @@
           <input type="file" id="phone-backup-file-input" accept=".json,application/json,text/plain" onchange="handleManualBackupFileImport(this)" class="hidden" />
         </label>
       </div>
+
+      <div class="bg-emerald-50/70 border border-emerald-200/90 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm sm:text-base font-black text-emerald-950">نقاط الاستعادة التلقائية عند حدوث خلل أو تداخل</h3>
+            <p class="text-xs font-bold text-slate-600 mt-0.5">
+              تُحفظ لقطات تلقائية للبيانات والأرقام؛ يمكنك استعادة أحدث نقطة أو العودة إلى نقطة معينة ومزامنتها مع Firebase.
+            </p>
+          </div>
+          <button type="button" onclick="restoreLatestAutoSnapshot()" class="shrink-0 h-10 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-4 rounded-xl shadow-2xs transition cursor-pointer">
+            استعادة أحدث نقطة حفظ
+          </button>
+        </div>
+        <div id="auto-recovery-snapshots-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
     </section>
   </main>
 
@@ -1842,6 +1857,7 @@
       if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminMode);
       if (isAdminMode) {
         renderPendingContributions();
+        renderAutoRecoverySnapshots();
       }
       renderAdminNotifications();
     }
@@ -2276,106 +2292,185 @@
         const yesPct = totalVotesCount > 0 ? Math.round((votesYesCount / totalVotesCount) * 100) : 0;
         const noPct = totalVotesCount > 0 ? Math.max(0, 100 - yesPct) : 0;
 
-        const completedVoteBarHtml = `
-          <div class="bg-slate-50/95 border border-slate-200/90 rounded-2xl p-3 space-y-2">
-            <div class="flex items-center justify-between text-xs font-black">
-              <span class="text-slate-700">بيان التصويت على الحالة:</span>
-              <span class="text-[11px] font-bold text-slate-500">إجمالي الأصوات: ${totalVotesCount}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-xs font-black">
-              <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-3 py-2 flex items-center justify-between">
-                <span>نعم (موافق)</span>
-                <span class="bg-emerald-700 text-white px-2 py-0.5 rounded-full text-[11px]">${votesYesCount} (${yesPct}%)</span>
-              </div>
-              <div class="bg-rose-50 border border-rose-200 text-rose-900 rounded-xl px-3 py-2 flex items-center justify-between">
-                <span>لا (غير موافق)</span>
-                <span class="bg-rose-600 text-white px-2 py-0.5 rounded-full text-[11px]">${votesNoCount} (${noPct}%)</span>
-              </div>
-            </div>
-            <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
-              <div class="bg-emerald-600 h-full transition-all duration-300" style="width: ${yesPct}%"></div>
-              <div class="bg-rose-500 h-full transition-all duration-300" style="width: ${noPct}%"></div>
-            </div>
-          </div>
-        `;
+        const timelineBarClass = isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar';
+        const statusBadge = isCompleted
+          ? `<span class="inline-flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-sm">✓ مكتملة ومغطاة</span>`
+          : `<span class="status-badge-glow inline-flex items-center gap-1 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[11px] font-black px-3 py-1 rounded-full">⚡ قيد التصويت والدعم</span>`;
 
         return `
-          <article class="${theme.cardClass} rounded-3xl p-5 pt-6 flex flex-col justify-between gap-4 transition-transform duration-200 hover:-translate-y-0.5">
+          <article class="${theme.cardClass} rounded-3xl p-5 sm:p-6 flex flex-col justify-between gap-4 transition">
             <div class="space-y-3">
               <div class="flex items-start justify-between gap-2">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1 ${theme.numberBadge} text-[11px] font-black px-2.5 py-1 rounded-full shadow-2xs">
-                    <span>${theme.cornerOrnament}</span>
-                    <span>حالة #${idx + 1}</span>
-                  </span>
-                  <span class="inline-block ${theme.categoryBadge} text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category)}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="${theme.numberBadge} text-xs font-black px-2.5 py-1 rounded-full">#${idx + 1}</span>
+                  <span class="${theme.categoryBadge} text-xs font-black px-3 py-1 rounded-full">${escapeHtml(c.category || 'حالة')}</span>
+                  ${statusBadge}
                 </div>
-                <span class="inline-block ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-400 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full shrink-0">
-                  ${isCompleted ? 'مكتملة السداد' : 'قيد التصويت والدعم'}
-                </span>
+                <span class="text-slate-400 text-base select-none" aria-hidden="true">${theme.cornerOrnament}</span>
               </div>
 
               <div>
-                <h3 class="text-base sm:text-lg font-black text-slate-900">${escapeHtml(c.title)}</h3>
-                <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>
+                <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">${escapeHtml(c.title || '')}</h3>
+                ${c.description ? `<p class="text-xs sm:text-sm font-bold text-slate-600 mt-1 leading-relaxed">${escapeHtml(c.description)}</p>` : ''}
               </div>
 
-              <div class="${theme.innerPanel} border rounded-2xl p-3 space-y-2 shadow-2xs">
+              <div class="${theme.innerPanel} border rounded-2xl p-3.5 space-y-2">
                 <div class="flex items-center justify-between text-xs font-black">
-                  <span class="text-slate-600">المطلوب: <span class="text-slate-900">${formatCurrency(req)}</span></span>
-                  <span class="text-emerald-700">المغطى: ${formatCurrency(covered)} (${pct}%)</span>
+                  <span class="text-slate-600">نسبة التغطية (${pct}%)</span>
+                  <span class="text-emerald-800">المغطى: ${formatCurrency(covered)} من ${formatCurrency(req)}</span>
                 </div>
-                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full transition-all duration-500 ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'}" style="width: ${pct}%"></div>
+                <div class="w-full h-3 bg-slate-200/90 rounded-full overflow-hidden">
+                  <div class="h-full ${timelineBarClass} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-xs font-black pt-0.5">
-                  <span class="${remaining > 0 ? 'text-amber-700' : 'text-emerald-700'}">
-                    ${remaining > 0 ? `القيمة المتبقية: ${formatCurrency(remaining)}` : 'تم سداد كامل القيمة'}
-                  </span>
-                  ${surplus > 0 ? `<span class="text-[11px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">فائض محوّل للصندوق: ${formatCurrency(surplus)}</span>` : ''}
+                <div class="flex items-center justify-between text-[11px] font-extrabold pt-0.5">
+                  <span class="text-amber-800">المتبقي للحالة: ${formatCurrency(remaining)}</span>
+                  ${surplus > 0 ? `<span class="text-emerald-700">فائض للصندوق: ${formatCurrency(surplus)}</span>` : `<span class="text-slate-500">مساهمات الحالة: ${caseContribs.length}</span>`}
                 </div>
               </div>
 
               ${(fundContributionsHtml || donorsHtml) ? `
-                <div class="space-y-2 pt-1">
-                  <p class="text-xs font-black text-slate-700">المساهمات المسجلة للحالة:</p>
-                  <div class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
-                    ${fundContributionsHtml}
-                    ${donorsHtml}
-                  </div>
+                <div class="space-y-1.5 pt-1">
+                  <p class="text-[11px] font-black text-slate-700">المساهمات والدعم المخصص للحالة:</p>
+                  <div class="space-y-1.5 max-h-40 overflow-y-auto">${fundContributionsHtml}${donorsHtml}</div>
                 </div>
               ` : ''}
 
               ${rejectionsHtml}
             </div>
 
-            <div class="space-y-2.5 pt-2 border-t border-slate-100">
+            <div class="space-y-2.5 pt-2 border-t border-slate-200/80">
               ${!isCompleted ? `
                 <div class="grid grid-cols-2 gap-2">
-                  <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
-                    <span>موافق</span>
-                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${votesYesCount}</span>
+                  <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300'}">
+                    <span>موافق (${votesYesCount} • ${yesPct}%)</span>
                   </button>
-                  <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'}">
-                    <span>غير موافق</span>
-                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${votesNoCount}</span>
+                  <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300'}">
+                    <span>غير موافق (${votesNoCount} • ${noPct}%)</span>
                   </button>
                 </div>
-
-                <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm transition cursor-pointer">
-                  المساهمة في هذه الحالة (${rawFunded > 0 && remaining > 0 ? `متبقي: ${formatCurrency(remaining)}` : `القيمة الكاملة: ${formatCurrency(req)}`})
+                <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm shadow-2xs transition cursor-pointer">
+                  + ساهم في هذه الحالة
                 </button>
-              ` : completedVoteBarHtml}
+              ` : `
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl py-2.5 px-3 text-center text-xs font-black text-emerald-800">
+                  تم اكتمال تغطية هذه الحالة بنجاح
+                </div>
+              `}
 
               ${isAdminMode ? `
                 <div class="grid grid-cols-3 gap-2 pt-1">
-                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">صرف مساعدة</button>
-                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
-                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
+                  <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-[11px] transition cursor-pointer">صرف من الصندوق</button>
+                  <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] transition cursor-pointer">تعديل الحالة</button>
+                  <button type="button" onclick="deleteCaseItem('${escapeHtml(c.id)}')" class="py-2 px-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] transition cursor-pointer">حذف الحالة</button>
                 </div>
               ` : ''}
             </div>
           </article>
+        `;
+      }).join('');
+    }
+
+    function getAutoBackupHistory() {
+      try {
+        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (e) {}
+      return [];
+    }
+
+    function applyRestoredSnapshotState(rawState, label = 'نقطة استعادة') {
+      if (!rawState || typeof rawState !== 'object') {
+        showToast('تعذر العثور على بيانات صالحة في نقطة الاستعادة.', 'warning');
+        return false;
+      }
+      const restoredStampMs = Math.max(
+        Date.now() + 86400000,
+        (Number(rawState.updatedAtMs) || 0) + 86400000
+      );
+      setDeletedIdsList(Array.isArray(rawState.deletedIds) ? rawState.deletedIds : []);
+      const sanitized = sanitizeStateData({
+        ...rawState,
+        updatedAtMs: restoredStampMs
+      });
+      appState = {
+        ...sanitized,
+        lastUpdated: formatNowDate(),
+        updatedAtMs: restoredStampMs
+      };
+      hasLocalStateStored = true;
+      hasUnsyncedLocalChanges = true;
+      lastSyncedFingerprint = '';
+      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+      writeStorageSafe(RESTORED_LOCK_KEY, JSON.stringify({
+        updatedAtMs: restoredStampMs,
+        restoredAt: appState.lastUpdated,
+        state: appState
+      }));
+      renderAll();
+      scheduleFirebasePush(60, true);
+      showToast(`تمت استعادة (${label}) وتثبيتها ومزامنتها مع Firebase.`, 'success');
+      return true;
+    }
+
+    function restoreLatestAutoSnapshot() {
+      if (!isAdminMode) return;
+      try {
+        const latestRaw = readStorageSafe(AUTO_BACKUP_KEY);
+        if (latestRaw) {
+          const latestObj = JSON.parse(latestRaw);
+          if (latestObj && latestObj.state) {
+            applyRestoredSnapshotState(latestObj.state, latestObj.label || 'أحدث نقطة حفظ');
+            return;
+          }
+        }
+        const hist = getAutoBackupHistory();
+        if (hist.length > 0 && hist[0].state) {
+          applyRestoredSnapshotState(hist[0].state, hist[0].label || 'أحدث نقطة حفظ');
+          return;
+        }
+        showToast('لا توجد نقطة حفظ تلقائية متاحة حالياً.', 'warning');
+      } catch (e) {
+        showToast('حدث خطأ أثناء استعادة أحدث نقطة حفظ.', 'warning');
+      }
+    }
+
+    function restoreAutoSnapshotById(snapshotId) {
+      if (!isAdminMode || !snapshotId) return;
+      const hist = getAutoBackupHistory();
+      const found = hist.find(s => s && String(s.id) === String(snapshotId));
+      if (!found || !found.state) {
+        showToast('لم يتم العثور على نقطة الاستعادة المطلوبة.', 'warning');
+        return;
+      }
+      applyRestoredSnapshotState(found.state, `${found.label || 'لقطة'} — ${found.savedAt || ''}`);
+    }
+
+    function renderAutoRecoverySnapshots() {
+      const box = document.getElementById('auto-recovery-snapshots-list');
+      if (!box) return;
+      const hist = getAutoBackupHistory();
+      if (!hist.length) {
+        box.innerHTML = `<div class="bg-white border border-slate-200 rounded-xl p-3 text-center text-xs font-bold text-slate-500">لا توجد لقطات تلقائية محفوظة بعد.</div>`;
+        return;
+      }
+      box.innerHTML = hist.map((snap, idx) => {
+        const casesCount = Array.isArray(snap.state?.cases) ? snap.state.cases.length : 0;
+        const contribsCount = Array.isArray(snap.state?.approvedContributions) ? snap.state.approvedContributions.length : 0;
+        return `
+          <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0">
+              <p class="font-black text-slate-900 truncate">${escapeHtml(snap.label || `نقطة #${idx + 1}`)}</p>
+              <p class="text-[11px] font-bold text-slate-500 mt-0.5">
+                ${escapeHtml(snap.savedAt || '')} • ${casesCount} حالات • ${contribsCount} قيود
+              </p>
+            </div>
+            <button type="button" onclick="restoreAutoSnapshotById('${escapeHtml(snap.id)}')" class="shrink-0 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-black px-3 py-1.5 rounded-lg text-[11px] transition cursor-pointer">
+              استعادة ومزامنة
+            </button>
+          </div>
         `;
       }).join('');
     }
