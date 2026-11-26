@@ -1033,12 +1033,14 @@
     let ledgerSearchTimer = null;
     let autoBackupMinuteTimer = null;
     let firebasePollTimer = null;
+    let firebasePushDebounceTimer = null;
     let isPushingFirebase = false;
     let isPullingFirebase = false;
     let lastSyncedFingerprint = '';
     let hasLocalStateStored = false;
     let hasUnsyncedLocalChanges = false;
     let renderAllFrameId = null;
+    let isRenderingNow = false;
 
     const memoryStore = {
       deviceVotes: {},
@@ -1237,9 +1239,41 @@
         const s = stateObj || appState;
         return JSON.stringify({
           del: (s.deletedIds || []).slice().sort(),
-          c: (s.cases || []).map(x => [x.id, x.title, x.requiredAmount, x.disbursedAmount, x.closed, x.votesYes, x.votesNo, (x.rejections || []).length]),
-          p: (s.pendingContributions || []).map(x => [x.id, x.contributorName, x.amount, x.target, x.createdAt]),
-          a: (s.approvedContributions || []).map(x => [x.id, x.type, x.contributorName, x.amount, x.target, x.pendingAdminReapproval, x.editedAt])
+          c: (s.cases || []).map(x => [
+            x.id,
+            x.title,
+            x.category,
+            x.description,
+            Number(x.requiredAmount) || 0,
+            Number(x.disbursedAmount) || 0,
+            Boolean(x.closed),
+            Number(x.votesYes) || 0,
+            Number(x.votesNo) || 0,
+            (x.rejections || []).map(r => [r.id, r.reason || '', r.createdAt || ''])
+          ]),
+          p: (s.pendingContributions || []).map(x => [
+            x.id,
+            x.contributorName,
+            x.branch,
+            Number(x.amount) || 0,
+            x.target,
+            x.method,
+            x.note || '',
+            x.createdAt || ''
+          ]),
+          a: (s.approvedContributions || []).map(x => [
+            x.id,
+            x.type,
+            x.contributorName,
+            x.branch,
+            Number(x.amount) || 0,
+            x.target,
+            x.method,
+            x.note || '',
+            Boolean(x.pendingAdminReapproval),
+            x.editedAt || '',
+            x.approvedAt || ''
+          ])
         });
       } catch (e) {
         return '';
@@ -1251,9 +1285,9 @@
         const raw = readStorageSafe(FIREBASE_CFG_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && parsed.dbUrl) {
+          if (parsed && typeof parsed === 'object') {
             return {
-              dbUrl: String(parsed.dbUrl).trim().replace(/\/+$/, ''),
+              dbUrl: String(parsed.dbUrl || DEFAULT_FIREBASE_DB_URL).trim(),
               authSecret: String(parsed.authSecret || '').trim()
             };
           }
@@ -1320,34 +1354,54 @@
       showToast('تم إيقاف الربط السحابي.', 'info');
     }
 
+    function scheduleFirebasePush(delayMs = 80, force = true) {
+      if (firebasePushDebounceTimer) clearTimeout(firebasePushDebounceTimer);
+      firebasePushDebounceTimer = setTimeout(() => {
+        pushStateToFirebase(force);
+      }, delayMs);
+    }
+
     async function pushStateToFirebase(force = false) {
-      if (isPushingFirebase) return;
+      if (isPushingFirebase) {
+        scheduleFirebasePush(180, true);
+        return;
+      }
       const cfg = getFirebaseConfig();
       if (!cfg || !cfg.dbUrl) return;
-      const fp = computeStateSyncFingerprint(appState);
-      if (!force && fp && fp === lastSyncedFingerprint) return;
+      const sanitizedNow = sanitizeStateData(appState);
+      const fp = computeStateSyncFingerprint(sanitizedNow);
+      if (!force && fp && fp === lastSyncedFingerprint && !hasUnsyncedLocalChanges) return;
 
       isPushingFirebase = true;
       try {
+        const stampMs = Math.max(Number(appState.updatedAtMs) || 0, Date.now());
+        appState.updatedAtMs = stampMs;
         const payload = {
-          updatedAt: Number(appState.updatedAtMs) || Date.now(),
+          updatedAt: stampMs,
           lastUpdated: appState.lastUpdated || formatNowDate(),
           deletedIds: getDeletedIds(),
           state: {
             lastUpdated: appState.lastUpdated || formatNowDate(),
-            cases: appState.cases || [],
-            pendingContributions: appState.pendingContributions || [],
-            approvedContributions: appState.approvedContributions || []
+            updatedAtMs: stampMs,
+            deletedIds: getDeletedIds(),
+            cases: sanitizedNow.cases || [],
+            pendingContributions: sanitizedNow.pendingContributions || [],
+            approvedContributions: sanitizedNow.approvedContributions || []
           }
         };
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
         const res = await fetch(buildFirebaseEndpoint(cfg), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined
         });
+        if (timeoutId) clearTimeout(timeoutId);
         if (res.ok) {
           lastSyncedFingerprint = fp;
           hasUnsyncedLocalChanges = false;
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
           setCloudStatus(true, 'متصل ومتزامن');
         }
       } catch (e) {
@@ -1363,18 +1417,25 @@
       if (!cfg || !cfg.dbUrl) return;
       isPullingFirebase = true;
       try {
-        const res = await fetch(buildFirebaseEndpoint(cfg), { cache: 'no-store' });
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+        const res = await fetch(buildFirebaseEndpoint(cfg), {
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined
+        });
+        if (timeoutId) clearTimeout(timeoutId);
         if (!res.ok) return;
         const remote = await res.json();
         if (!remote || !remote.state || typeof remote.state !== 'object') {
           setCloudStatus(true, 'متصل ومتزامن');
           return;
         }
-        const remoteMs = Number(remote.updatedAt) || 0;
+        const remoteMs = Number(remote.updatedAt) || Number(remote.state.updatedAtMs) || 0;
         const localMs = Number(appState.updatedAtMs) || 0;
         const mergedDeletedSet = new Set([
           ...getDeletedIds().map(String),
-          ...(Array.isArray(remote.deletedIds) ? remote.deletedIds.map(String) : [])
+          ...(Array.isArray(remote.deletedIds) ? remote.deletedIds.map(String) : []),
+          ...(Array.isArray(remote.state.deletedIds) ? remote.state.deletedIds.map(String) : [])
         ]);
         setDeletedIdsList(Array.from(mergedDeletedSet));
 
@@ -1386,20 +1447,19 @@
         const remoteFp = computeStateSyncFingerprint(remoteSanitized);
         const currentFp = computeStateSyncFingerprint(appState);
 
-        if (remoteMs > localMs && (remoteSanitized.cases.length || remoteSanitized.approvedContributions.length || remoteSanitized.pendingContributions.length)) {
-          if (remoteFp && remoteFp !== currentFp) {
-            appState = {
-              ...remoteSanitized,
-              deletedIds: Array.from(currentDeletedSet = mergedDeletedSet),
-              updatedAtMs: Math.max(remoteMs, localMs)
-            };
-            hasLocalStateStored = true;
-            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            lastSyncedFingerprint = remoteFp;
-            scheduleRenderAll();
-          }
-        } else if (hasUnsyncedLocalChanges || readStorageSafe(RESTORED_LOCK_KEY)) {
-          await pushStateToFirebase(true);
+        if (remoteMs > localMs && remoteFp && remoteFp !== currentFp) {
+          appState = {
+            ...remoteSanitized,
+            deletedIds: Array.from(mergedDeletedSet),
+            updatedAtMs: remoteMs
+          };
+          hasLocalStateStored = true;
+          hasUnsyncedLocalChanges = false;
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+          lastSyncedFingerprint = remoteFp;
+          scheduleRenderAll();
+        } else if (remoteFp && remoteFp === currentFp) {
+          lastSyncedFingerprint = remoteFp;
         }
         setCloudStatus(true, 'متصل ومتزامن');
       } catch (e) {
@@ -1411,9 +1471,10 @@
 
     function startFirebasePolling() {
       if (firebasePollTimer) clearInterval(firebasePollTimer);
+      pullStateFromFirebase();
       firebasePollTimer = setInterval(() => {
         pullStateFromFirebase();
-      }, 6000);
+      }, 3000);
     }
 
     function loadLocalState() {
@@ -1609,7 +1670,7 @@
         appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions || []).filter(p => p && !deletedSet.has(String(p.id)));
         appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions || []).filter(a => a && !deletedSet.has(String(a.id)));
         appState.lastUpdated = formatNowDate();
-        appState.updatedAtMs = Number(customUpdatedAtMs) || Math.max(Number(appState.updatedAtMs) || 0, Date.now() + 5000);
+        appState.updatedAtMs = Number(customUpdatedAtMs) || Math.max(Number(appState.updatedAtMs) || 0, Date.now());
         hasLocalStateStored = true;
         hasUnsyncedLocalChanges = true;
         const serializedState = JSON.stringify(appState);
@@ -1623,7 +1684,7 @@
         }
         saveAutoBackupSnapshot(reason, false);
         if (pushCloud) {
-          pushStateToFirebase(true);
+          scheduleFirebasePush(60, true);
         }
       } catch (e) {}
     }
@@ -1779,6 +1840,9 @@
       if (pendingPanel) pendingPanel.classList.toggle('hidden', !isAdminMode);
       if (backupPanel) backupPanel.classList.toggle('hidden', !isAdminMode);
       if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminMode);
+      if (isAdminMode) {
+        renderPendingContributions();
+      }
       renderAdminNotifications();
     }
 
@@ -2767,7 +2831,6 @@
       appState.pendingContributions.unshift(entry);
       markAsMyContribution(newId);
       saveAppState('إرسال مساهمة جديدة للمراجعة', true);
-      pushStateToFirebase(true);
 
       document.getElementById('new-contribution-form')?.reset();
       clearNewReceiptSelection();
@@ -2973,7 +3036,6 @@
       }
 
       saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف', true);
-      pushStateToFirebase(true);
       closeEditContributionModal();
       renderAll();
       showToast(
@@ -3003,7 +3065,6 @@
       }
 
       saveAppState('إعادة تدوير واعتماد تعديل مساهمة', true);
-      pushStateToFirebase(true);
       renderAll();
       showToast('تمت مراجعة التعديل واعتماده وتحديث الرصيد ومزامنته في السجل.', 'success');
     }
@@ -3113,7 +3174,6 @@
       });
 
       saveAppState('اعتماد مساهمة وتحديث الرصيد', true);
-      pushStateToFirebase(true);
       renderAll();
       showToast(`تم اعتماد مساهمة (${formatCurrency(approvedAmount)}) وتحديث الرصيد ومزامنتها.`, 'success');
     }
@@ -3154,7 +3214,6 @@
       }
 
       saveAppState('حذف قيد وسحب الرصيد من الحالة', true);
-      pushStateToFirebase(true);
       renderAll();
       showToast('تم حذف الشريط والقيد نهائياً وسحب الرصيد ومزامنته.', 'success');
     }
@@ -3233,17 +3292,33 @@
     }
 
     function renderAll() {
-      renderStats();
-      renderTargetSelects();
-      renderCases();
-      renderPendingContributions();
-      renderAdminNotifications();
-      renderLedger();
+      if (isRenderingNow) return;
+      isRenderingNow = true;
+      try {
+        if (!appState || typeof appState !== 'object') {
+          appState = getInitialState();
+        }
+        renderStats();
+        renderTargetSelects();
+        renderCases();
+        if (isAdminMode) {
+          renderPendingContributions();
+        }
+        renderAdminNotifications();
+        renderLedger();
+      } catch (err) {
+        console.error('Error rendering platform:', err);
+      } finally {
+        isRenderingNow = false;
+      }
     }
 
     function scheduleRenderAll() {
+      if (renderAllFrameId) {
+        cancelAnimationFrame(renderAllFrameId);
+        renderAllFrameId = null;
+      }
       if (typeof requestAnimationFrame === 'function') {
-        if (renderAllFrameId) cancelAnimationFrame(renderAllFrameId);
         renderAllFrameId = requestAnimationFrame(() => {
           renderAllFrameId = null;
           renderAll();
@@ -3253,18 +3328,9 @@
       }
     }
 
-    try {
-      loadLocalState();
-      ensureSeedDataIfEmpty();
-      updateAdminUI();
-      renderAll();
-      if (readStorageSafe(RESTORED_LOCK_KEY)) {
-        pushStateToFirebase(true);
-      }
-      startFirebasePolling();
-    } catch (e) {}
-
-    window.addEventListener('DOMContentLoaded', () => {
+    function initializePlatformOnce() {
+      if (window.__sayaanPlatformInitialized) return;
+      window.__sayaanPlatformInitialized = true;
       try {
         loadLocalState();
         ensureSeedDataIfEmpty();
@@ -3277,6 +3343,27 @@
         }
         startFirebasePolling();
       } catch (e) {}
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initializePlatformOnce);
+    } else {
+      initializePlatformOnce();
+    }
+
+    window.addEventListener('storage', (event) => {
+      if (!event || !event.key) return;
+      if (event.key === STORAGE_KEY || event.key === TOMBSTONE_KEY) {
+        loadLocalState();
+        updateAdminUI();
+        renderAll();
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        pullStateFromFirebase();
+      }
     });
   </script>
 </body>
