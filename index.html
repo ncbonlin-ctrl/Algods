@@ -3706,9 +3706,20 @@
         }
       }
 
-      saveAppState('حذف قيد معتمد');
+      // إذا كانت المساهمة المحذوفة مساهمة إدارية عامة، يتم خصمها مباشرة وإعادة حساب كافة الحالات
+      if (targetItem.type === 'disbursement' && (!targetItem.target || targetItem.target === 'general')) {
+        for (const cItem of (appState.cases || [])) {
+          if (!cItem) continue;
+          const req = Math.max(0, Number(cItem.requiredAmount) || 0);
+          const disb = Math.max(0, Number(cItem.disbursedAmount) || 0);
+          const cSum = getCaseContributionsList(cItem.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          cItem.closed = req > 0 && (disb + cSum) >= req;
+        }
+      }
+
+      saveAppState('حذف قيد وسحب الرصيد من الحالة');
       renderAll();
-      showToast('تم حذف القيد وإزالة قيمته من حساب الحالة فوراً.', 'success');
+      showToast('تم حذف المساهمة وسحب الرصيد من الحالة المعروضة فوراً.', 'success');
     }
 
     function scheduleLedgerRender() {
