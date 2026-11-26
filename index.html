@@ -498,6 +498,48 @@
       </div>
       <div id="pending-contributions-list" class="space-y-3"></div>
     </section>
+
+    <!-- قسم النسخ والحفظ والاستعادة اليدوية الشاملة -->
+    <section id="manual-backup-restore-section" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border-2 border-emerald-200 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <span class="inline-block bg-emerald-100 text-emerald-900 text-xs font-black px-3 py-1 rounded-full mb-1">نسخ وحفظ واستعادة يدوية شاملة</span>
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900">نسخ وحفظ واستعادة كافة تفاصيل المنصة</h2>
+          <p class="text-xs sm:text-sm font-bold text-slate-500 mt-0.5">
+            يشمل جميع تفاصيل الموقع، البيانات، المدخلات، المساهمات، الأرصدة، وبيان المساهمات بالكامل دون استثناء.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="copyFullPlatformPackageToClipboard()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer">
+            نسخ كامل المنصة
+          </button>
+          <button type="button" onclick="exportManualBackupFile()" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer">
+            حفظ نسخة كاملة (JSON)
+          </button>
+          <label class="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-sm transition cursor-pointer inline-flex items-center justify-center">
+            <span>استرداد من ملف</span>
+            <input type="file" id="manual-restore-file-input" accept=".json,application/json" onchange="handleManualBackupFileImport(this)" class="hidden" />
+          </label>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <label for="full-platform-bundle-textarea" class="text-xs font-black text-slate-800">
+            حزمة النسخ والاستعادة اليدوية الكاملة (كل البيانات والمدخلات والمساهمات والأرصدة وبيان المساهمات)
+          </label>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="refreshFullPlatformBundleTextarea()" class="text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-xl transition cursor-pointer">
+              تحديث الحزمة الآن
+            </button>
+            <button type="button" onclick="restorePlatformFromManualTextarea()" class="text-xs font-black bg-emerald-800 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl transition cursor-pointer">
+              استعادة يدوية من النص
+            </button>
+          </div>
+        </div>
+        <textarea id="full-platform-bundle-textarea" rows="8" dir="ltr" placeholder="ستظهر هنا الحزمة الكاملة أو يمكنك لصق نسخة كاملة هنا ثم الضغط على استعادة يدوية من النص..." class="w-full font-mono text-xs bg-slate-50 border border-slate-300 rounded-2xl p-3.5 text-slate-800 focus:bg-white focus:border-emerald-600 outline-none transition"></textarea>
+      </div>
+    </section>
   </main>
 
   <!-- شريط الإشعارات السفلي -->
@@ -2917,6 +2959,189 @@
       if (backupBar && isAdminMode) {
         backupBar.classList.remove('hidden');
       }
+      refreshFullPlatformBundleTextarea();
+    }
+
+    function buildCompletePlatformSnapshotObject(reason = 'نسخة يدوية شاملة') {
+      const metrics = computeFinancialMetrics();
+      const approvedList = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+      const pendingList = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+      const casesList = Array.isArray(appState.cases) ? appState.cases : [];
+
+      const contributionsStatement = approvedList.map((entry, idx) => ({
+        index: idx + 1,
+        id: entry.id,
+        type: entry.type || 'general',
+        contributorName: entry.contributorName || '',
+        branch: entry.branch || '',
+        amount: Number(entry.amount) || 0,
+        formattedAmount: formatCurrency(entry.amount),
+        target: entry.target || 'general',
+        targetLabel: entry.targetLabel || '',
+        method: entry.method || '',
+        note: entry.note || '',
+        phone: entry.phone || '',
+        receiptName: entry.receiptName || '',
+        receiptData: entry.receiptData || '',
+        createdAt: entry.createdAt || '',
+        userEditUsed: Boolean(entry.userEditUsed),
+        userEditCount: Number(entry.userEditCount) || 0
+      }));
+
+      const inputsSnapshot = {
+        contribName: document.getElementById('contrib-name')?.value || '',
+        contribBranch: document.getElementById('contrib-branch')?.value || 'الهمايلة',
+        contribAmount: document.getElementById('contrib-amount')?.value || '',
+        contribTarget: document.getElementById('contrib-target')?.value || 'general',
+        contribMethod: document.getElementById('contrib-method')?.value || '',
+        contribNote: document.getElementById('contrib-note')?.value || '',
+        contribPhone: document.getElementById('contrib-phone')?.value || '',
+        searchQuery: document.getElementById('ledger-search-input')?.value || '',
+        filterType: document.getElementById('ledger-filter-select')?.value || 'all',
+        adminEmail: document.getElementById('admin-email-input')?.value || '',
+        rejectReason: document.getElementById('reject-reason-input')?.value || '',
+        disburseAmount: document.getElementById('disburse-amount-input')?.value || '',
+        disburseNote: document.getElementById('disburse-note-input')?.value || '',
+        firebaseDbUrl: document.getElementById('firebase-db-url-input')?.value || '',
+        firebaseAuthSecret: document.getElementById('firebase-auth-secret-input')?.value || ''
+      };
+
+      const outputsSnapshot = {
+        totalContributionsText: document.getElementById('stat-total-contributions')?.textContent || '',
+        contributionsCountText: document.getElementById('stat-contributions-count')?.textContent || '',
+        totalDisbursedText: document.getElementById('stat-total-disbursed')?.textContent || '',
+        disbursedSummaryText: document.getElementById('stat-disbursed-summary')?.textContent || '',
+        availableBalanceText: document.getElementById('stat-available-balance')?.textContent || '',
+        lastUpdatedText: document.getElementById('stat-last-updated')?.textContent || '',
+        coverageText: document.getElementById('stat-coverage-text')?.textContent || ''
+      };
+
+      const headerEl = document.querySelector('header');
+      const mainEl = document.querySelector('main');
+
+      return {
+        exportedAt: formatNowDate(),
+        version: '3.0-complete-platform-bundle',
+        reason,
+        siteDetails: {
+          title: document.title || 'صندوق التكافل الاجتماعي - قبيلة الصيعان',
+          lang: document.documentElement.lang || 'ar',
+          dir: document.documentElement.dir || 'rtl',
+          locationHref: typeof window !== 'undefined' && window.location ? window.location.href : '',
+          paymentMethods: {
+            jumhouria: document.getElementById('pay-acc-jumhouria')?.textContent || '002000000000',
+            madar: document.getElementById('pay-num-madar')?.textContent || '09100000000',
+            libyana: document.getElementById('pay-num-libyana')?.textContent || '09200000000'
+          }
+        },
+        balancesAndMetrics: {
+          ...metrics,
+          formattedTotalContributions: formatCurrency(metrics.totalContrib),
+          formattedTotalDisbursed: formatCurrency(metrics.totalDisb),
+          formattedAvailableBalance: formatCurrency(metrics.availableBalance),
+          formattedTotalRequired: formatCurrency(metrics.totalReq),
+          formattedTotalCovered: formatCurrency(metrics.totalCovered)
+        },
+        contributionsStatement,
+        pendingContributionsFull: pendingList,
+        casesFull: casesList,
+        state: sanitizeStateData({
+          ...appState,
+          approvedContributions: approvedList,
+          pendingContributions: pendingList,
+          cases: casesList
+        }),
+        deletedIds: getDeletedIds(),
+        deviceVotes: getDeviceVotes(),
+        myContributions: (function () {
+          try {
+            const raw = readStorageSafe(MY_CONTRIBUTIONS_KEY);
+            return raw ? JSON.parse(raw) : (memoryStore.myContributions || {});
+          } catch (e) {
+            return memoryStore.myContributions || {};
+          }
+        })(),
+        firebaseConfig: getFirebaseConfig(),
+        biometricConfig: getSavedBiometricCredential(),
+        appearance: {
+          bodyClass: document.body ? document.body.className : '',
+          headerClass: headerEl ? headerEl.className : '',
+          mainClass: mainEl ? mainEl.className : '',
+          scrollY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0
+        },
+        inputs: inputsSnapshot,
+        outputs: outputsSnapshot
+      };
+    }
+
+    function refreshFullPlatformBundleTextarea() {
+      try {
+        const ta = document.getElementById('full-platform-bundle-textarea');
+        if (!ta) return;
+        const pkg = buildCompletePlatformSnapshotObject('تحديث حزمة النسخ اليدوي');
+        ta.value = JSON.stringify(pkg, null, 2);
+      } catch (e) {}
+    }
+
+    function copyFullPlatformPackageToClipboard() {
+      try {
+        const pkg = buildCompletePlatformSnapshotObject('نسخ كامل المنصة للحافظة');
+        const serialized = JSON.stringify(pkg, null, 2);
+        const ta = document.getElementById('full-platform-bundle-textarea');
+        if (ta) ta.value = serialized;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(serialized).catch(() => {});
+        }
+        const helper = document.createElement('textarea');
+        helper.value = serialized;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.focus();
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+        showToast('تم نسخ كافة تفاصيل المنصة والبيانات والمدخلات والمساهمات والأرصدة وبيان المساهمات.', 'success');
+      } catch (e) {
+        showToast('تعذر نسخ الحزمة الكاملة تلقائياً، يمكنك نسخها من المربع مباشرة.', 'warning');
+      }
+    }
+
+    function restorePlatformFromManualTextarea() {
+      try {
+        const rawText = (document.getElementById('full-platform-bundle-textarea')?.value || '').trim();
+        if (!rawText) {
+          showToast('يرجى لصق نص النسخة الكاملة أولاً قبل الاستعادة.', 'warning');
+          return;
+        }
+        const parsed = JSON.parse(rawText);
+        const candidateState = parsed.state || (Array.isArray(parsed.cases) ? parsed : null);
+        if (!candidateState) {
+          showToast('صيغة النسخة الملصقة غير صالحة.', 'warning');
+          return;
+        }
+        const snap = {
+          id: 'manual-paste-' + Date.now(),
+          createdAt: parsed.exportedAt || formatNowDate(),
+          reason: 'استعادة يدوية من النص',
+          lang: parsed.siteDetails?.lang || parsed.lang || 'ar',
+          dir: parsed.siteDetails?.dir || parsed.dir || 'rtl',
+          state: sanitizeStateData(candidateState),
+          deletedIds: parsed.deletedIds || candidateState.deletedIds || [],
+          deviceVotes: parsed.deviceVotes || {},
+          myContributions: parsed.myContributions || {},
+          firebaseConfig: parsed.firebaseConfig || null,
+          biometricConfig: parsed.biometricConfig || null,
+          appearance: parsed.appearance || null,
+          inputs: parsed.inputs || {},
+          outputs: parsed.outputs || {}
+        };
+        applyRestoredState(snap);
+        refreshFullPlatformBundleTextarea();
+      } catch (err) {
+        showToast('تعذر قراءة النص المدخل؛ تأكد من أنه بصيغة JSON صحيحة.', 'warning');
+      }
     }
 
     function applyRestoredFormInputs(inputs) {
@@ -2999,33 +3224,18 @@
 
     function exportManualBackupFile() {
       try {
-        saveAutoBackupSnapshot('تصدير ملف نسخة احتياطية شاملة', false);
-        const latestSnap = getAutoBackupHistory()[0] || {};
-        const payload = {
-          exportedAt: formatNowDate(),
-          version: '2.0-full',
-          lang: document.documentElement.lang || 'ar',
-          dir: document.documentElement.dir || 'rtl',
-          state: sanitizeStateData(appState),
-          deletedIds: latestSnap.deletedIds || getDeletedIds(),
-          deviceVotes: latestSnap.deviceVotes || getDeviceVotes(),
-          myContributions: latestSnap.myContributions || {},
-          firebaseConfig: latestSnap.firebaseConfig || getFirebaseConfig(),
-          biometricConfig: latestSnap.biometricConfig || getSavedBiometricCredential(),
-          appearance: latestSnap.appearance || {},
-          inputs: latestSnap.inputs || {},
-          outputs: latestSnap.outputs || {}
-        };
+        const payload = buildCompletePlatformSnapshotObject('حفظ ملف نسخة يدوية كاملة');
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sayaan-takaful-full-backup-${Date.now()}.json`;
+        a.download = `sayaan-takaful-complete-platform-${Date.now()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('تم تنزيل ملف النسخة الاحتياطية الشاملة بنجاح.', 'success');
+        refreshFullPlatformBundleTextarea();
+        showToast('تم حفظ وتنزيل النسخة الكاملة للمنصة بنجاح.', 'success');
       } catch (e) {
         showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'warning');
       }
