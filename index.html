@@ -1734,7 +1734,6 @@
         closeAdminLoginModal();
         updateAdminUI();
         renderAll();
-        scrollToPendingPanelIfNeeded();
         showToast('تم الدخول إلى وضع الإدارة بنجاح.', 'success');
       } else if (errEl) {
         errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
@@ -1764,7 +1763,6 @@
         closeAdminLoginModal();
         updateAdminUI();
         renderAll();
-        scrollToPendingPanelIfNeeded();
         showToast('تم الدخول إلى وضع الإدارة بالبصمة بنجاح.', 'success');
       } catch (e) {
         showToast('تعذر التحقق بالبصمة، يمكنك الدخول بالبريد وكلمة المرور.', 'warning');
@@ -1790,18 +1788,6 @@
       renderAdminNotifications();
       updateBiometricButtonsUI();
       updateBackupAdminUI();
-    }
-
-    function scrollToPendingPanelIfNeeded() {
-      if (!isAdminMode) return;
-      const notifications = getAdminNotificationsList();
-      if (!notifications.length) return;
-      setTimeout(() => {
-        const panel = document.getElementById('admin-pending-panel');
-        if (panel && !panel.classList.contains('hidden')) {
-          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 120);
     }
 
     function getAdminNotificationsList() {
@@ -1888,14 +1874,14 @@
         pendingPanel.classList.remove('hidden');
         pendingPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      setTimeout(() => {
-        const targetItem = document.getElementById(`pending-contrib-card-${id}`) || document.getElementById(`admin-notif-item-${id}`);
-        if (targetItem) {
-          targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          targetItem.classList.add('ring-2', 'ring-amber-500');
-          setTimeout(() => targetItem.classList.remove('ring-2', 'ring-amber-500'), 1800);
-        }
-      }, 120);
+      const targetRow = id ? document.getElementById(`pending-item-row-${id}`) : null;
+      if (targetRow) {
+        setTimeout(() => {
+          targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetRow.classList.add('ring-2', 'ring-amber-500');
+          setTimeout(() => targetRow.classList.remove('ring-2', 'ring-amber-500'), 1800);
+        }, 160);
+      }
     }
 
     function jumpToLatestAdminNotificationAndEdit() {
@@ -1903,14 +1889,14 @@
         openAdminLoginModal();
         return;
       }
+      const pendingPanel = document.getElementById('admin-pending-panel');
+      if (pendingPanel) {
+        pendingPanel.classList.remove('hidden');
+        pendingPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       const notifications = getAdminNotificationsList();
       if (!notifications.length) {
-        const pendingPanel = document.getElementById('admin-pending-panel');
-        if (pendingPanel) {
-          pendingPanel.classList.remove('hidden');
-          pendingPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        showToast('تم الانتقال إلى طلبات المساهمات بانتظار الاعتماد.', 'info');
+        showToast('تم الانتقال إلى قسم طلبات المساهمات بانتظار الاعتماد.', 'info');
         return;
       }
       const latest = notifications[0];
@@ -3576,7 +3562,7 @@
       const editedHtml = editedForReapproval.map(ed => {
         const prev = ed.previousSnapshot || {};
         return `
-          <div id="pending-contrib-card-${escapeHtml(ed.id)}" class="bg-amber-50/90 border-2 border-amber-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
+          <div id="pending-item-row-${escapeHtml(ed.id)}" class="bg-amber-50/90 border-2 border-amber-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
             <div class="space-y-1 text-xs">
               <div class="flex flex-wrap items-center gap-2">
                 ${renderDonorIdentityBadge(ed.contributorName, ed.branch, ed.amount)}
@@ -3608,7 +3594,7 @@
       }).join('');
 
       const pendingHtml = pending.map(p => `
-        <div id="pending-contrib-card-${escapeHtml(p.id)}" class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
+        <div id="pending-item-row-${escapeHtml(p.id)}" class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs transition">
           <div class="space-y-1 text-xs">
             <div class="flex flex-wrap items-center gap-2">
               ${renderDonorIdentityBadge(p.contributorName, p.branch, p.amount)}
