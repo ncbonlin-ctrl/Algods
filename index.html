@@ -1323,14 +1323,36 @@
         }
         const remoteMs = Number(remote.updatedAt) || 0;
         const localMs = Number(appState.updatedAtMs) || 0;
-        const deletedSet = new Set(getDeletedIds().map(String));
+        const mergedDeletedSet = new Set([
+          ...getDeletedIds().map(String),
+          ...(Array.isArray(remote.deletedIds) ? remote.deletedIds.map(String) : [])
+        ]);
+        setDeletedIdsList(Array.from(mergedDeletedSet));
 
         const remoteSanitized = sanitizeStateData({
           ...remote.state,
-          cases: (Array.isArray(remote.state.cases) ? remote.state.cases : []).filter(c => c && !deletedSet.has(String(c.id))),
-          pendingContributions: (Array.isArray(remote.state.pendingContributions) ? remote.state.pendingContributions : []).filter(p => p && !deletedSet.has(String(p.id))),
-          approvedContributions: (Array.isArray(remote.state.approvedContributions) ? remote.state.approvedContributions : []).filter(a => a && !deletedSet.has(String(a.id)))
+          deletedIds: Array.from(mergedDeletedSet),
+          cases: (Array.isArray(remote.state.cases) ? remote.state.cases : []).filter(c => c && !mergedDeletedSet.has(String(c.id))),
+          pendingContributions: (Array.isArray(remote.state.pendingContributions) ? remote.state.pendingContributions : []).filter(p => p && !mergedDeletedSet.has(String(p.id))),
+          approvedContributions: (Array.isArray(remote.state.approvedContributions) ? remote.state.approvedContributions : []).filter(a => a && !mergedDeletedSet.has(String(a.id)))
         });
+
+        const currentDeletedSet = new Set(getDeletedIds().map(String));
+        const filteredLocalApproved = (appState.approvedContributions || []).filter(a => a && !currentDeletedSet.has(String(a.id)));
+        const filteredLocalPending = (appState.pendingContributions || []).filter(p => p && !currentDeletedSet.has(String(p.id)));
+        const filteredLocalCases = (appState.cases || []).filter(c => c && !currentDeletedSet.has(String(c.id)));
+        if (
+          filteredLocalApproved.length !== (appState.approvedContributions || []).length ||
+          filteredLocalPending.length !== (appState.pendingContributions || []).length ||
+          filteredLocalCases.length !== (appState.cases || []).length
+        ) {
+          appState.approvedContributions = filteredLocalApproved;
+          appState.pendingContributions = filteredLocalPending;
+          appState.cases = filteredLocalCases;
+          appState.deletedIds = Array.from(currentDeletedSet);
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+          scheduleRenderAll();
+        }
 
         const remoteFp = computeStateSyncFingerprint(remoteSanitized);
         const currentFp = computeStateSyncFingerprint(appState);
@@ -1340,6 +1362,7 @@
           if (remoteFp && remoteFp !== currentFp) {
             appState = {
               ...remoteSanitized,
+              deletedIds: Array.from(currentDeletedSet),
               updatedAtMs: Math.max(remoteMs, localMs)
             };
             hasLocalStateStored = true;
@@ -2139,6 +2162,12 @@
       const base = getInitialState();
       if (!raw || typeof raw !== 'object') return base;
       const src = raw.state && typeof raw.state === 'object' ? raw.state : raw;
+      const deletedSet = new Set([
+        ...getDeletedIds().map(String),
+        ...(Array.isArray(raw.deletedIds) ? raw.deletedIds.map(String) : []),
+        ...(Array.isArray(src.deletedIds) ? src.deletedIds.map(String) : [])
+      ]);
+      setDeletedIdsList(Array.from(deletedSet));
       const rawUpdatedAtMs = Number(
         raw.restoredAtMs ||
         raw.exportedAtMs ||
@@ -2151,7 +2180,7 @@
         Date.now()
       ) || Date.now();
 
-      const cases = Array.isArray(src.cases) ? src.cases.filter(c => c && c.id).map(c => ({
+      const cases = Array.isArray(src.cases) ? src.cases.filter(c => c && c.id && !deletedSet.has(String(c.id))).map(c => ({
         id: String(c.id),
         title: String(c.title || 'حالة تكافل'),
         category: String(c.category || 'علاج مرضى الأورام'),
@@ -2169,7 +2198,7 @@
       })) : [];
 
       const pendingContributions = deduplicateContributionsList(
-        (Array.isArray(src.pendingContributions) ? src.pendingContributions : []).filter(p => p && p.id).map(p => ({
+        (Array.isArray(src.pendingContributions) ? src.pendingContributions : []).filter(p => p && p.id && !deletedSet.has(String(p.id))).map(p => ({
           id: String(p.id),
           contributorName: String(p.contributorName || 'فاعل خير'),
           branch: String(p.branch || ''),
@@ -2188,7 +2217,7 @@
       );
 
       const approvedContributions = deduplicateContributionsList(
-        (Array.isArray(src.approvedContributions) ? src.approvedContributions : []).filter(a => a && a.id).map(a => ({
+        (Array.isArray(src.approvedContributions) ? src.approvedContributions : []).filter(a => a && a.id && !deletedSet.has(String(a.id))).map(a => ({
           id: String(a.id),
           type: a.type === 'disbursement' ? 'disbursement' : 'contribution',
           contributorName: String(a.contributorName || (a.type === 'disbursement' ? 'صرف من الصندوق' : 'فاعل خير')),
@@ -2214,7 +2243,7 @@
       return {
         lastUpdated: String(src.lastUpdated || base.lastUpdated),
         updatedAtMs: rawUpdatedAtMs,
-        deletedIds: Array.isArray(raw.deletedIds) ? raw.deletedIds.map(String) : getDeletedIds(),
+        deletedIds: Array.from(deletedSet),
         cases,
         pendingContributions,
         approvedContributions
@@ -2276,6 +2305,7 @@
 
     function ensureSeedDataIfEmpty() {
       if (readStorageSafe(RESTORED_LOCK_KEY)) return;
+      if (hasLocalStateStored) return;
       const hasAnyCases = Array.isArray(appState.cases) && appState.cases.length > 0;
       const hasAnyApproved = Array.isArray(appState.approvedContributions) && appState.approvedContributions.length > 0;
       const hasAnyPending = Array.isArray(appState.pendingContributions) && appState.pendingContributions.length > 0;
@@ -2386,10 +2416,13 @@
 
     function saveAppState(reason = 'تحديث البيانات', pushCloud = true, customUpdatedAtMs = null) {
       try {
+        const deletedSet = new Set(getDeletedIds().map(String));
+        appState.deletedIds = Array.from(deletedSet);
+        appState.cases = (appState.cases || []).filter(c => c && !deletedSet.has(String(c.id)));
+        appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions || []).filter(p => p && !deletedSet.has(String(p.id)));
+        appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions || []).filter(a => a && !deletedSet.has(String(a.id)));
         appState.lastUpdated = formatNowDate();
         appState.updatedAtMs = Number(customUpdatedAtMs) || Math.max(Number(appState.updatedAtMs) || 0, Date.now() + 5000);
-        appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions || []);
-        appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions || []);
         hasLocalStateStored = true;
         hasUnsyncedLocalChanges = true;
         const serializedState = JSON.stringify(appState);
@@ -3714,12 +3747,14 @@
       if (!isAdminMode) return;
       const targetIdStr = String(id);
       const targetItem = (appState.approvedContributions || []).find(x => String(x.id) === targetIdStr);
-      if (!targetItem) return;
 
       addDeletedId(targetIdStr);
-      appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== targetIdStr);
+      appState.deletedIds = getDeletedIds();
+      appState.approvedContributions = (appState.approvedContributions || []).filter(
+        x => x && String(x.id) !== targetIdStr && !appState.deletedIds.includes(String(x.id))
+      );
 
-      if (targetItem.target && targetItem.target !== 'general') {
+      if (targetItem && targetItem.target && targetItem.target !== 'general') {
         const cObj = (appState.cases || []).find(x => String(x.id) === String(targetItem.target));
         if (cObj) {
           const amt = Number(targetItem.amount) || 0;
@@ -3734,7 +3769,7 @@
       }
 
       // إذا كانت المساهمة المحذوفة مساهمة إدارية عامة، يتم خصمها مباشرة وإعادة حساب كافة الحالات
-      if (targetItem.type === 'disbursement' && (!targetItem.target || targetItem.target === 'general')) {
+      if (targetItem && targetItem.type === 'disbursement' && (!targetItem.target || targetItem.target === 'general')) {
         for (const cItem of (appState.cases || [])) {
           if (!cItem) continue;
           const req = Math.max(0, Number(cItem.requiredAmount) || 0);
@@ -3744,9 +3779,10 @@
         }
       }
 
-      saveAppState('حذف قيد وسحب الرصيد من الحالة');
+      saveAppState('حذف قيد وسحب الرصيد من الحالة', true);
+      pushStateToFirebase(true);
       renderAll();
-      showToast('تم حذف المساهمة وسحب الرصيد من الحالة المعروضة فوراً.', 'success');
+      showToast('تم حذف الشريط والقيد نهائياً وسحب الرصيد ومزامنته.', 'success');
     }
 
     function scheduleLedgerRender() {
@@ -3864,31 +3900,6 @@
       try {
         loadLocalState();
         ensureSeedDataIfEmpty();
-        const hasFatimaFeatured = (appState.approvedContributions || []).some(
-          x => x && String(x.id) === 'contrib_featured_fatima_10500'
-        );
-        if (!hasFatimaFeatured && !readStorageSafe(RESTORED_LOCK_KEY)) {
-          appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
-          appState.approvedContributions.unshift({
-            id: 'contrib_featured_fatima_10500',
-            type: 'contribution',
-            contributorName: 'فاطمة',
-            branch: 'الهمايلة',
-            amount: 10500,
-            target: 'general',
-            targetLabel: 'رصيد الصندوق العام',
-            method: 'المصرف (تحويل مصرفي)',
-            phone: '',
-            note: 'مساهمة مميزة لدعم التكافل الاجتماعي',
-            receiptData: '',
-            receiptName: '',
-            createdAt: formatNowDate(),
-            approvedAt: formatNowDate(),
-            userEditUsed: false,
-            userEditCount: 0
-          });
-          saveAppState('إضافة مساهمة مميزة باسم فاطمة', true);
-        }
         updateAdminUI();
         renderAll();
         saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
