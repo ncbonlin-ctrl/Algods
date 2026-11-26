@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2582,10 +2582,10 @@
               : '<span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
 
         const actionBtns = [];
-        if (item.receiptData) {
-          actionBtns.push(`<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">الإيصال</button>`);
-        }
         if (isAdminMode) {
+          if (item.receiptData) {
+            actionBtns.push(`<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">الإيصال</button>`);
+          }
           if (isDisb) {
             actionBtns.push(`<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل الصرف</button>`);
           } else {
@@ -2876,6 +2876,10 @@
     }
 
     function openReceiptViewerModal(id, scope) {
+      if (!isAdminMode) {
+        showToast('عرض الإيصال متاح في وضع الإدارة فقط.', 'warning');
+        return;
+      }
       const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
       const item = list.find(x => String(x.id) === String(id));
       const modal = document.getElementById('receipt-viewer-modal');
