@@ -101,6 +101,52 @@
       color: #10b981;
       animation: highDonorStarSpinGlow 2.2s ease-in-out infinite;
     }
+    @keyframes eliteDonorFramePulse {
+      0%, 100% {
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.45), 0 0 22px rgba(16, 185, 129, 0.25), inset 0 0 8px rgba(251, 191, 36, 0.14);
+        border-color: rgba(245, 158, 11, 0.85);
+      }
+      50% {
+        box-shadow: 0 0 18px rgba(245, 158, 11, 0.72), 0 0 30px rgba(16, 185, 129, 0.4), inset 0 0 12px rgba(251, 191, 36, 0.24);
+        border-color: rgba(16, 185, 129, 0.9);
+      }
+    }
+    @keyframes eliteStarSparkle {
+      0%, 100% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 12px rgba(251, 191, 36, 0.65));
+      }
+      50% {
+        transform: scale(1.22) rotate(14deg);
+        filter: drop-shadow(0 0 11px rgba(251, 191, 36, 1)) drop-shadow(0 0 18px rgba(16, 185, 129, 0.75));
+      }
+    }
+    .elite-donor-glow-box {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 48%, #ecfdf5 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.8);
+      animation: eliteDonorFramePulse 2.5s ease-in-out infinite;
+    }
+    .elite-donor-identity-chip {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, rgba(254, 243, 199, 0.95), rgba(236, 253, 245, 0.95));
+      border: 1.5px solid rgba(245, 158, 11, 0.85);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.45), 0 0 18px rgba(16, 185, 129, 0.22);
+      animation: eliteDonorFramePulse 2.5s ease-in-out infinite;
+    }
+    .elite-glow-star {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #d97706;
+      font-size: 0.95rem;
+      line-height: 1;
+      animation: eliteStarSparkle 2s ease-in-out infinite;
+    }
     .recipient-tri-glow {
       color: #475569;
       font-weight: 700;
@@ -2077,6 +2123,28 @@
       );
     }
 
+    function isHighValueContribution(amount) {
+      return (Number(amount) || 0) > 10000;
+    }
+
+    function renderDonorIdentityBadge(name, branch, amount) {
+      const safeName = escapeHtml(name || 'فاعل خير');
+      const safeBranch = branch ? escapeHtml(branch) : '';
+      if (!isHighValueContribution(amount)) {
+        return `
+          <span class="font-black text-slate-900">${safeName}</span>
+          ${safeBranch ? `<span class="text-[11px] font-bold text-emerald-700"> (${safeBranch})</span>` : ''}
+        `;
+      }
+      return `
+        <span class="elite-donor-identity-chip">
+          <span class="elite-glow-star" aria-hidden="true">✦</span>
+          <span class="font-black text-amber-950">${safeName}</span>
+          ${safeBranch ? `<span class="text-[11px] font-black text-emerald-900 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-300/80">${safeBranch}</span>` : ''}
+        </span>
+      `;
+    }
+
     function renderCases() {
       const container = document.getElementById('cases-container');
       if (!container) return;
@@ -2128,18 +2196,20 @@
           `)
         ].join('');
 
-        const donorsHtml = caseContribs.map(x => `
+        const donorsHtml = caseContribs.map(x => {
+          const isElite = isHighValueContribution(x.amount);
+          return `
           <div class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <span class="font-black text-slate-900">${escapeHtml(x.contributorName)}</span>
-              ${x.branch ? `<span class="text-[11px] font-bold text-emerald-700"> (${escapeHtml(x.branch)})</span>` : ''}
-              <div class="text-[11px] font-bold text-slate-400 mt-0.5">
+              ${renderDonorIdentityBadge(x.contributorName, x.branch, x.amount)}
+              <div class="text-[11px] font-bold text-slate-500 mt-1">
                 ${escapeHtml(formatNumericDateOnly(x.createdAt))} • ${escapeHtml(formatNumericTimeAmPm(x.createdAt))}
               </div>
             </div>
-            <span class="font-black text-emerald-700 whitespace-nowrap">+${formatCurrency(x.amount)}</span>
+            <span class="font-black ${isElite ? 'text-amber-800' : 'text-emerald-700'} whitespace-nowrap">+${formatCurrency(x.amount)}</span>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         const rejectionsHtml = Array.isArray(c.rejections) && c.rejections.length
           ? `<div class="space-y-1.5 pt-1">
@@ -2206,18 +2276,18 @@
             </div>
 
             <div class="space-y-2.5 pt-2 border-t border-slate-100">
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
-                  <span>موافق</span>
-                  <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesYes) || 0}</span>
-                </button>
-                <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'}">
-                  <span>غير موافق</span>
-                  <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesNo) || 0}</span>
-                </button>
-              </div>
-
               ${!isCompleted ? `
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
+                    <span>موافق</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesYes) || 0}</span>
+                  </button>
+                  <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'}">
+                    <span>غير موافق</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesNo) || 0}</span>
+                  </button>
+                </div>
+
                 <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm transition cursor-pointer">
                   المساهمة في هذه الحالة (${rawFunded > 0 && remaining > 0 ? `متبقي: ${formatCurrency(remaining)}` : `القيمة الكاملة: ${formatCurrency(req)}`})
                 </button>
@@ -2880,19 +2950,18 @@
         <div class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
           <div class="space-y-1 text-xs">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-black text-sm text-slate-900">${escapeHtml(p.contributorName)}</span>
-              ${p.branch ? `<span class="bg-emerald-100 text-emerald-900 font-black px-2.5 py-0.5 rounded-full text-[11px]">${escapeHtml(p.branch)}</span>` : ''}
+              ${renderDonorIdentityBadge(p.contributorName, p.branch, p.amount)}
               <span class="bg-amber-100 text-amber-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">${escapeHtml(p.targetLabel || 'رصيد الصندوق العام')}</span>
             </div>
             <p class="font-bold text-slate-600">
               القيمة: <span class="font-black text-emerald-700">${formatCurrency(p.amount)}</span> • الطريقة: <span class="font-bold text-slate-800">${escapeHtml(p.method || '')}</span>
-              ${p.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(p.phone)}</span>` : ''}
+              ${isAdminMode && p.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(p.phone)}</span>` : ''}
             </p>
             ${p.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
             <p class="text-[11px] text-slate-400 font-bold">${escapeHtml(p.createdAt || '')}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2 shrink-0">
-            ${p.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">عرض الوصل</button>` : ''}
+            ${isAdminMode && p.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">عرض الوصل</button>` : ''}
             <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">اعتماد ونشر</button>
             <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
             <button type="button" onclick="rejectPendingContribution('${escapeHtml(p.id)}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
@@ -2996,12 +3065,12 @@
         return `
           <tr class="hover:bg-slate-50/80 transition">
             <td class="py-3.5 px-5 align-top">
-              <div class="font-black text-slate-900">${escapeHtml(item.contributorName)}</div>
-              <div class="text-xs font-bold text-slate-500 mt-0.5">
-                ${item.branch ? `${escapeHtml(item.branch)} • ` : ''}${escapeHtml(item.targetLabel || '')}
-              </div>
-              ${item.note ? `<div class="text-[11px] font-semibold text-slate-400 mt-0.5">${escapeHtml(item.note)}</div>` : ''}
-            </td>
+              <div class="flex flex-wrap items-center gap-1.5">${renderDonorIdentityBadge(item.contributorName, item.branch, isDisb ? 0 : item.amount)}</div>
+          <div class="text-xs font-bold text-slate-600 mt-1">
+            ${escapeHtml(item.targetLabel || '')}
+          </div>
+          ${item.note ? `<div class="mt-1"><span class="elite-donor-identity-chip"><span class="elite-glow-star" aria-hidden="true">✦</span><span class="font-black text-amber-950 text-[11px]">مساهمات مميزة</span></span></div>` : ''}
+        </td>
             <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap">${typeBadge}</td>
             <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap font-black ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
               ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
@@ -3009,7 +3078,7 @@
             <td class="py-3.5 px-5 text-left align-middle">
               <div class="text-xs font-bold text-slate-500">${escapeHtml(formatNumericDateOnly(item.approvedAt || item.createdAt))}</div>
               <div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
-                ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
+                ${isAdminMode && item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
                 ${canUserEdit ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] transition cursor-pointer">تعديل مساهمتي</button>` : ''}
                 ${isAdminMode ? (
                   isDisb
@@ -3061,6 +3130,31 @@
     window.addEventListener('DOMContentLoaded', () => {
       try {
         loadLocalState();
+        const hasFatimaFeatured = (appState.approvedContributions || []).some(
+          x => x && String(x.id) === 'contrib_featured_fatima_10500'
+        );
+        if (!hasFatimaFeatured) {
+          appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+          appState.approvedContributions.unshift({
+            id: 'contrib_featured_fatima_10500',
+            type: 'contribution',
+            contributorName: 'فاطمة',
+            branch: 'الهمايلة',
+            amount: 10500,
+            target: 'general',
+            targetLabel: 'رصيد الصندوق العام',
+            method: 'المصرف (تحويل مصرفي)',
+            phone: '',
+            note: 'مساهمة مميزة لدعم التكافل الاجتماعي',
+            receiptData: '',
+            receiptName: '',
+            createdAt: formatNowDate(),
+            approvedAt: formatNowDate(),
+            userEditUsed: false,
+            userEditCount: 0
+          });
+          saveAppState('إضافة مساهمة مميزة باسم فاطمة', true);
+        }
         updateAdminUI();
         renderAll();
         saveAutoBackupSnapshot('نسخة بدء التشغيل', false);
