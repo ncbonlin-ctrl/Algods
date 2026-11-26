@@ -2555,18 +2555,24 @@
         return true;
       });
 
-      if (!filteredItems.length) {
+      // إعطاء الأولوية الدائمة للمساهمين في صدارة السجل ثم عمليات الصرف مع الحفاظ على ترتيب الإضافة
+      const prioritizedItems = [
+        ...filteredItems.filter(item => item.type !== 'disbursement'),
+        ...filteredItems.filter(item => item.type === 'disbursement')
+      ];
+
+      if (!prioritizedItems.length) {
         tbody.innerHTML = '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد قيود مطابقة للبحث أو التصفية الحالية.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = filteredItems.map(item => {
+      tbody.innerHTML = prioritizedItems.map(item => {
         const isDisb = item.type === 'disbursement';
         const amt = Number(item.amount) || 0;
         const contributorKey = `${String(item.contributorName || '').trim().toLowerCase()}||${String(item.branch || '').trim().toLowerCase()}`;
         const contributorTotalAmt = contributorTotalsMap.get(contributorKey) || amt;
         const isFeaturedContributor = !isDisb && (amt >= 10000 || contributorTotalAmt >= 10000);
-        const isTopDonor = !isDisb && maxContributionAmt > 0 && amt === maxContributionAmt;
+        const isHighlightedDonor = isFeaturedContributor || (!isDisb && maxContributionAmt > 0 && amt === maxContributionAmt);
         const canUserEdit = !isAdminMode && !isDisb && isMyContribution(item.id) && !(Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1);
 
         const typeBadge = isDisb
@@ -2599,10 +2605,10 @@
             <td class="py-3.5 px-5">
               <div class="space-y-1.5">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="font-black text-slate-900 ${isTopDonor ? 'high-donor-glow' : ''}">
-                    ${isTopDonor ? '<span class="high-donor-star">★</span> ' : ''}${escapeHtml(item.contributorName)}
+                  <span class="font-black text-slate-900 ${isHighlightedDonor ? 'high-donor-glow inline-flex items-center gap-1' : ''}">
+                    ${isHighlightedDonor ? '<span class="high-donor-star">★</span>' : ''}<span>${escapeHtml(item.contributorName)}</span>
                   </span>
-                  ${item.branch ? `<span class="text-[11px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>` : ''}
+                  ${item.branch ? `<span class="text-[11px] ${isHighlightedDonor ? 'high-donor-glow font-black bg-white' : 'font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full'}">${escapeHtml(item.branch)}</span>` : ''}
                 </div>
                 ${
                   isFeaturedContributor
