@@ -946,6 +946,7 @@
     const TOMBSTONE_KEY = 'sayaan_takaful_deleted_ids_v1';
     const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v1';
     const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contribs_v1';
+    const DONOR_WALLETS_KEY = 'sayaan_takaful_donor_wallets_v1';
     const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v1';
     const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_latest_v1';
     const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v1';
@@ -1430,6 +1431,206 @@
       }
     }
 
+    // مفاتيح وحسابات حافظة المساهم الخاصة
+    function normalizeDonorKey(name, branch) {
+      const cleanName = String(name || '').trim().toLowerCase();
+      const cleanBranch = String(branch || '').trim().toLowerCase();
+      return `${cleanName}__${cleanBranch}`;
+    }
+
+    function getDonorWalletsMap() {
+      try {
+        const raw = readStorageSafe(DONOR_WALLETS_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveDonorWalletsMap(map) {
+      writeStorageSafe(DONOR_WALLETS_KEY, JSON.stringify(map || {}));
+    }
+
+    function getDonorWalletBalance(name, branch) {
+      const wallets = getDonorWalletsMap();
+      const key = normalizeDonorKey(name, branch);
+      const entry = wallets[key];
+      return Math.max(0, Number(entry?.balance) || 0);
+    }
+
+    function creditDonorWallet(name, branch, amount, note = '', sourceCaseName = '') {
+      const amt = Math.max(0, Number(amount) || 0);
+      if (amt <= 0 || !String(name || '').trim()) return;
+      const wallets = getDonorWalletsMap();
+      const key = normalizeDonorKey(name, branch);
+      const current = wallets[key] || {
+        name: String(name).trim(),
+        branch: String(branch || 'غير محدد').trim(),
+        balance: 0,
+        history: []
+      };
+      current.balance = (Number(current.balance) || 0) + amt;
+      current.history = Array.isArray(current.history) ? current.history : [];
+      current.history.unshift({
+        id: `w_in_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        type: 'credit',
+        amount: amt,
+        note: note || `فائض من تغطية سقف الحالة: ${sourceCaseName}`,
+        date: formatNowDate()
+      });
+      wallets[key] = current;
+      saveDonorWalletsMap(wallets);
+    }
+
+    function debitDonorWallet(name, branch, amount, targetLabel = '') {
+      const amt = Math.max(0, Number(amount) || 0);
+      if (amt <= 0) return false;
+      const wallets = getDonorWalletsMap();
+      const key = normalizeDonorKey(name, branch);
+      const current = wallets[key];
+      const bal = Math.max(0, Number(current?.balance) || 0);
+      if (!current || bal < amt) return false;
+      current.balance = bal - amt;
+      current.history = Array.isArray(current.history) ? current.history : [];
+      current.history.unshift({
+        id: `w_out_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        type: 'debit',
+        amount: amt,
+        note: `تبرع من الحافظة إلى: ${targetLabel}`,
+        date: formatNowDate()
+      });
+      wallets[key] = current;
+      saveDonorWalletsMap(wallets);
+      return true;
+    }
+
+    function renderDonorWalletPanel() {
+      const section = document.getElementById('contribute-section');
+      if (!section) return;
+      let panel = document.getElementById('donor-wallet-box');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'donor-wallet-box';
+        panel.className = 'bg-gradient-to-l from-amber-50 via-white to-emerald-50 border-2 border-amber-300/90 rounded-2xl p-4 space-y-3 shadow-2xs';
+        const form = document.getElementById('new-contribution-form');
+        if (form) form.insertBefore(panel, form.firstChild);
+      }
+
+      const nameVal = (document.getElementById('contrib-name')?.value || '').trim();
+      const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
+      const wallets = getDonorWalletsMap();
+      const activeKey = normalizeDonorKey(nameVal, branchVal);
+      const activeWallet = nameVal ? wallets[activeKey] : null;
+      const balance = activeWallet ? Math.max(0, Number(activeWallet.balance) || 0) : 0;
+
+      const allWallets = Object.values(wallets || {}).filter(w => (Number(w?.balance) || 0) > 0);
+
+      panel.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span class="inline-block bg-emerald-950 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full mb-1">حافظة المساهم الذكية</span>
+            <h3 class="text-sm sm:text-base font-black text-slate-900">
+              ${nameVal ? `حافظة: ${escapeHtml(nameVal)} (${escapeHtml(branchVal)})` : 'حافظة فائض المساهم'}
+            </h3>
+            <p class="text-[11px] font-bold text-slate-600">
+              أي مبلغ يتجاوز سقف الحالة المطلوب يرجع تلقائياً إلى حافظة المساهم، ويمكن التبرع به للصندوق أو لأي حالة بعدد غير محدود من المرات.
+            </p>
+          </div>
+          <div class="bg-emerald-950 text-amber-300 px-4 py-2.5 rounded-2xl border border-amber-400/50 text-center shrink-0">
+            <span class="block text-[10px] font-extrabold text-emerald-200">رصيد الحافظة</span>
+            <span class="text-base sm:text-lg font-black">${formatCurrency(balance)}</span>
+          </div>
+        </div>
+
+        ${balance > 0 ? `
+          <div class="bg-white/95 border border-emerald-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div class="flex flex-wrap items-center gap-2 flex-1">
+              <input type="number" id="wallet-donate-amount" min="0.01" max="${balance}" step="any" placeholder="المبلغ من الحافظة" class="w-36 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-black text-emerald-900 outline-none focus:border-emerald-600" />
+              <select id="wallet-donate-target" class="flex-1 min-w-[160px] bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600">
+                <option value="general">الصندوق العام (أورام ودية)</option>
+                ${(appState.cases || []).map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('')}
+              </select>
+            </div>
+            <button type="button" onclick="handleDonateFromDonorWallet()" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-2xs transition cursor-pointer shrink-0">
+              تبرع من الحافظة الآن
+            </button>
+          </div>
+        ` : ''}
+
+        ${allWallets.length > 0 ? `
+          <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span class="text-[10px] font-black text-slate-500">حافظات نشطة على الجهاز:</span>
+            ${allWallets.map(w => `
+              <button type="button" onclick="selectDonorWalletIntoForm('${escapeHtml(w.name)}', '${escapeHtml(w.branch)}')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-[10px] font-black px-2.5 py-1 rounded-full transition cursor-pointer">
+                ${escapeHtml(w.name)} (${formatCurrency(w.balance)})
+              </button>
+            `).join('')}
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function selectDonorWalletIntoForm(name, branch) {
+      const nameInput = document.getElementById('contrib-name');
+      const branchSelect = document.getElementById('contrib-branch');
+      if (nameInput) nameInput.value = name || '';
+      if (branchSelect && branch) {
+        const exists = Array.from(branchSelect.options).some(o => o.value === branch);
+        if (exists) branchSelect.value = branch;
+      }
+      renderDonorWalletPanel();
+    }
+
+    function handleDonateFromDonorWallet() {
+      const nameVal = (document.getElementById('contrib-name')?.value || '').trim();
+      const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
+      const amt = Number(document.getElementById('wallet-donate-amount')?.value) || 0;
+      const targetId = document.getElementById('wallet-donate-target')?.value || 'general';
+
+      if (!nameVal) {
+        showToast('يرجى إدخال اسم المساهم أولاً.', 'warning');
+        return;
+      }
+      const available = getDonorWalletBalance(nameVal, branchVal);
+      if (amt <= 0 || amt > available) {
+        showToast('يرجى إدخال مبلغ صحيح لا يتجاوز رصيد حافظة المساهم.', 'error');
+        return;
+      }
+
+      const targetCase = (appState.cases || []).find(c => String(c.id) === String(targetId));
+      const targetLabel = targetCase ? targetCase.name : 'الصندوق العام';
+
+      if (!debitDonorWallet(nameVal, branchVal, amt, targetLabel)) {
+        showToast('تعذر خصم المبلغ من الحافظة.', 'error');
+        return;
+      }
+
+      const newEntry = {
+        id: `wallet_contrib_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        type: 'contribution',
+        fromDonorWallet: true,
+        name: nameVal,
+        branch: branchVal,
+        amount: amt,
+        targetCaseId: String(targetId),
+        targetLabel,
+        method: 'من حافظة المساهم',
+        note: `تبرع مباشر من حافظة المساهم (${targetLabel})`,
+        editCount: 0,
+        date: formatNowDate(),
+        approvedAt: formatNowDate()
+      };
+
+      if (!Array.isArray(appState.approvedContributions)) appState.approvedContributions = [];
+      appState.approvedContributions.unshift(newEntry);
+      registerMyContributionId(newEntry.id);
+
+      saveAppState('تبرع من حافظة المساهم', true);
+      renderAll();
+      showToast(`تم التبرع بـ ${formatCurrency(amt)} من حافظة ${nameVal} إلى ${targetLabel} ومزامنته فوراً.`, 'success');
+    }
+
     function saveAppState(reason = 'تحديث البيانات', pushCloud = true, customUpdatedAtMs = null) {
       try {
         const deletedSet = new Set(getDeletedIds().map(String));
@@ -1635,14 +1836,14 @@
             const prevCollected = caseDirectMap[key] || 0;
             const remainingNeed = caseReq > 0 ? Math.max(0, caseReq - prevCollected) : amt;
             const appliedToCase = caseReq > 0 ? Math.min(amt, remainingNeed) : amt;
-            const surplusToGeneral = Math.max(0, amt - appliedToCase);
+            const surplusToWallet = Math.max(0, amt - appliedToCase);
 
             caseDirectMap[key] = prevCollected + appliedToCase;
             if (!caseContributionsListMap[key]) caseContributionsListMap[key] = [];
             caseContributionsListMap[key].push({
               ...item,
               appliedToCase,
-              surplusToGeneral
+              surplusToWallet
             });
           }
         }
@@ -1791,7 +1992,7 @@
                     <p class="text-[11px] font-black text-emerald-950">سجل مساهمات الحالة (${caseContribs.length}):</p>
                     ${totalSurplusForCase > 0 ? `
                       <span class="bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
-                        فائض للصندوق العام: ${formatCurrency(totalSurplusForCase)}
+                        فائض عاد لحافظات المساهمين: ${formatCurrency(totalSurplusForCase)}
                       </span>
                     ` : ''}
                   </div>
@@ -1808,9 +2009,9 @@
                         </div>
                         <div class="flex flex-wrap items-center justify-between gap-1 text-[10px] font-bold text-slate-400">
                           <span>${escapeHtml(formatDateTimeWithPeriod(cc.date))}</span>
-                          ${cc.surplusToGeneral > 0 ? `
+                          ${cc.surplusToWallet > 0 ? `
                             <span class="text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-black">
-                              ملاحظة: الفائض (${formatCurrency(cc.surplusToGeneral)}) تم تحويله إلى الصندوق العام
+                              ملاحظة: الفائض (${formatCurrency(cc.surplusToWallet)}) رجع إلى حافظة المساهم
                             </span>
                           ` : ''}
                         </div>
@@ -2286,7 +2487,8 @@
           const amt = Number(item.amount) || 0;
           if (amt > remainingNeed) {
             const surplus = amt - remainingNeed;
-            surplusNote = `الفائض (${formatCurrency(surplus)}) تم تحويله إلى الصندوق العام`;
+            creditDonorWallet(item.name, item.branch, surplus, `فائض من تغطية سقف حالة: ${targetCase.name}`, targetCase.name);
+            surplusNote = `الفائض (${formatCurrency(surplus)}) رجع إلى حافظة المساهم (${item.name})`;
           }
         }
       }
@@ -2303,7 +2505,7 @@
       renderAll();
       showToast(
         surplusNote
-          ? `تم اعتماد المساهمة وتحويل الفائض إلى الصندوق العام ومزامنة Firebase.`
+          ? `تم اعتماد المساهمة وإرجاع الفائض إلى حافظة المساهم ومزامنة Firebase.`
           : 'تم اعتماد المساهمة وإضافتها إلى الرصيد والسجل المتزامن.',
         'success'
       );
@@ -2398,7 +2600,10 @@
       const alreadyCollected = metricsBefore.caseDirectMap[String(targetCase.id)] || 0;
       const remainingNeed = Math.max(0, (Number(targetCase.required) || 0) - alreadyCollected);
       const surplus = Math.max(0, amount - remainingNeed);
-      const surplusNote = surplus > 0 ? `الفائض (${formatCurrency(surplus)}) تم تحويله إلى الصندوق العام` : '';
+      if (surplus > 0) {
+        creditDonorWallet(donorName, branch, surplus, `فائض من تغطية سقف حالة: ${targetCase.name}`, targetCase.name);
+      }
+      const surplusNote = surplus > 0 ? `الفائض (${formatCurrency(surplus)}) رجع إلى حافظة المساهم (${donorName})` : '';
       const combinedNote = [rawNote, surplusNote].filter(Boolean).join(' — ');
 
       if (!Array.isArray(appState.approvedContributions)) appState.approvedContributions = [];
@@ -2422,7 +2627,7 @@
       renderAll();
       showToast(
         surplus > 0
-          ? `تمت الإضافة وتحويل الفائض (${formatCurrency(surplus)}) إلى الصندوق العام ومزامنة Firebase.`
+          ? `تمت الإضافة وإرجاع الفائض (${formatCurrency(surplus)}) إلى حافظة المساهم ومزامنة Firebase.`
           : 'تمت إضافة القيمة لحساب الحالة ومزامنتها لحظياً مع Firebase.',
         'success'
       );
@@ -2596,10 +2801,9 @@
                     <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', '${scope}')" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
                       تعديل
                     </button>
-                  ` : ''}
-                  ${isAdminMode && isDisb ? `
-                    <button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
-                      تعديل
+                  ` : canDonorEdit ? `
+                    <button type="button" onclick="openDonorSelfEditModal('${escapeHtml(item.id)}', '${scope}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
+                      تعديل مساهمتي (متاح مرة واحدة)
                     </button>
                   ` : ''}
                   ${isAdminMode ? `
@@ -2650,7 +2854,7 @@
 
     function openEditContributionModal(id, scope) {
       if (!isAdminMode) {
-        showToast('تعديل المساهمات مقتصر على وضع المشرف فقط حفاظاً على الخصوصية.', 'warning');
+        showToast('تعديل المساهمات من هنا مقتصر على وضع المشرف فقط حفاظاً على الخصوصية.', 'warning');
         return;
       }
       const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
@@ -2691,6 +2895,45 @@
         previewWrap?.classList.add('hidden');
       }
 
+      const modal = document.getElementById('edit-contribution-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    // تعديل المساهم لمساهمته مرة واحدة فقط دون إتاحة الإيصال للعامة
+    function openDonorSelfEditModal(id, scope) {
+      const myIds = getMyContributionIds();
+      if (!myIds.includes(String(id))) {
+        showToast('يمكن للمساهم تعديل مساهمته الخاصة فقط.', 'warning');
+        return;
+      }
+      const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
+      const item = list.find(x => String(x.id) === String(id));
+      if (!item) return;
+      if ((Number(item.editCount) || 0) >= 1) {
+        showToast('لقد تم استنفاذ محاولة التعديل المتاحة لمرة واحدة فقط لهذه المساهمة.', 'warning');
+        return;
+      }
+      populateTargetCaseSelects();
+      document.getElementById('edit-contrib-id').value = String(item.id);
+      document.getElementById('edit-contrib-scope').value = scope;
+      document.getElementById('edit-contrib-name').value = item.name || '';
+      document.getElementById('edit-contrib-branch').value = item.branch || 'الهمايلة';
+      document.getElementById('edit-contrib-amount').value = Number(item.amount) || 0;
+      document.getElementById('edit-contrib-target').value = item.targetCaseId || 'general';
+      document.getElementById('edit-contrib-method').value = item.method || 'المصرف (تحويل مصرفي)';
+      document.getElementById('edit-contrib-note').value = item.note || '';
+      document.getElementById('edit-contrib-phone').value = item.phone || '';
+      editReceiptDataUrl = '';
+      editReceiptFileName = '';
+      const badge = document.getElementById('edit-contrib-attempts-badge');
+      if (badge) {
+        badge.textContent = 'متاح التعديل: 1 من 1';
+      }
+      document.getElementById('edit-contrib-bank-fields')?.classList.add('hidden');
+      document.getElementById('edit-contrib-mobile-fields')?.classList.toggle('hidden', !(item.method || '').includes('النقال'));
       const modal = document.getElementById('edit-contribution-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2757,12 +3000,20 @@
 
     function handleEditContributionSubmit(e) {
       e.preventDefault();
-      if (!isAdminMode || isLoadingEditReceipt) return;
+      if (isLoadingEditReceipt) return;
       const id = document.getElementById('edit-contrib-id').value;
       const scope = document.getElementById('edit-contrib-scope').value;
+      const myIds = getMyContributionIds();
+      const isOwnerSelfEdit = !isAdminMode && myIds.includes(String(id));
+      if (!isAdminMode && !isOwnerSelfEdit) return;
+
       const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
       const item = list.find(x => String(x.id) === String(id));
       if (!item) return;
+      if (isOwnerSelfEdit && (Number(item.editCount) || 0) >= 1) {
+        showToast('تعديل المساهمة متاح لمرة واحدة فقط.', 'warning');
+        return;
+      }
 
       const name = (document.getElementById('edit-contrib-name')?.value || '').trim();
       const branch = document.getElementById('edit-contrib-branch')?.value || item.branch;
@@ -2783,11 +3034,15 @@
       item.method = method;
       item.note = note;
       item.phone = method.includes('النقال') ? phone : '';
-      item.receiptDataUrl = method.includes('المصرف') ? editReceiptDataUrl : '';
-      item.receiptFileName = method.includes('المصرف') ? editReceiptFileName : '';
+      if (isAdminMode) {
+        item.receiptDataUrl = method.includes('المصرف') ? editReceiptDataUrl : '';
+        item.receiptFileName = method.includes('المصرف') ? editReceiptFileName : '';
+      } else if (isOwnerSelfEdit) {
+        item.editCount = (Number(item.editCount) || 0) + 1;
+      }
 
       closeEditContributionModal();
-      saveAppState('تعديل بيانات مساهمة من المشرف', true);
+      saveAppState(isAdminMode ? 'تعديل بيانات مساهمة من المشرف' : 'تعديل مساهمة من المساهم (مرة واحدة)', true);
       renderAll();
       showToast('تم حفظ تعديل المساهمة ومزامنتها لحظياً مع Firebase.', 'success');
     }
@@ -3042,6 +3297,7 @@
       try {
         renderStats();
         populateTargetCaseSelects();
+        renderDonorWalletPanel();
         renderCases();
         renderPendingContributions();
         renderLedger();
