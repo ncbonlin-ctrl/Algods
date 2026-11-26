@@ -212,8 +212,8 @@
       <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-slate-500">إجمالي المساهمات المعتمدة</p>
-          <p id="stat-total-contributions" class="text-2xl font-black text-slate-900 mt-1">775.869 د.ل</p>
-          <p id="stat-contributions-count" class="text-xs font-extrabold text-emerald-700 mt-1">عدد المساهمات: 4</p>
+          <p id="stat-total-contributions" class="text-2xl font-black text-slate-900 mt-1">0 د.ل</p>
+          <p id="stat-contributions-count" class="text-xs font-extrabold text-emerald-700 mt-1">عدد المساهمات: 0</p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-2xl shrink-0">+</div>
       </div>
@@ -221,7 +221,7 @@
       <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-slate-500">إجمالي المساعدات المصروفة</p>
-          <p id="stat-total-disbursed" class="text-2xl font-black text-rose-600 mt-1"></p>
+          <p id="stat-total-disbursed" class="text-2xl font-black text-rose-600 mt-1">0 د.ل</p>
           <p id="stat-disbursed-summary" class="text-xs font-extrabold text-slate-500 mt-1"></p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-black text-2xl shrink-0">-</div>
@@ -230,7 +230,7 @@
       <div class="bg-emerald-50/90 rounded-3xl p-5 shadow-sm border border-emerald-200 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs font-extrabold text-emerald-900">الرصيد المتاح حالياً بالصندوق</p>
-          <p id="stat-available-balance" class="text-2xl font-black text-emerald-800 mt-1"></p>
+          <p id="stat-available-balance" class="text-2xl font-black text-emerald-800 mt-1">0 د.ل</p>
           <p id="stat-last-updated" class="text-xs font-bold text-emerald-700 mt-1"></p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-emerald-700 text-amber-300 flex items-center justify-center text-xl shrink-0">★</div>
@@ -251,6 +251,14 @@
     <script>
       (function () {
         try {
+          // تصفير جذري للمساهمات والرصيد الحالي وحذف سجل المساهمين المحفوظ عند الضبط الجذري
+          var resetFlag = localStorage.getItem('sayaan_takaful_root_reset_v1');
+          if (resetFlag === '1') {
+            localStorage.removeItem('sayaan_takaful_state_v1');
+            localStorage.removeItem('sayaan_takaful_auto_backup_latest_v1');
+            localStorage.removeItem('sayaan_takaful_backup_history_v1');
+            localStorage.removeItem('sayaan_takaful_my_contribs_v1');
+          }
           var raw = localStorage.getItem('sayaan_takaful_state_v1') || localStorage.getItem('sayaan_takaful_auto_backup_latest_v1');
           var s = null;
           var localTs = 0;
@@ -264,7 +272,7 @@
               localTs = Number((parsed && parsed.updatedAtMs) || 0) || 0;
             }
           }
-          if (window.XMLHttpRequest) {
+          if (resetFlag !== '1' && window.XMLHttpRequest) {
             var cfgRaw = localStorage.getItem('sayaan_takaful_firebase_cfg_v1');
             var cfg = cfgRaw ? JSON.parse(cfgRaw) : {};
             var dbUrl = String(cfg.dbUrl || 'https://sirf-dgv-default-rtdb.firebaseio.com').trim().replace(/\/+$/, '');
@@ -862,11 +870,292 @@
     const AUTO_BACKUP_KEY = 'sayaan_takaful_auto_backup_latest_v1';
     const BACKUP_HISTORY_KEY = 'sayaan_takaful_backup_history_v1';
     const ADMIN_BIOMETRIC_KEY = 'sayaan_takaful_admin_biometric_v1';
+    const ROOT_RESET_KEY = 'sayaan_takaful_root_reset_v1';
     const MAX_BACKUP_SNAPSHOTS = 10;
     const BACKUP_INTERVAL_MS = 10 * 60 * 1000;
     const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
     const ADMIN_EMAIL = 'Ncbonlin@gmail.com';
     const ADMIN_PASS = '756$$Gd70';
+
+    // متغيرات الحالة العامة للمنصة والواجهة
+    let isAdminMode = false;
+    let appState = getInitialState();
+    let hasLocalStateStored = false;
+    let hasUnsyncedLocalChanges = false;
+    let lastSyncedFingerprint = '';
+    let isPushingFirebase = false;
+    let isPullingFirebase = false;
+    let firebasePollTimer = null;
+    let autoBackupMinuteTimer = null;
+    let pendingRejectCaseId = null;
+    let currentDisburseCaseId = null;
+    let pendingRestoreSnapshotId = null;
+    let ledgerSearchTimer = null;
+    let renderAllFrameId = null;
+    let newReceiptDataUrl = '';
+    let newReceiptFileName = '';
+    let isLoadingNewReceipt = false;
+    let editReceiptDataUrl = '';
+    let editReceiptFileName = '';
+    let isLoadingEditReceipt = false;
+    let toastHideTimer = null;
+
+    const memoryStore = {
+      deletedIds: [],
+      deviceVotes: {},
+      myContributions: {}
+    };
+
+    function showToast(message, type = 'info') {
+      try {
+        const box = document.getElementById('toast-box');
+        const textEl = document.getElementById('toast-text');
+        const iconEl = document.getElementById('toast-icon');
+        if (!box || !textEl) return;
+        textEl.textContent = String(message || '');
+        if (iconEl) {
+          iconEl.textContent = type === 'success' ? '✓' : (type === 'warning' ? '!' : '★');
+        }
+        box.classList.remove('hidden');
+        box.classList.remove('toast-animate-in');
+        void box.offsetWidth;
+        box.classList.add('toast-animate-in');
+        if (toastHideTimer) clearTimeout(toastHideTimer);
+        toastHideTimer = setTimeout(() => {
+          box.classList.add('hidden');
+          box.classList.remove('toast-animate-in');
+        }, 3600);
+      } catch (e) {}
+    }
+
+    function getDeletedIds() {
+      try {
+        const raw = readStorageSafe(TOMBSTONE_KEY);
+        const arr = raw ? JSON.parse(raw) : (memoryStore.deletedIds || []);
+        return Array.isArray(arr) ? arr.map(String) : [];
+      } catch (e) {
+        return Array.isArray(memoryStore.deletedIds) ? memoryStore.deletedIds.map(String) : [];
+      }
+    }
+
+    function setDeletedIdsList(ids) {
+      const unique = Array.from(new Set((Array.isArray(ids) ? ids : []).filter(Boolean).map(String)));
+      memoryStore.deletedIds = unique;
+      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(unique));
+      return unique;
+    }
+
+    function addDeletedId(id) {
+      if (!id) return getDeletedIds();
+      return setDeletedIdsList([...getDeletedIds(), String(id)]);
+    }
+
+    function getAutoBackupHistory() {
+      try {
+        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function getSavedBiometricCredential() {
+      try {
+        const raw = readStorageSafe(ADMIN_BIOMETRIC_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function base64UrlToUint8Array(base64Url) {
+      const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+      const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    function updateBiometricButtonsUI() {
+      const bioBtn = document.getElementById('admin-biometric-login-btn');
+      if (!bioBtn) return;
+      const supported = typeof window !== 'undefined' && Boolean(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get);
+      bioBtn.classList.toggle('opacity-60', !supported);
+    }
+
+    function prepareMobileKeyboardFocus(el) {
+      try {
+        if (el && typeof el.focus === 'function') {
+          el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }
+
+    function focusLoginField(inputId) {
+      try {
+        const el = document.getElementById(inputId);
+        if (el) el.focus();
+      } catch (e) {}
+    }
+
+    function openAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      const errEl = document.getElementById('admin-login-error');
+      if (errEl) errEl.classList.add('hidden');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      setTimeout(() => {
+        try {
+          document.getElementById('admin-email-input')?.focus();
+        } catch (e) {}
+      }, 60);
+    }
+
+    function closeAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleAdminHeaderClick() {
+      try {
+        if (isAdminMode) {
+          isAdminMode = false;
+          updateAdminUI();
+          renderAll();
+          showToast('تم الخروج من وضع الإدارة.', 'info');
+          return;
+        }
+        openAdminLoginModal();
+      } catch (e) {
+        openAdminLoginModal();
+      }
+    }
+
+    function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const email = (document.getElementById('admin-email-input')?.value || '').trim();
+      const pass = document.getElementById('admin-pass-input')?.value || '';
+      const errEl = document.getElementById('admin-login-error');
+
+      if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASS) {
+        isAdminMode = true;
+        if (errEl) errEl.classList.add('hidden');
+        closeAdminLoginModal();
+        updateAdminUI();
+        renderAll();
+        showToast('تم تفعيل وضع الإدارة بنجاح.', 'success');
+      } else if (errEl) {
+        errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    async function compressReceiptFileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        try {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error('read_error'));
+          reader.onload = () => {
+            const result = String(reader.result || '');
+            if (!file.type || !file.type.startsWith('image/') || typeof document === 'undefined') {
+              resolve(result);
+              return;
+            }
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const maxDim = 1100;
+                let w = img.width || 800;
+                let h = img.height || 800;
+                if (w > maxDim || h > maxDim) {
+                  if (w > h) {
+                    h = Math.round((h * maxDim) / w);
+                    w = maxDim;
+                  } else {
+                    w = Math.round((w * maxDim) / h);
+                    h = maxDim;
+                  }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                  resolve(result);
+                  return;
+                }
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.72));
+              } catch (err) {
+                resolve(result);
+              }
+            };
+            img.onerror = () => resolve(result);
+            img.src = result;
+          };
+          reader.readAsDataURL(file);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function clearNewReceiptSelection() {
+      const input = document.getElementById('contrib-receipt');
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const prevWrap = document.getElementById('new-receipt-preview-wrap');
+      const prevImg = document.getElementById('new-receipt-preview-img');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      if (input) input.value = '';
+      newReceiptDataUrl = '';
+      newReceiptFileName = '';
+      isLoadingNewReceipt = false;
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      if (prevImg) prevImg.src = '';
+      prevWrap?.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+    }
+
+    async function handleNewReceiptFileChange(input) {
+      const file = input?.files?.[0];
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const prevWrap = document.getElementById('new-receipt-preview-wrap');
+      const prevImg = document.getElementById('new-receipt-preview-img');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      if (!file) return;
+
+      isLoadingNewReceipt = true;
+      newReceiptFileName = file.name;
+      if (nameEl) nameEl.textContent = `جاري تجهيز الإيصال: ${file.name}...`;
+
+      try {
+        const dataUrl = await compressReceiptFileToDataUrl(file);
+        newReceiptDataUrl = dataUrl;
+        if (nameEl) nameEl.textContent = `الملف المرفق: ${file.name}`;
+        clearBtn?.classList.remove('hidden');
+        if (dataUrl.startsWith('data:image')) {
+          prevWrap?.classList.remove('hidden');
+          if (prevImg) prevImg.src = dataUrl;
+        } else {
+          prevWrap?.classList.add('hidden');
+        }
+      } catch (err) {
+        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
+        showToast('تعذر قراءة صورة الإيصال المختارة.', 'warning');
+      } finally {
+        isLoadingNewReceipt = false;
+        if (input) input.value = '';
+      }
+    }
 
     function formatNowDate() {
       try {
@@ -980,371 +1269,60 @@
       };
     }
 
-    let appState = getInitialState();
-    let isAdminMode = false;
-    let pendingRejectCaseId = null;
-    let currentDisburseCaseId = null;
-    let newReceiptDataUrl = '';
-    let newReceiptFileName = '';
-    let isLoadingNewReceipt = false;
-    let editReceiptDataUrl = '';
-    let editReceiptFileName = '';
-    let isLoadingEditReceipt = false;
-    let toastTimer = null;
-    let ledgerSearchTimer = null;
-    let autoBackupMinuteTimer = null;
-    let firebasePollTimer = null;
-    let isPushingFirebase = false;
-    let isPullingFirebase = false;
-    let lastSyncedFingerprint = '';
-    let hasLocalStateStored = false;
-    let hasUnsyncedLocalChanges = false;
-    let renderAllFrameId = null;
-    let pendingRestoreSnapshotId = null;
-    const memoryStore = {
-      deviceVotes: {},
-      myContributions: {},
-      deletedIds: []
-    };
-
-    function getDeletedIds() {
+    // تنفيذ التصفير الجذري للمساهمات والرصيد وحذف المساهمين من الجذور وضبط الإعدادات
+    function resetAllContributionsAndBalanceFromRoot(notify = true) {
       try {
-        const raw = readStorageSafe(TOMBSTONE_KEY);
-        const parsed = raw ? JSON.parse(raw) : null;
-        if (Array.isArray(parsed)) {
-          memoryStore.deletedIds = parsed.map(String);
-          return memoryStore.deletedIds;
-        }
-        return (memoryStore.deletedIds || []).map(String);
-      } catch (e) {
-        return (memoryStore.deletedIds || []).map(String);
-      }
-    }
+        const existingDeleted = getDeletedIds();
+        const contribAndCaseIdsToPurge = [
+          ...existingDeleted,
+          ...(Array.isArray(appState.pendingContributions) ? appState.pendingContributions.map(p => p && p.id) : []),
+          ...(Array.isArray(appState.approvedContributions) ? appState.approvedContributions.map(a => a && a.id) : []),
+          ...(Array.isArray(appState.cases) ? appState.cases.map(c => c && c.id) : [])
+        ].filter(Boolean);
 
-    function setDeletedIdsList(ids) {
-      const uniqueIds = Array.from(new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean)));
-      memoryStore.deletedIds = uniqueIds;
-      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(uniqueIds));
-      return uniqueIds;
-    }
+        setDeletedIdsList(contribAndCaseIdsToPurge);
 
-    function addDeletedId(id) {
-      if (!id) return;
-      const current = getDeletedIds();
-      current.push(String(id));
-      setDeletedIdsList(current);
-    }
+        // حذف بيانات المساهمين والنسخ القديمة من الجذور
+        memoryStore.myContributions = {};
+        writeStorageSafe(MY_CONTRIBUTIONS_KEY, JSON.stringify({}));
+        writeStorageSafe(AUTO_BACKUP_KEY, '');
+        writeStorageSafe(BACKUP_HISTORY_KEY, JSON.stringify([]));
+        writeStorageSafe(ROOT_RESET_KEY, '1');
 
-    function getAutoBackupHistory() {
-      try {
-        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
-        const parsed = raw ? JSON.parse(raw) : null;
-        if (Array.isArray(parsed) && parsed.length) return parsed;
-        const singleRaw = readStorageSafe(AUTO_BACKUP_KEY);
-        if (singleRaw) {
-          const single = JSON.parse(singleRaw);
-          if (single && single.state) return [single];
-        }
-      } catch (e) {}
-      return [];
-    }
+        const cleanState = getInitialState();
+        cleanState.updatedAtMs = Date.now();
+        cleanState.lastUpdated = formatNowDate();
+        cleanState.deletedIds = getDeletedIds();
+        cleanState.cases = [];
+        cleanState.pendingContributions = [];
+        cleanState.approvedContributions = [];
 
-    function showToast(message, variant = 'success') {
-      const box = document.getElementById('toast-box');
-      if (!box) return;
-      const textEl = document.getElementById('toast-text');
-      const iconEl = document.getElementById('toast-icon');
+        appState = cleanState;
+        hasLocalStateStored = true;
+        hasUnsyncedLocalChanges = true;
+        lastSyncedFingerprint = '';
 
-      const themes = {
-        success: {
-          bg: 'from-emerald-600 via-teal-500 to-cyan-600 border-amber-300 shadow-[0_14px_34px_rgba(5,150,105,0.42)]',
-          icon: '✓'
-        },
-        info: {
-          bg: 'from-sky-600 via-indigo-500 to-violet-600 border-amber-200 shadow-[0_14px_34px_rgba(79,70,229,0.4)]',
-          icon: '✦'
-        },
-        warning: {
-          bg: 'from-amber-500 via-orange-500 to-rose-500 border-white shadow-[0_14px_34px_rgba(245,158,11,0.45)]',
-          icon: '!'
-        }
-      };
+        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
 
-      const selected = themes[variant] || themes.success;
-      box.className = `fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l ${selected.bg} text-white border-2 font-black text-xs sm:text-sm px-5 py-3.5 rounded-2xl max-w-[92vw] flex items-center justify-center gap-2.5 text-center toast-animate-in`;
-      if (iconEl) iconEl.textContent = selected.icon;
-      if (textEl) {
-        textEl.textContent = message;
-      } else {
-        box.textContent = message;
-      }
+        // إعادة ضبط حقول المساهمة والصرف والبحث والفلتر
+        const formEl = document.getElementById('new-contribution-form');
+        if (formEl) formEl.reset();
+        clearNewReceiptSelection();
+        toggleNewPaymentFields();
 
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        box.classList.add('hidden');
-      }, 3600);
-    }
+        const searchInput = document.getElementById('ledger-search-input');
+        const filterSelect = document.getElementById('ledger-filter-select');
+        if (searchInput) searchInput.value = '';
+        if (filterSelect) filterSelect.value = 'all';
 
-    function compressReceiptFileToDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('read_failed'));
-        reader.onload = () => {
-          const result = String(reader.result || '');
-          if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
-            resolve(result);
-            return;
-          }
-          const img = new Image();
-          img.onerror = () => resolve(result);
-          img.onload = () => {
-            try {
-              const maxDim = 1280;
-              let w = img.width || 800;
-              let h = img.height || 600;
-              if (w > maxDim || h > maxDim) {
-                if (w > h) {
-                  h = Math.round((h * maxDim) / w);
-                  w = maxDim;
-                } else {
-                  w = Math.round((w * maxDim) / h);
-                  h = maxDim;
-                }
-              }
-              const canvas = document.createElement('canvas');
-              canvas.width = w;
-              canvas.height = h;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) {
-                resolve(result);
-                return;
-              }
-              ctx.drawImage(img, 0, 0, w, h);
-              const compressed = canvas.toDataURL('image/jpeg', 0.82);
-              resolve(compressed || result);
-            } catch (err) {
-              resolve(result);
-            }
-          };
-          img.src = result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function clearNewReceiptSelection() {
-      const input = document.getElementById('contrib-receipt');
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const prevWrap = document.getElementById('new-receipt-preview-wrap');
-      const prevImg = document.getElementById('new-receipt-preview-img');
-      const clearBtn = document.getElementById('clear-new-receipt-btn');
-      if (input) input.value = '';
-      newReceiptDataUrl = '';
-      newReceiptFileName = '';
-      isLoadingNewReceipt = false;
-      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
-      if (prevImg) prevImg.src = '';
-      prevWrap?.classList.add('hidden');
-      clearBtn?.classList.add('hidden');
-    }
-
-    async function handleNewReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const prevWrap = document.getElementById('new-receipt-preview-wrap');
-      const prevImg = document.getElementById('new-receipt-preview-img');
-      const clearBtn = document.getElementById('clear-new-receipt-btn');
-      if (!file) return;
-
-      isLoadingNewReceipt = true;
-      newReceiptFileName = file.name;
-      if (nameEl) nameEl.textContent = `جاري تجهيز الإيصال: ${file.name}...`;
-
-      try {
-        const dataUrl = await compressReceiptFileToDataUrl(file);
-        newReceiptDataUrl = dataUrl;
-        if (nameEl) nameEl.textContent = `تم إرفاق الإيصال: ${file.name}`;
-        clearBtn?.classList.remove('hidden');
-        if (dataUrl.startsWith('data:image')) {
-          prevWrap?.classList.remove('hidden');
-          if (prevImg) prevImg.src = dataUrl;
-        } else {
-          prevWrap?.classList.add('hidden');
-        }
-        // إبقاء التركيز داخل نموذج المساهمة دون أي تمرير أو انتقال لواجهة أخرى
-        if (prevWrap && typeof prevWrap.scrollIntoView === 'function') {
-          prevWrap.scrollIntoView({ behavior: 'auto', block: 'nearest' });
-        }
-      } catch (err) {
-        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
-        showToast('تعذر قراءة صورة الإيصال المختارة.', 'warning');
-      } finally {
-        isLoadingNewReceipt = false;
-        if (input) input.value = '';
-      }
-    }
-
-    function getSavedBiometricCredential() {
-      try {
-        const raw = readStorageSafe(ADMIN_BIOMETRIC_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function base64UrlToUint8Array(base64Url) {
-      const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
-      const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      const out = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        out[i] = rawData.charCodeAt(i);
-      }
-      return out;
-    }
-
-    function uint8ArrayToBase64Url(buffer) {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    async function createBiometricCredentialOnDevice() {
-      if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
-        throw new Error('WebAuthn not supported');
-      }
-      const challenge = new Uint8Array(32);
-      const userId = new Uint8Array(16);
-      window.crypto.getRandomValues(challenge);
-      window.crypto.getRandomValues(userId);
-      const cred = await navigator.credentials.create({
-        publicKey: {
-          challenge,
-          rp: {
-            name: 'صندوق التكافل الاجتماعي - قبيلة الصيعان'
-          },
-          user: {
-            id: userId,
-            name: ADMIN_EMAIL,
-            displayName: 'مشرف الصندوق'
-          },
-          pubKeyCredParams: [
-            { type: 'public-key', alg: -7 },
-            { type: 'public-key', alg: -257 }
-          ],
-          authenticatorSelection: {
-            userVerification: 'required'
-          },
-          timeout: 60000
-        }
-      });
-      if (!cred || !cred.rawId) return '';
-      const credId = uint8ArrayToBase64Url(cred.rawId);
-      writeStorageSafe(ADMIN_BIOMETRIC_KEY, JSON.stringify({ credId, registeredAt: formatNowDate() }));
-      return credId;
-    }
-
-    async function registerAdminBiometric() {
-      if (!isAdminMode) {
-        showToast('تسجيل البصمة متاح داخل وضع الإدارة فقط.');
-        return;
-      }
-      try {
-        const credId = await createBiometricCredentialOnDevice();
-        if (credId) {
-          updateBiometricButtonsUI();
-          showToast('تم تسجيل وتفعيل البصمة بنجاح على هذا الجهاز.');
-        }
-      } catch (e) {
-        showToast('تعذر تسجيل البصمة على هذا الجهاز.');
-      }
-    }
-
-    function updateBiometricButtonsUI() {
-      const regBtn = document.getElementById('register-biometric-btn');
-      const loginBioBtn = document.getElementById('admin-biometric-login-btn');
-
-      if (regBtn) {
-        regBtn.disabled = false;
-        regBtn.classList.remove('opacity-50', 'opacity-70', 'bg-slate-900', 'hover:bg-slate-800', 'text-amber-300');
-        regBtn.classList.add('bg-emerald-950', 'hover:bg-emerald-900', 'text-emerald-300', 'border', 'border-emerald-500/50');
-      }
-
-      if (loginBioBtn) {
-        loginBioBtn.disabled = false;
-        loginBioBtn.classList.remove('opacity-50', 'opacity-70');
-      }
-    }
-
-    function prepareMobileKeyboardFocus(el) {
-      if (el && typeof el.focus === 'function') {
-        setTimeout(() => el.focus(), 10);
-      }
-    }
-
-    function focusLoginField(id) {
-      const el = document.getElementById(id);
-      if (el) el.focus();
-    }
-
-    function handleAdminHeaderClick() {
-      if (isAdminMode) {
-        isAdminMode = false;
-        updateAdminUI();
         renderAll();
-        showToast('تم الخروج من وضع الإدارة.');
-      } else {
-        openAdminLoginModal();
-      }
-    }
-
-    function openAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      const errEl = document.getElementById('admin-login-error');
-      if (errEl) {
-        errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
-        errEl.classList.add('hidden');
-      }
-      updateBiometricButtonsUI();
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-      const emailEl = document.getElementById('admin-email-input');
-      if (emailEl) setTimeout(() => emailEl.focus(), 60);
-    }
-
-    function closeAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleAdminLoginSubmit(e) {
-      e.preventDefault();
-      const email = (document.getElementById('admin-email-input')?.value || '').trim().toLowerCase();
-      const pass = document.getElementById('admin-pass-input')?.value || '';
-      const errEl = document.getElementById('admin-login-error');
-
-      if (email === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASS) {
-        isAdminMode = true;
-        if (errEl) errEl.classList.add('hidden');
-        const passEl = document.getElementById('admin-pass-input');
-        if (passEl) passEl.value = '';
-        closeAdminLoginModal();
-        updateAdminUI();
-        renderAll();
-        showToast('مرحباً بك في وضع الإدارة.');
-      } else {
-        if (errEl) {
-          errEl.textContent = 'بيانات الدخول غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
-          errEl.classList.remove('hidden');
+        pushStateToFirebase(true);
+        if (notify) {
+          showToast('تم تصفير جميع المساهمات والرصيد الحالي وحذف المساهمين من الجذور وضبط الإعدادات.', 'success');
+        }
+      } catch (e) {
+        if (notify) {
+          showToast('تعذر إتمام التصفير الجذري بالكامل.', 'warning');
         }
       }
     }
@@ -3046,6 +3024,23 @@
     function loadLocalState() {
       try {
         const initialClean = getInitialState();
+        const isRootResetActive = readStorageSafe(ROOT_RESET_KEY) === '1';
+        if (isRootResetActive) {
+          appState = {
+            ...initialClean,
+            updatedAtMs: Date.now(),
+            lastUpdated: formatNowDate(),
+            deletedIds: getDeletedIds(),
+            cases: [],
+            pendingContributions: [],
+            approvedContributions: []
+          };
+          hasLocalStateStored = true;
+          hasUnsyncedLocalChanges = true;
+          lastSyncedFingerprint = '';
+          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
+          return;
+        }
         const seededDeletedIds = [
           'case-1774645873473',
           'case-1774645907105',
@@ -3720,6 +3715,7 @@
 
     // قراءة الحالة فوراً قبل DOMContentLoaded لتفادي ظهور الصفر المؤقت عند التحديث
     loadLocalState();
+    resetAllContributionsAndBalanceFromRoot(false);
     renderAll();
     startFirebasePolling();
 
