@@ -122,6 +122,19 @@
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
     }
+    @keyframes toastPopIn {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, 16px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+    .toast-animate-in {
+      animation: toastPopIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-200 selection:text-emerald-950">
@@ -373,11 +386,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="contrib-name" class="block text-xs font-extrabold text-slate-800 mb-1.5">* اسم المساهم / المتبرع</label>
-            <input type="text" id="contrib-name" required placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+            <input type="text" id="contrib-name" required onchange="notifyFieldUpdate('اسم المساهم', this.value)" placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
           </div>
           <div>
             <label for="contrib-branch" class="block text-xs font-extrabold text-slate-800 mb-1.5">* اللحمة / فرع</label>
-            <select id="contrib-branch" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+            <select id="contrib-branch" required onchange="notifyFieldUpdate('اللحمة / الفرع', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
               <option value="الهمايلة">الهمايلة</option>
               <option value="أولاد سلام">أولاد سلام</option>
               <option value="أولاد إمحمد">أولاد إمحمد</option>
@@ -391,18 +404,18 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="contrib-amount" class="block text-xs font-extrabold text-slate-800 mb-1.5 text-right">* المبلغ (د.ل)</label>
-            <input type="number" id="contrib-amount" min="1" step="any" required placeholder="100" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 text-right focus:bg-white focus:border-emerald-600 outline-none transition" />
+            <input type="number" id="contrib-amount" min="1" step="any" required onchange="notifyFieldUpdate('قيمة المساهمة', this.value ? this.value + ' د.ل' : '')" placeholder="100" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 text-right focus:bg-white focus:border-emerald-600 outline-none transition" />
           </div>
           <div>
             <label for="contrib-target" class="block text-xs font-extrabold text-slate-800 mb-1.5">* وجهة التبرع</label>
-            <select id="contrib-target" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
+            <select id="contrib-target" required onchange="notifyFieldUpdate('وجهة التبرع', this.options[this.selectedIndex]?.text || '')" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="contrib-method" class="block text-xs font-extrabold text-slate-800 mb-1.5">* طريقة الدفع (المصرف / النقال)</label>
-            <select id="contrib-method" required onchange="toggleNewPaymentFields()" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+            <select id="contrib-method" required onchange="toggleNewPaymentFields(); if (this.value) notifyFieldUpdate('طريقة الدفع', this.value);" class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
               <option value="">اختر طريقة الدفع...</option>
               <option value="المصرف (تحويل مصرفي)">المصرف (تحويل مصرفي)</option>
               <option value="النقال (تحويل رصيد)">النقال (تحويل رصيد)</option>
@@ -410,19 +423,25 @@
           </div>
           <div>
             <label for="contrib-note" class="block text-xs font-extrabold text-slate-800 mb-1.5">ملاحظة</label>
-            <input type="text" id="contrib-note" placeholder="ملاحظة إضافية (اختياري)..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+            <input type="text" id="contrib-note" onchange="notifyFieldUpdate('الملاحظة', this.value)" placeholder="ملاحظة إضافية (اختياري)..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
           </div>
         </div>
 
-        <div id="new-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-2">
-          <label for="contrib-receipt" class="block text-xs font-extrabold text-emerald-950">* صورة إيصال التحويل المصرفي</label>
-          <input type="file" id="contrib-receipt" accept="image/*,.pdf" onchange="handleNewReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
+        <div id="new-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <label for="contrib-receipt" class="block text-xs font-extrabold text-emerald-950">* صورة إيصال التحويل المصرفي</label>
+            <button type="button" id="clear-new-receipt-btn" onclick="clearNewReceiptSelection()" class="hidden text-[11px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-lg transition cursor-pointer">إزالة الصورة</button>
+          </div>
+          <input type="file" id="contrib-receipt" accept="image/*,.pdf" onclick="this.value=''" onchange="handleNewReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
           <p id="contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
+          <div id="new-receipt-preview-wrap" class="hidden pt-1">
+            <img id="new-receipt-preview-img" src="" alt="معاينة الإيصال" class="max-h-36 rounded-xl border border-emerald-300 shadow-xs object-contain bg-white p-1" />
+          </div>
         </div>
 
         <div id="new-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2">
           <label for="contrib-phone" class="block text-xs font-extrabold text-amber-950">* الهاتف المرسل منه الرصيد (10 أرقام)</label>
-          <input type="tel" id="contrib-phone" maxlength="10" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
+          <input type="tel" id="contrib-phone" maxlength="10" onchange="notifyFieldUpdate('رقم الهاتف', this.value)" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
         </div>
 
         <div class="pt-1">
@@ -470,7 +489,10 @@
   </main>
 
   <!-- شريط الإشعارات السفلي -->
-  <div id="toast-box" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l from-emerald-700 via-emerald-600 to-teal-600 text-white border-2 border-amber-300 font-black text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-2xl max-w-[92vw] text-center"></div>
+  <div id="toast-box" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l from-emerald-600 via-teal-500 to-cyan-600 text-white border-2 border-amber-300 font-black text-xs sm:text-sm px-5 py-3.5 rounded-2xl shadow-[0_14px_34px_rgba(5,150,105,0.42)] max-w-[92vw] flex items-center justify-center gap-2.5 text-center">
+    <span id="toast-icon" class="w-6 h-6 rounded-full bg-white/25 text-amber-200 flex items-center justify-center text-xs font-black shrink-0">✓</span>
+    <span id="toast-text" class="leading-snug"></span>
+  </div>
 
   <!-- نافذة تأكيد استرداد النسخة الاحتياطية (نعم / لا) -->
   <div id="restore-confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xs items-center justify-center p-4">
@@ -731,11 +753,11 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="edit-contrib-name" class="block text-xs font-extrabold text-slate-700 mb-1">* اسم المساهم / المتبرع</label>
-            <input type="text" id="edit-contrib-name" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+            <input type="text" id="edit-contrib-name" required onchange="notifyFieldUpdate('تعديل اسم المساهم', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
           </div>
           <div>
             <label for="edit-contrib-branch" class="block text-xs font-extrabold text-slate-700 mb-1">* اللحمة / فرع</label>
-            <select id="edit-contrib-branch" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
+            <select id="edit-contrib-branch" required onchange="notifyFieldUpdate('تعديل اللحمة / الفرع', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
               <option value="الهمايلة">الهمايلة</option>
               <option value="أولاد سلام">أولاد سلام</option>
               <option value="أولاد إمحمد">أولاد إمحمد</option>
@@ -748,37 +770,40 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="edit-contrib-amount" class="block text-xs font-extrabold text-slate-700 mb-1 text-right">* المبلغ (د.ل)</label>
-            <input type="number" id="edit-contrib-amount" min="0" step="any" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-right outline-none focus:border-emerald-600" />
+            <input type="number" id="edit-contrib-amount" min="0" step="any" required onchange="notifyFieldUpdate('تعديل المبلغ', this.value ? this.value + ' د.ل' : '')" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-right outline-none focus:border-emerald-600" />
           </div>
           <div>
             <label for="edit-contrib-target" class="block text-xs font-extrabold text-slate-700 mb-1">* وجهة التبرع</label>
-            <select id="edit-contrib-target" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600"></select>
+            <select id="edit-contrib-target" required onchange="notifyFieldUpdate('تعديل وجهة التبرع', this.options[this.selectedIndex]?.text || '')" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600"></select>
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="edit-contrib-method" class="block text-xs font-extrabold text-slate-700 mb-1">* طريقة الدفع</label>
-            <select id="edit-contrib-method" required onchange="toggleEditPaymentFields()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
+            <select id="edit-contrib-method" required onchange="toggleEditPaymentFields(); notifyFieldUpdate('تعديل طريقة الدفع', this.value);" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
               <option value="المصرف (تحويل مصرفي)">المصرف (تحويل مصرفي)</option>
               <option value="النقال (تحويل رصيد)">النقال (تحويل رصيد)</option>
             </select>
           </div>
           <div>
             <label for="edit-contrib-note" class="block text-xs font-extrabold text-slate-700 mb-1">ملاحظة</label>
-            <input type="text" id="edit-contrib-note" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
+            <input type="text" id="edit-contrib-note" onchange="notifyFieldUpdate('تعديل الملاحظة', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
           </div>
         </div>
         <div id="edit-contrib-bank-fields" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 space-y-2">
-          <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث صورة الإيصال (اختياري)</label>
-          <input type="file" id="edit-contrib-receipt" accept="image/*,.pdf" onchange="handleEditReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
+          <div class="flex items-center justify-between gap-2">
+            <label for="edit-contrib-receipt" class="block text-xs font-extrabold text-emerald-950">تحديث صورة الإيصال (اختياري)</label>
+            <button type="button" id="clear-edit-receipt-btn" onclick="clearEditReceiptSelection()" class="hidden text-[11px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-lg transition cursor-pointer">إزالة الصورة</button>
+          </div>
+          <input type="file" id="edit-contrib-receipt" accept="image/*,.pdf" onclick="this.value=''" onchange="handleEditReceiptFileChange(this)" class="w-full text-xs text-slate-700 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-700 file:text-white cursor-pointer" />
           <p id="edit-contrib-receipt-name" class="text-xs text-slate-500 font-semibold">لم يتم اختيار أي ملف</p>
           <div id="edit-contrib-receipt-preview" class="hidden pt-1">
-            <img id="edit-contrib-receipt-img" src="" alt="معاينة الإيصال" class="max-h-36 rounded-xl border border-slate-200 object-contain" />
+            <img id="edit-contrib-receipt-img" src="" alt="معاينة الإيصال" class="max-h-36 rounded-xl border border-slate-200 object-contain bg-white p-1" />
           </div>
         </div>
         <div id="edit-contrib-mobile-fields" class="hidden bg-amber-50/70 border border-amber-200 rounded-2xl p-3 space-y-2">
           <label for="edit-contrib-phone" class="block text-xs font-extrabold text-amber-950">الهاتف المرسل منه الرصيد (10 أرقام)</label>
-          <input type="tel" id="edit-contrib-phone" maxlength="10" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
+          <input type="tel" id="edit-contrib-phone" maxlength="10" onchange="notifyFieldUpdate('تعديل رقم الهاتف', this.value)" placeholder="0912345678" class="w-full font-mono bg-white border border-amber-300 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-emerald-600" dir="ltr" />
         </div>
         <div class="flex items-center gap-2 pt-2">
           <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl text-sm transition cursor-pointer">حفظ التعديل</button>
@@ -906,33 +931,168 @@
 
     function getInitialState() {
       return {
-        lastUpdated: formatNowDate(),
+        lastUpdated: '2026-11-25 23:51',
         cases: [
           {
-            id: 'case-1',
+            id: 'case-1774645873473',
             title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
             category: 'علاج مرضى الأورام',
-            requiredAmount: 12000,
-            disbursedAmount: 0,
+            requiredAmount: 450000,
+            disbursedAmount: 1290,
             closed: false,
-            description: 'دعم تكاليف الفحوصات المتقدمة وجلسات العلاج الكيميائي والموجه لمصاب من القبيلة.',
+            description: 'كريم عمران خالد',
             votes: { approve: 0, reject: 0 },
             rejections: []
           },
           {
-            id: 'case-2',
-            title: 'مساهمة في إتمام صلح ودية',
-            category: 'دية',
-            requiredAmount: 25000,
+            id: 'case-1774645907105',
+            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            category: 'علاج مرضى الأورام',
+            requiredAmount: 421600,
+            disbursedAmount: 1375,
+            closed: false,
+            description: 'ناجي مصطفى عيسى',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          },
+          {
+            id: 'case-1774645963350',
+            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            category: 'علاج مرضى الأورام',
+            requiredAmount: 440000,
             disbursedAmount: 0,
             closed: false,
-            description: 'المساهمة في استكمال مبلغ الدية وإصلاح ذات البين وفق الضوابط المعتمدة للصندوق.',
+            description: 'مريم بوزيد',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          },
+          {
+            id: 'case-1774645994418',
+            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            category: 'علاج مرضى الأورام',
+            requiredAmount: 430000,
+            disbursedAmount: 0,
+            closed: false,
+            description: 'فوزي ميلود',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          },
+          {
+            id: 'case-1774646023003',
+            title: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            category: 'علاج مرضى الأورام',
+            requiredAmount: 425000,
+            disbursedAmount: 0,
+            closed: false,
+            description: 'علي نصر',
             votes: { approve: 0, reject: 0 },
             rejections: []
           }
         ],
-        pendingContributions: [],
-        approvedContributions: []
+        pendingContributions: [
+          {
+            id: 'contrib-1774646179033',
+            type: 'general',
+            contributorName: 'نضال',
+            branch: 'متبرع من خارج القبيلة',
+            amount: 889505,
+            target: 'general',
+            targetLabel: 'رصيد الصندوق العام',
+            method: 'المصرف (تحويل مصرفي)',
+            note: '',
+            receiptData: '',
+            receiptName: 'Screenshot_20260322-075126~2.jpg',
+            phone: '',
+            createdAt: '2026-11-25 23:49',
+            userEditUsed: false,
+            userEditCount: 0
+          }
+        ],
+        approvedContributions: [
+          {
+            id: 'disb-1774646133412',
+            type: 'disbursement',
+            contributorName: 'صرف: علاج مرضى الأورام - متابعة جلسات علاجية',
+            branch: 'علاج مرضى الأورام',
+            amount: 1375,
+            target: 'case-1774645907105',
+            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            method: 'صرف من الصندوق',
+            note: 'صرف مساعدة معتمدة',
+            receiptData: '',
+            receiptName: '',
+            phone: '',
+            createdAt: '2026-11-25 23:48',
+            userEditUsed: true
+          },
+          {
+            id: 'disb-1774646121599',
+            type: 'disbursement',
+            contributorName: 'صرف: علاج مرضى الأورام - متابعة جلسات علاجية',
+            branch: 'علاج مرضى الأورام',
+            amount: 1290,
+            target: 'case-1774645873473',
+            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            method: 'صرف من الصندوق',
+            note: 'صرف مساعدة معتمدة',
+            receiptData: '',
+            receiptName: '',
+            phone: '',
+            createdAt: '2026-11-25 23:48',
+            userEditUsed: true
+          },
+          {
+            id: 'contrib-1774646110858',
+            type: 'general',
+            contributorName: 'فاعلة خير',
+            branch: 'متبرع من خارج القبيلة',
+            amount: 889685,
+            target: 'general',
+            targetLabel: 'رصيد الصندوق العام',
+            method: 'المصرف (تحويل مصرفي)',
+            note: '',
+            receiptData: '',
+            receiptName: 'Screenshot_20260322-075126~2.jpg',
+            phone: '',
+            createdAt: '2026-11-25 23:48',
+            userEditUsed: false,
+            userEditCount: 0
+          },
+          {
+            id: 'contrib-1774646082994',
+            type: 'case',
+            contributorName: 'محمود',
+            branch: 'متبرع من خارج القبيلة',
+            amount: 582248,
+            target: 'case-1774645907105',
+            targetLabel: 'علاج مرضى الأورام - متابعة جلسات علاجية',
+            method: 'المصرف (تحويل مصرفي)',
+            note: '',
+            receiptData: '',
+            receiptName: 'Screenshot_20260322-075126~2.jpg',
+            phone: '',
+            createdAt: '2026-11-25 23:47',
+            userEditUsed: false,
+            userEditCount: 0
+          },
+          {
+            id: 'contrib-1774646050602',
+            type: 'general',
+            contributorName: 'عادل',
+            branch: 'أولاد سلام',
+            amount: 4580,
+            target: 'general',
+            targetLabel: 'رصيد الصندوق العام',
+            method: 'المصرف (تحويل مصرفي)',
+            note: '',
+            receiptData: '',
+            receiptName: 'Screenshot_20260322-075126~2.jpg',
+            phone: '',
+            createdAt: '2026-11-25 23:47',
+            userEditUsed: false,
+            userEditCount: 0
+          }
+        ]
       };
     }
 
@@ -942,83 +1102,195 @@
     let currentDisburseCaseId = null;
     let newReceiptDataUrl = '';
     let newReceiptFileName = '';
+    let isLoadingNewReceipt = false;
     let editReceiptDataUrl = '';
     let editReceiptFileName = '';
+    let isLoadingEditReceipt = false;
     let toastTimer = null;
-    let firebasePollTimer = null;
-    let autoBackupMinuteTimer = null;
-    let lastSyncedFingerprint = '';
-    let pendingRestoreSnapshotId = null;
-    let isPullingFirebase = false;
-    let isPushingFirebase = false;
-    let renderAllFrameId = null;
     let ledgerSearchTimer = null;
-
+    let autoBackupMinuteTimer = null;
+    let firebasePollTimer = null;
+    let isPushingFirebase = false;
+    let isPullingFirebase = false;
+    let lastSyncedFingerprint = '';
+    let renderAllFrameId = null;
+    let pendingRestoreSnapshotId = null;
     const memoryStore = {
-      deletedIds: [],
       deviceVotes: {},
-      myContributions: {}
+      myContributions: {},
+      deletedIds: []
     };
 
     function getDeletedIds() {
       try {
         const raw = readStorageSafe(TOMBSTONE_KEY);
-        const parsed = raw ? JSON.parse(raw) : (memoryStore.deletedIds || []);
-        return Array.isArray(parsed) ? parsed.map(String) : [];
+        return raw ? JSON.parse(raw) : (memoryStore.deletedIds || []);
       } catch (e) {
-        return Array.isArray(memoryStore.deletedIds) ? memoryStore.deletedIds : [];
+        return memoryStore.deletedIds || [];
       }
     }
 
     function addDeletedId(id) {
       if (!id) return;
-      const current = new Set(getDeletedIds());
-      current.add(String(id));
-      const list = Array.from(current);
-      memoryStore.deletedIds = list;
-      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(list));
+      const list = new Set(getDeletedIds().map(String));
+      list.add(String(id));
+      const arr = Array.from(list);
+      memoryStore.deletedIds = arr;
+      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(arr));
     }
 
-    function showToast(message) {
+    function getAutoBackupHistory() {
+      try {
+        const raw = readStorageSafe(BACKUP_HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+        const singleRaw = readStorageSafe(AUTO_BACKUP_KEY);
+        if (singleRaw) {
+          const single = JSON.parse(singleRaw);
+          if (single && single.state) return [single];
+        }
+      } catch (e) {}
+      return [];
+    }
+
+    function showToast(message, variant = 'success') {
       const box = document.getElementById('toast-box');
       if (!box) return;
-      box.textContent = message;
-      box.classList.remove('hidden');
+      const textEl = document.getElementById('toast-text');
+      const iconEl = document.getElementById('toast-icon');
+
+      const themes = {
+        success: {
+          bg: 'from-emerald-600 via-teal-500 to-cyan-600 border-amber-300 shadow-[0_14px_34px_rgba(5,150,105,0.42)]',
+          icon: '✓'
+        },
+        info: {
+          bg: 'from-sky-600 via-indigo-500 to-violet-600 border-amber-200 shadow-[0_14px_34px_rgba(79,70,229,0.4)]',
+          icon: '✦'
+        },
+        warning: {
+          bg: 'from-amber-500 via-orange-500 to-rose-500 border-white shadow-[0_14px_34px_rgba(245,158,11,0.45)]',
+          icon: '!'
+        }
+      };
+
+      const selected = themes[variant] || themes.success;
+      box.className = `fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-l ${selected.bg} text-white border-2 font-black text-xs sm:text-sm px-5 py-3.5 rounded-2xl max-w-[92vw] flex items-center justify-center gap-2.5 text-center toast-animate-in`;
+      if (iconEl) iconEl.textContent = selected.icon;
+      if (textEl) {
+        textEl.textContent = message;
+      } else {
+        box.textContent = message;
+      }
+
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         box.classList.add('hidden');
-      }, 3400);
+      }, 3600);
     }
 
-    function copyPaymentDetail(val, label) {
-      const textToCopy = String(val || '').trim();
-      if (!textToCopy) return;
-      try {
-        const temp = document.createElement('textarea');
-        temp.value = textToCopy;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-      } catch (e) {}
-      showToast(`تم نسخ ${label}: ${textToCopy}`);
+    function notifyFieldUpdate(label, rawValue) {
+      const cleanVal = String(rawValue || '').trim();
+      if (!cleanVal) return;
+      const shortVal = cleanVal.length > 36 ? cleanVal.slice(0, 36) + '...' : cleanVal;
+      showToast(`تم إدخال ${label}: ${shortVal}`, 'info');
     }
 
-    /* =====================================================================
-       إدارة النسخ الاحتياطي التلقائي كل 10 دقائق وعند التعديل (10 نسخ في مسار واحد)
-       ===================================================================== */
-    function getAutoBackupHistory() {
+    function compressReceiptFileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('read_failed'));
+        reader.onload = () => {
+          const result = String(reader.result || '');
+          if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
+            resolve(result);
+            return;
+          }
+          const img = new Image();
+          img.onerror = () => resolve(result);
+          img.onload = () => {
+            try {
+              const maxDim = 1280;
+              let w = img.width || 800;
+              let h = img.height || 600;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h * maxDim) / w);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w * maxDim) / h);
+                  h = maxDim;
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                resolve(result);
+                return;
+              }
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.8));
+            } catch (err) {
+              resolve(result);
+            }
+          };
+          img.src = result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function clearNewReceiptSelection() {
+      const input = document.getElementById('contrib-receipt');
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const prevWrap = document.getElementById('new-receipt-preview-wrap');
+      const prevImg = document.getElementById('new-receipt-preview-img');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      if (input) input.value = '';
+      newReceiptDataUrl = '';
+      newReceiptFileName = '';
+      isLoadingNewReceipt = false;
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      if (prevImg) prevImg.src = '';
+      prevWrap?.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+      showToast('تمت إزالة صورة الإيصال المختارة.', 'warning');
+    }
+
+    async function handleNewReceiptFileChange(input) {
+      const file = input?.files?.[0];
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const prevWrap = document.getElementById('new-receipt-preview-wrap');
+      const prevImg = document.getElementById('new-receipt-preview-img');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      if (!file) return;
+
+      isLoadingNewReceipt = true;
+      newReceiptFileName = file.name;
+      if (nameEl) nameEl.textContent = `جاري تجهيز الإيصال: ${file.name}...`;
+
       try {
-        const rawLatest = readStorageSafe(AUTO_BACKUP_KEY);
-        if (rawLatest) {
-          const parsedLatest = JSON.parse(rawLatest);
-          if (parsedLatest && parsedLatest.state) return [parsedLatest];
+        const dataUrl = await compressReceiptFileToDataUrl(file);
+        newReceiptDataUrl = dataUrl;
+        if (nameEl) nameEl.textContent = `تم إرفاق الإيصال: ${file.name}`;
+        clearBtn?.classList.remove('hidden');
+        if (dataUrl.startsWith('data:image')) {
+          prevWrap?.classList.remove('hidden');
+          if (prevImg) prevImg.src = dataUrl;
+        } else {
+          prevWrap?.classList.add('hidden');
         }
-        const rawHist = readStorageSafe(BACKUP_HISTORY_KEY);
-        const parsedHist = rawHist ? JSON.parse(rawHist) : [];
-        return Array.isArray(parsedHist) && parsedHist.length ? [parsedHist[0]] : [];
-      } catch (e) {
-        return [];
+        showToast(`تم تحميل صورة الإيصال (${file.name}) بنجاح.`, 'success');
+      } catch (err) {
+        newReceiptDataUrl = '';
+        newReceiptFileName = '';
+        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
+        showToast('تعذر قراءة صورة الإيصال، يرجى اختيار صورة صالحة.', 'warning');
+      } finally {
+        isLoadingNewReceipt = false;
+        if (input) input.value = '';
       }
     }
 
@@ -2436,22 +2708,34 @@
       }
     }
 
-    function handleNewReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      const nameEl = document.getElementById('contrib-receipt-name');
-      if (!file) {
-        newReceiptDataUrl = '';
-        newReceiptFileName = '';
-        if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
-        return;
+    function toggleEditPaymentFields() {
+      const method = document.getElementById('edit-contrib-method')?.value || '';
+      const bankBox = document.getElementById('edit-contrib-bank-fields');
+      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
+      if (method.includes('المصرف')) {
+        bankBox?.classList.remove('hidden');
+        mobileBox?.classList.add('hidden');
+      } else if (method.includes('النقال')) {
+        mobileBox?.classList.remove('hidden');
+        bankBox?.classList.add('hidden');
+      } else {
+        bankBox?.classList.add('hidden');
+        mobileBox?.classList.add('hidden');
       }
-      newReceiptFileName = file.name;
-      if (nameEl) nameEl.textContent = `الملف المختار: ${file.name}`;
-      const reader = new FileReader();
-      reader.onload = () => {
-        newReceiptDataUrl = String(reader.result || '');
-      };
-      reader.readAsDataURL(file);
+    }
+
+    function copyPaymentDetail(value, label) {
+      try {
+        const temp = document.createElement('textarea');
+        temp.value = value;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showToast(`تم نسخ ${label}: ${value}`, 'success');
+      } catch (e) {
+        showToast(`${label}: ${value}`, 'info');
+      }
     }
 
     function markAsMyContribution(id) {
@@ -2476,6 +2760,10 @@
 
     function handleNewContributionSubmit(e) {
       e.preventDefault();
+      if (isLoadingNewReceipt) {
+        showToast('يرجى الانتظار لحظة حتى يكتمل تجهيز صورة الإيصال...', 'warning');
+        return;
+      }
       const contributorName = (document.getElementById('contrib-name')?.value || '').trim();
       const branch = document.getElementById('contrib-branch')?.value || 'الهمايلة';
       const amount = Number(document.getElementById('contrib-amount')?.value) || 0;
@@ -2485,15 +2773,15 @@
       const phone = (document.getElementById('contrib-phone')?.value || '').trim();
 
       if (!contributorName || amount <= 0 || !method) {
-        showToast('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.');
+        showToast('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.', 'warning');
         return;
       }
       if (method.includes('المصرف') && !newReceiptDataUrl) {
-        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.');
+        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.', 'warning');
         return;
       }
       if (method.includes('النقال') && !/^\d{10}$/.test(phone)) {
-        showToast('يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام.');
+        showToast('يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام.', 'warning');
         return;
       }
 
@@ -2524,11 +2812,13 @@
       newReceiptFileName = '';
       const nameEl = document.getElementById('contrib-receipt-name');
       if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      document.getElementById('new-receipt-preview-wrap')?.classList.add('hidden');
+      document.getElementById('clear-new-receipt-btn')?.classList.add('hidden');
       toggleNewPaymentFields();
 
       saveAppState('تسجيل مساهمة جديدة');
       renderAll();
-      showToast('تم إرسال مساهمتك بنجاح وهي بانتظار اعتماد إدارة الصندوق.');
+      showToast(`تم إرسال مساهمة ${contributorName} (${formatCurrency(amount)}) للمراجعة بنجاح!`, 'success');
     }
 
     function renderPendingContributions() {
@@ -2622,24 +2912,152 @@
       }
     }
 
+    function deletePendingContribution(id) {
+      if (!isAdminMode) return;
+      addDeletedId(id);
+      appState.pendingContributions = appState.pendingContributions.filter(p => String(p.id) !== String(id));
+      saveAppState('حذف طلب مساهمة');
+      renderAll();
+      showToast('تم حذف طلب المساهمة.');
+    }
+
+    function openAdminDisbursementEditModal(id) {
+      if (!isAdminMode) return;
+      const entry = appState.approvedContributions.find(a => String(a.id) === String(id) && a.type === 'disbursement');
+      if (!entry) return;
+      document.getElementById('edit-disb-entry-id').value = entry.id;
+      document.getElementById('edit-disb-amount').value = entry.amount;
+      document.getElementById('edit-disb-note').value = entry.note || '';
+      const modal = document.getElementById('admin-disbursement-edit-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeAdminDisbursementEditModal() {
+      const modal = document.getElementById('admin-disbursement-edit-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function deleteApprovedEntry(id) {
+      if (!isAdminMode) return;
+      const idx = appState.approvedContributions.findIndex(a => String(a.id) === String(id));
+      if (idx === -1) return;
+      const [removed] = appState.approvedContributions.splice(idx, 1);
+      addDeletedId(id);
+      if (removed.type === 'disbursement' && removed.target) {
+        const targetCase = appState.cases.find(c => String(c.id) === String(removed.target));
+        if (targetCase) {
+          targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) - (Number(removed.amount) || 0));
+        }
+      }
+      saveAppState('حذف قيد من السجل');
+      renderAll();
+      showToast('تم حذف القيد وتحديث الإحصائيات.');
+    }
+
+    function scheduleLedgerRender() {
+      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
+      ledgerSearchTimer = setTimeout(() => renderLedger(), 120);
+    }
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+
+      const query = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
+      const filterType = document.getElementById('ledger-filter-select')?.value || 'all';
+
+      const maxContributionAmt = appState.approvedContributions
+        .filter(x => x.type !== 'disbursement')
+        .reduce((max, x) => Math.max(max, Number(x.amount) || 0), 0);
+
+      const items = appState.approvedContributions.filter(item => {
+        if (filterType !== 'all' && item.type !== filterType) return false;
+        if (!query) return true;
+        const haystack = [
+          item.contributorName,
+          item.branch,
+          item.targetLabel,
+          item.note,
+          item.method
+        ].join(' ').toLowerCase();
+        return haystack.includes(query);
+      });
+
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد قيود مطابقة للبحث أو الفلتر الحالي.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const isDisb = item.type === 'disbursement';
+        const amt = Number(item.amount) || 0;
+        const isTopDonor = !isDisb && maxContributionAmt > 0 && amt === maxContributionAmt;
+        const canUserEdit = !isAdminMode && !isDisb && isMyContribution(item.id) && !(Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1);
+
+        const typeBadge = isDisb
+          ? '<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>'
+          : (item.type === 'case'
+              ? '<span class="inline-block bg-amber-100 text-amber-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>'
+              : '<span class="inline-block bg-emerald-100 text-emerald-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
+
+        const actionsHtml = isAdminMode
+          ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
+              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">الإيصال</button>` : ''}
+              <button type="button" onclick="${isDisb ? `openAdminDisbursementEditModal('${escapeHtml(item.id)}')` : `openEditContributionModal('${escapeHtml(item.id)}','approved')`}" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">تعديل</button>
+              <button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">حذف</button>
+            </div>`
+          : (canUserEdit
+              ? `<div class="mt-1.5 flex justify-end"><button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">تعديل (1/1)</button></div>`
+              : '');
+
+        return `
+          <tr class="hover:bg-slate-50/90 transition">
+            <td class="py-3.5 px-5">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="font-black text-slate-900 ${isTopDonor ? 'high-donor-glow' : ''}">
+                  ${isTopDonor ? '<span class="high-donor-star">★</span> ' : ''}${escapeHtml(item.contributorName)}
+                </span>
+                ${item.branch ? `<span class="text-[11px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>` : ''}
+              </div>
+              <p class="text-xs font-bold text-slate-500 mt-0.5">${escapeHtml(item.targetLabel || '')}${item.note ? ` • ${escapeHtml(item.note)}` : ''}</p>
+            </td>
+            <td class="py-3.5 px-3 text-center whitespace-nowrap">${typeBadge}</td>
+            <td class="py-3.5 px-3 text-center whitespace-nowrap font-black ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
+              ${isDisb ? '-' : '+'}${formatCurrency(amt)}
+            </td>
+            <td class="py-3.5 px-5 text-left">
+              <span class="block text-xs font-extrabold text-slate-500" dir="ltr">${escapeHtml(item.createdAt || '')}</span>
+              ${actionsHtml}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     function handleAdminDisbursementEditSubmit(e) {
       e.preventDefault();
       if (!isAdminMode) return;
       const id = document.getElementById('edit-disb-entry-id').value;
       const newAmount = Math.max(0, Number(document.getElementById('edit-disb-amount').value) || 0);
       const newNote = (document.getElementById('edit-disb-note').value || '').trim();
-      const entry = appState.approvedContributions.find(a => a.id === id && a.type === 'disbursement');
+      const entry = appState.approvedContributions.find(a => String(a.id) === String(id) && a.type === 'disbursement');
       if (!entry) return;
       const diff = newAmount - (Number(entry.amount) || 0);
       if (entry.target) {
-        const targetCase = appState.cases.find(c => c.id === entry.target);
+        const targetCase = appState.cases.find(c => String(c.id) === String(entry.target));
         if (targetCase) {
           targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) + diff);
         }
       }
       if (newAmount <= 0) {
         addDeletedId(id);
-        appState.approvedContributions = appState.approvedContributions.filter(a => a.id !== id);
+        appState.approvedContributions = appState.approvedContributions.filter(a => String(a.id) !== String(id));
         closeAdminDisbursementEditModal();
         saveAppState('إزالة قيد صرف بقيمة صفر');
         renderAll();
@@ -2694,11 +3112,20 @@
 
       editReceiptDataUrl = item.receiptData || '';
       editReceiptFileName = item.receiptName || '';
+      isLoadingEditReceipt = false;
+      const editInput = document.getElementById('edit-contrib-receipt');
+      if (editInput) editInput.value = '';
       const nameEl = document.getElementById('edit-contrib-receipt-name');
       const prevWrap = document.getElementById('edit-contrib-receipt-preview');
       const prevImg = document.getElementById('edit-contrib-receipt-img');
+      const clearEditBtn = document.getElementById('clear-edit-receipt-btn');
 
       if (nameEl) nameEl.textContent = editReceiptFileName ? `الملف الحالي: ${editReceiptFileName}` : 'لم يتم اختيار أي ملف';
+      if (editReceiptDataUrl) {
+        clearEditBtn?.classList.remove('hidden');
+      } else {
+        clearEditBtn?.classList.add('hidden');
+      }
       if (editReceiptDataUrl && editReceiptDataUrl.startsWith('data:image')) {
         prevWrap?.classList.remove('hidden');
         if (prevImg) prevImg.src = editReceiptDataUrl;
@@ -2720,42 +3147,62 @@
       }
     }
 
-    function toggleEditPaymentFields() {
-      const method = document.getElementById('edit-contrib-method')?.value || '';
-      const bankBox = document.getElementById('edit-contrib-bank-fields');
-      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
-      if (method.includes('النقال')) {
-        mobileBox?.classList.remove('hidden');
-        bankBox?.classList.add('hidden');
-      } else {
-        bankBox?.classList.remove('hidden');
-        mobileBox?.classList.add('hidden');
-      }
+    function clearEditReceiptSelection() {
+      const input = document.getElementById('edit-contrib-receipt');
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
+      const prevImg = document.getElementById('edit-contrib-receipt-img');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
+      if (input) input.value = '';
+      editReceiptDataUrl = '';
+      editReceiptFileName = '';
+      isLoadingEditReceipt = false;
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      if (prevImg) prevImg.src = '';
+      prevWrap?.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+      showToast('تمت إزالة صورة الإيصال من التعديل.', 'warning');
     }
 
-    function handleEditReceiptFileChange(input) {
+    async function handleEditReceiptFileChange(input) {
       const file = input?.files?.[0];
       const nameEl = document.getElementById('edit-contrib-receipt-name');
       const prevWrap = document.getElementById('edit-contrib-receipt-preview');
       const prevImg = document.getElementById('edit-contrib-receipt-img');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
       if (!file) return;
+
+      isLoadingEditReceipt = true;
       editReceiptFileName = file.name;
-      if (nameEl) nameEl.textContent = `الملف الجديد: ${file.name}`;
-      const reader = new FileReader();
-      reader.onload = () => {
-        editReceiptDataUrl = String(reader.result || '');
-        if (editReceiptDataUrl.startsWith('data:image')) {
+      if (nameEl) nameEl.textContent = `جاري تحديث الإيصال: ${file.name}...`;
+
+      try {
+        const dataUrl = await compressReceiptFileToDataUrl(file);
+        editReceiptDataUrl = dataUrl;
+        if (nameEl) nameEl.textContent = `الملف المرفق: ${file.name}`;
+        clearBtn?.classList.remove('hidden');
+        if (dataUrl.startsWith('data:image')) {
           prevWrap?.classList.remove('hidden');
-          if (prevImg) prevImg.src = editReceiptDataUrl;
+          if (prevImg) prevImg.src = dataUrl;
         } else {
           prevWrap?.classList.add('hidden');
         }
-      };
-      reader.readAsDataURL(file);
+        showToast(`تم تحديث صورة الإيصال (${file.name}) بنجاح.`, 'success');
+      } catch (err) {
+        if (nameEl) nameEl.textContent = 'تعذر قراءة الملف المختار';
+        showToast('تعذر قراءة صورة الإيصال المختارة.', 'warning');
+      } finally {
+        isLoadingEditReceipt = false;
+        if (input) input.value = '';
+      }
     }
 
     function handleEditContributionSubmit(e) {
       e.preventDefault();
+      if (isLoadingEditReceipt) {
+        showToast('يرجى الانتظار لحظة حتى يكتمل تجهيز صورة الإيصال...', 'warning');
+        return;
+      }
       const id = document.getElementById('edit-contrib-id').value;
       const scope = document.getElementById('edit-contrib-scope').value;
       const list = scope === 'pending' ? appState.pendingContributions : appState.approvedContributions;
@@ -2820,8 +3267,9 @@
       renderAll();
       showToast(
         !isAdminMode
-          ? 'تم حفظ تعديل مساهمتك بنجاح (متاح مرة واحدة فقط).'
-          : 'تم حفظ تعديلات المساهمة ومزامنة الرصيد والحالة.'
+          ? `تم حفظ تعديل مساهمة ${item.contributorName} بنجاح (متاح مرة واحدة فقط).`
+          : `تم حفظ تعديلات مساهمة ${item.contributorName} ومزامنة الرصيد والحالة.`,
+        'success'
       );
     }
 
