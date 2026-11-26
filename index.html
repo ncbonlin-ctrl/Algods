@@ -684,11 +684,20 @@
         <button type="button" onclick="closeDisburseModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
       </div>
       <p id="disburse-case-label" class="text-xs font-extrabold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3"></p>
-      <div id="disburse-remaining-box" class="bg-amber-50/90 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs font-black">
-        <span class="text-amber-950">القيمة المتبقية على الحالة:</span>
-        <div class="flex items-center gap-2">
-          <span id="disburse-case-remaining" data-copy-value="0" class="bg-amber-500 text-emerald-950 px-2.5 py-1 rounded-lg">0 د.ل</span>
-          <button type="button" onclick="copyDisburseRemainingValue()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[11px] transition cursor-pointer">نسخ القيمة</button>
+      <div class="grid grid-cols-1 gap-2.5">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs font-black">
+          <span class="text-emerald-950">رصيد الصندوق الحالي:</span>
+          <div class="flex items-center gap-2">
+            <span id="disburse-fund-balance" data-copy-value="0" class="bg-emerald-700 text-white px-2.5 py-1 rounded-lg">0 د.ل</span>
+            <button type="button" onclick="copyDisburseFundBalance()" class="bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[11px] transition cursor-pointer">نسخ</button>
+          </div>
+        </div>
+        <div id="disburse-remaining-box" class="bg-amber-50/90 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs font-black">
+          <span class="text-amber-950">القيمة الفعلية التي تحتاجها الحالة:</span>
+          <div class="flex items-center gap-2">
+            <span id="disburse-case-remaining" data-copy-value="0" class="bg-amber-500 text-emerald-950 px-2.5 py-1 rounded-lg">0 د.ل</span>
+            <button type="button" onclick="copyDisburseRemainingValue()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[11px] transition cursor-pointer">نسخ القيمة</button>
+          </div>
         </div>
       </div>
       <div id="disburse-zero-alert" class="hidden text-xs font-black text-rose-700 bg-rose-50 border border-rose-300 rounded-xl p-3">
@@ -2069,9 +2078,23 @@
       if (!target) return;
       currentDisburseCaseId = caseId;
       const summary = computeFinancialSummary();
-      const remaining = Math.max(0, (Number(target.requiredAmount) || 0) - (Number(target.disbursedAmount) || 0));
+      const netFundTotal = appState.approvedContributions
+        .filter(item => item.type === 'disbursement' && item.target === target.id)
+        .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const netContributorsTotal = appState.approvedContributions
+        .filter(item => item.type !== 'disbursement' && item.target === target.id)
+        .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const effectiveFunded = netFundTotal + netContributorsTotal;
+      const remaining = Math.max(0, (Number(target.requiredAmount) || 0) - effectiveFunded);
 
-      document.getElementById('disburse-case-label').textContent = `الحالة المستفيدة: ${target.title} • الرصيد المتاح بالصندوق: ${formatCurrency(summary.availableBalance)}`;
+      document.getElementById('disburse-case-label').textContent = `الحالة المستفيدة: ${target.title}`;
+
+      const fundBalEl = document.getElementById('disburse-fund-balance');
+      if (fundBalEl) {
+        fundBalEl.textContent = formatCurrency(summary.availableBalance);
+        fundBalEl.dataset.copyValue = String(summary.availableBalance);
+      }
+
       const remEl = document.getElementById('disburse-case-remaining');
       remEl.textContent = formatCurrency(remaining);
       remEl.dataset.copyValue = String(remaining);
@@ -2106,19 +2129,29 @@
       }
     }
 
-    function copyDisburseRemainingValue() {
-      const val = document.getElementById('disburse-case-remaining')?.dataset?.copyValue || '0';
-      const input = document.getElementById('disburse-amount-input');
-      if (input) input.value = val;
+    function copyTextToClipboardSafe(val) {
       try {
         const temp = document.createElement('textarea');
-        temp.value = val;
+        temp.value = String(val);
         document.body.appendChild(temp);
         temp.select();
         document.execCommand('copy');
         document.body.removeChild(temp);
       } catch (e) {}
-      showToast(`تم نسخ وتعبئة القيمة المتبقية (${val} د.ل).`);
+    }
+
+    function copyDisburseFundBalance() {
+      const val = document.getElementById('disburse-fund-balance')?.dataset?.copyValue || '0';
+      copyTextToClipboardSafe(val);
+      showToast(`تم نسخ رصيد الصندوق الحالي (${val} د.ل).`);
+    }
+
+    function copyDisburseRemainingValue() {
+      const val = document.getElementById('disburse-case-remaining')?.dataset?.copyValue || '0';
+      const input = document.getElementById('disburse-amount-input');
+      if (input) input.value = val;
+      copyTextToClipboardSafe(val);
+      showToast(`تم نسخ وتعبئة القيمة الفعلية المطلوبة للحالة (${val} د.ل).`);
     }
 
     function handleDisburseSubmit(e) {
