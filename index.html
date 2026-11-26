@@ -482,14 +482,37 @@
       </div>
 
       <form id="new-contribution-form" onsubmit="handleNewContributionSubmit(event)" class="space-y-4">
+        <!-- بطاقة الحافظة الذكية المستقلة للمساهم (فوق حقل اسم المساهم المتبرع مباشرة) -->
+        <div id="smart-donor-wallet-card" class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border-2 border-amber-400/75 shadow-md space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-700/60 pb-3 text-center sm:text-right">
+            <div class="space-y-0.5">
+              <span class="inline-block bg-amber-400 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full">حافظة ذكية مستقلة • قيد محاسبي مستقل</span>
+              <h3 id="donor-wallet-owner-title" class="text-sm sm:text-base font-black text-white">حافظة المساهم الذكية</h3>
+              <p class="text-[11px] font-bold text-emerald-200">رصيد مستقل خاص بالمساهم — لا يُحتسب في الصندوق أو سجل المساهمات إلا عند التبرع به فعلياً.</p>
+            </div>
+            <div class="bg-emerald-950/80 border border-amber-400/50 rounded-2xl px-4 py-2.5 text-center shrink-0">
+              <p class="text-[11px] font-extrabold text-amber-300">رصيد الحافظة الحالي</p>
+              <p id="donor-wallet-balance-display" class="text-xl sm:text-2xl font-black text-white mt-0.5">0 د.ل</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <input type="number" id="wallet-donate-amount" min="1" step="any" placeholder="مبلغ التبرع من الحافظة..." class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-black text-center outline-none focus:border-amber-400" />
+            <select id="wallet-donate-target" class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-center outline-none focus:border-amber-400"></select>
+            <button type="button" onclick="handleDonateFromWallet()" class="bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-emerald-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
+              تبرع من الحافظة
+            </button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="contribute-field-card">
             <label for="contrib-name" class="block text-xs font-black text-emerald-950 mb-1.5">* اسم المساهم / المتبرع</label>
-            <input type="text" id="contrib-name" required placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+            <input type="text" id="contrib-name" required oninput="renderDonorWalletPanel()" placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
           </div>
           <div class="contribute-field-card">
             <label for="contrib-branch" class="block text-xs font-black text-emerald-950 mb-1.5">* اللحمة / فرع</label>
-            <select id="contrib-branch" required class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+            <select id="contrib-branch" required onchange="renderDonorWalletPanel()" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
               <option value="الهمايلة">الهمايلة</option>
               <option value="أولاد سلام">أولاد سلام</option>
               <option value="أولاد إمحمد">أولاد إمحمد</option>
@@ -507,30 +530,7 @@
           </div>
           <div class="contribute-field-card">
             <label for="contrib-target" class="block text-xs font-black text-emerald-950 mb-1.5">* وجهة التبرع</label>
-            <select id="contrib-target" required onchange="handleContribTargetChange()" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition"></select>
-          </div>
-        </div>
-
-        <!-- بطاقة الحافظة الذكية المستقلة للمساهم -->
-        <div id="smart-donor-wallet-card" class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border-2 border-amber-400/75 shadow-md space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-700/60 pb-3 text-center sm:text-right">
-            <div class="space-y-0.5">
-              <span class="inline-block bg-amber-400 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full">حافظة ذكية مستقلة</span>
-              <h3 id="donor-wallet-owner-title" class="text-sm sm:text-base font-black text-white">حافظة المساهم الذكية</h3>
-              <p class="text-[11px] font-bold text-emerald-200">رصيد مستقل خاص بالمساهم — لا يُحتسب في الصندوق أو سجل المساهمات إلا عند التبرع به فعلياً.</p>
-            </div>
-            <div class="bg-emerald-950/80 border border-amber-400/50 rounded-2xl px-4 py-2.5 text-center shrink-0">
-              <p class="text-[11px] font-extrabold text-amber-300">رصيد الحافظة الحالي</p>
-              <p id="donor-wallet-balance-display" class="text-xl sm:text-2xl font-black text-white mt-0.5">0 د.ل</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <input type="number" id="wallet-donate-amount" min="1" step="any" placeholder="مبلغ التبرع من الحافظة..." class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-black text-center outline-none focus:border-amber-400" />
-            <select id="wallet-donate-target" class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-center outline-none focus:border-amber-400"></select>
-            <button type="button" onclick="handleDonateFromWallet()" class="bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-emerald-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              تبرع من الحافظة
-            </button>
+            <select id="contrib-target" required onchange="handleContribTargetChange()" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:border-emerald-600 outline-none transition cursor-pointer"></select>
           </div>
         </div>
 
@@ -1761,39 +1761,40 @@
         navigator.clipboard.writeText(text).catch(() => {});
       }
       showToast(`تم نسخ ${label}: ${text}`, 'success');
+    function resolveTargetInfo(targetValue) {
+      const val = String(targetValue || 'general').trim();
+      if (val === 'personal_wallet') {
+        return {
+          targetType: 'personal_wallet',
+          targetId: 'personal_wallet',
+          targetLabel: 'المحفظة الشخصية الذكية'
+        };
+      }
+      if (val.startsWith('case:')) {
+        const caseId = val.slice(5);
+        const foundCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
+        return {
+          targetType: 'case',
+          targetId: String(caseId),
+          targetLabel: foundCase ? `${foundCase.name} (${foundCase.category})` : `حالة #${caseId}`
+        };
+      }
+      return {
+        targetType: 'general',
+        targetId: 'general',
+        targetLabel: 'الصندوق العام (أورام وديّة)'
+      };
     }
 
-    function computeFinancialMetrics() {
-      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
-      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
-      const cases = Array.isArray(appState?.cases) ? appState.cases : [];
+    function handleContribTargetChange() {
+      const sel = document.getElementById('contrib-target');
+      const val = sel ? sel.value : '';
+      renderDonorWalletPanel();
+      if (val === 'personal_wallet') {
+        showToast('تم اختيار شحن المحفظة الشخصية الذكية؛ سيبقى الرصيد مستقلاً في حافظتك بعد الاعتماد.', 'warning');
+      }
+    }
 
-      const caseDirectMap = {};
-      cases.forEach((c) => {
-        caseDirectMap[String(c.id)] = 0;
-      });
-
-      let totalContributions = 0;
-      let validContributionsCount = 0;
-      approved.forEach((item) => {
-        const amt = Math.max(0, Number(item.amount) || 0);
-        // استثناء قيود شحن المحفظة الشخصية بالكامل حتى تبقى مستقلة في حافظة المساهم ولا تظهر في رصيد الصندوق أو سجل المساهمات
-        const isPersonalWalletTopup =
-          item.targetType === 'personal_wallet' ||
-          item.targetId === 'personal_wallet' ||
-          String(item.targetLabel || '').includes('المحفظة الشخصية') ||
-          String(item.note || '').includes('شحن محفظته الشخصية');
-        if (isPersonalWalletTopup) {
-          return;
-        }
-        totalContributions += amt;
-        validContributionsCount += 1;
-        if (item.targetType === 'case' && item.targetId) {
-          const cid = String(item.targetId);
-          caseDirectMap[cid] = (caseDirectMap[cid] || 0) + amt;
-        }
-      });
-// ... existing code ... -->
     function populateTargetSelects() {
       const selects = [
         document.getElementById('contrib-target'),
@@ -1806,11 +1807,10 @@
         const prevVal = sel.value;
         const isNewForm = sel.id === 'contrib-target';
         let html = isNewForm
-          ? `<option value="">اختر وجهة التبرع...</option>
-             <option value="personal_wallet">شحن محفظتي الشخصية الذكية (رصيد مستقل خاص بي)</option>
-             <option value="general">رصيد الصندوق العام (أورام وديّة)</option>`
-          : `<option value="general">رصيد الصندوق العام (أورام وديّة)</option>
-             <option value="personal_wallet">المحفظة الشخصية الذكية</option>`;
+          ? `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>
+             <option value="personal_wallet">التبرع / شحن الحافظة الشخصية الذكية</option>`
+          : `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>
+             <option value="personal_wallet">التبرع / شحن الحافظة الشخصية الذكية</option>`;
 
         cases.forEach((c) => {
           html += `<option value="case:${escapeHtml(c.id)}">حالة: ${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`;
@@ -1819,12 +1819,14 @@
         sel.innerHTML = html;
         if (prevVal && Array.from(sel.options).some((o) => o.value === prevVal)) {
           sel.value = prevVal;
+        } else if (isNewForm) {
+          sel.value = 'general';
         }
       });
 
       if (walletTargetSel) {
         const prevW = walletTargetSel.value;
-        let wHtml = `<option value="general">الصندوق العام (أورام وديّة)</option>`;
+        let wHtml = `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>`;
         cases.forEach((c) => {
           wHtml += `<option value="case:${escapeHtml(c.id)}">حالة: ${escapeHtml(c.name)}</option>`;
         });
@@ -1834,25 +1836,164 @@
         }
       }
     }
-// ... existing code ... -->
-    function debitDonorWallet(name, branch, amount) {
+    function getDonorWalletKey(name, branch) {
+      const cleanName = String(name || '').trim().toLowerCase().replace(/\s+/g, '_');
+      const cleanBranch = String(branch || '').trim().toLowerCase().replace(/\s+/g, '_');
+      return `${cleanName || 'guest'}__${cleanBranch || 'general'}`;
+    }
+
+    function getDonorWalletsMap() {
+      try {
+        const raw = readStorageSafe(DONOR_WALLETS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveDonorWalletsMap(map) {
+      try {
+        writeStorageSafe(DONOR_WALLETS_KEY, JSON.stringify(map || {}));
+      } catch (e) {}
+    }
+
+    function getDonorWalletBalance(name, branch) {
+      if (!String(name || '').trim()) return 0;
+      const map = getDonorWalletsMap();
+      const key = getDonorWalletKey(name, branch);
+      const entry = map[key];
+      if (!entry) return 0;
+      return Math.max(0, Number(typeof entry === 'object' ? entry.balance : entry) || 0);
+    }
+
+    function creditDonorWallet(name, branch, amount, reason = 'شحن محفظة شخصية') {
+      const amt = Math.max(0, Number(amount) || 0);
+      if (amt <= 0) return;
+      const map = getDonorWalletsMap();
+      const key = getDonorWalletKey(name, branch);
+      const prev = map[key] && typeof map[key] === 'object' ? map[key] : { balance: 0, entries: [] };
+      const nextBalance = (Math.max(0, Number(prev.balance) || 0)) + amt;
+      const entries = Array.isArray(prev.entries) ? prev.entries.slice(0, 29) : [];
+      entries.unshift({
+        id: `w_tx_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        type: 'credit',
+        amount: amt,
+        reason,
+        date: formatNowDate()
+      });
+      map[key] = {
+        key,
+        name: String(name || 'مساهم').trim(),
+        branch: String(branch || 'الهمايلة').trim(),
+        balance: nextBalance,
+        entries,
+        updatedAtMs: Date.now(),
+        originClient: clientInstanceId
+      };
+      saveDonorWalletsMap(map);
+      pushAllDonorWalletsToFirebase();
+    }
+
+    function debitDonorWallet(name, branch, amount, reason = 'تبرع من الحافظة الذكية') {
       const amt = Math.max(0, Number(amount) || 0);
       if (amt <= 0) return false;
       const map = getDonorWalletsMap();
       const key = getDonorWalletKey(name, branch);
-      const prev = map[key] && typeof map[key] === 'object' ? map[key] : { balance: 0 };
+      const prev = map[key] && typeof map[key] === 'object' ? map[key] : { balance: 0, entries: [] };
       const currentBal = Math.max(0, Number(prev.balance) || 0);
       if (amt > currentBal) return false;
+      const entries = Array.isArray(prev.entries) ? prev.entries.slice(0, 29) : [];
+      entries.unshift({
+        id: `w_tx_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        type: 'debit',
+        amount: amt,
+        reason,
+        date: formatNowDate()
+      });
       map[key] = {
         ...prev,
+        key,
         name: String(name || 'مساهم').trim(),
         branch: String(branch || 'الهمايلة').trim(),
         balance: currentBal - amt,
-        updatedAtMs: Date.now()
+        entries,
+        updatedAtMs: Date.now(),
+        originClient: clientInstanceId
       };
       saveDonorWalletsMap(map);
       pushAllDonorWalletsToFirebase();
       return true;
+    }
+
+    function buildFirebaseWalletsEndpoint() {
+      const cfg = getFirebaseConfig();
+      if (!cfg || !cfg.dbUrl) return '';
+      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
+      return `${cfg.dbUrl}/sayaanDonorWallets.json${secret}`;
+    }
+
+    async function pushAllDonorWalletsToFirebase() {
+      const endpoint = buildFirebaseWalletsEndpoint();
+      if (!endpoint) return;
+      if (isPushingWalletsToFirebase) return;
+      isPushingWalletsToFirebase = true;
+      try {
+        const localMap = getDonorWalletsMap();
+        await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallets: localMap,
+            updatedAtMs: Date.now(),
+            originClient: clientInstanceId
+          })
+        });
+        lastWalletsPushedAtMs = Date.now();
+      } catch (e) {} finally {
+        isPushingWalletsToFirebase = false;
+      }
+    }
+
+    async function pullAllDonorWalletsFromFirebase() {
+      const endpoint = buildFirebaseWalletsEndpoint();
+      if (!endpoint) return;
+      try {
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) return;
+        const remote = await res.json();
+        const remoteWallets = remote && typeof remote === 'object' && remote.wallets && typeof remote.wallets === 'object'
+          ? remote.wallets
+          : (remote && typeof remote === 'object' ? remote : null);
+        if (!remoteWallets) return;
+
+        const localMap = getDonorWalletsMap();
+        const merged = { ...localMap };
+        let changed = false;
+
+        Object.keys(remoteWallets).forEach((k) => {
+          if (k === 'updatedAtMs' || k === 'originClient') return;
+          const rVal = remoteWallets[k];
+          if (!rVal || typeof rVal !== 'object') return;
+          const rMs = Number(rVal.updatedAtMs) || 0;
+          const lVal = merged[k];
+          const lMs = lVal && typeof lVal === 'object' ? (Number(lVal.updatedAtMs) || 0) : 0;
+          if (!lVal || rMs >= lMs) {
+            merged[k] = {
+              ...rVal,
+              balance: Math.max(0, Number(rVal.balance) || 0)
+            };
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          saveDonorWalletsMap(merged);
+          renderDonorWalletPanel();
+        } else if (Object.keys(localMap).length > 0 && (Date.now() - lastWalletsPushedAtMs > 4000)) {
+          pushAllDonorWalletsToFirebase();
+        }
+      } catch (e) {}
     }
 
     function handleDonateFromWallet() {
@@ -1875,13 +2016,13 @@
         return;
       }
 
-      const debited = debitDonorWallet(name, branch, amount);
+      const tInfo = resolveTargetInfo(targetVal);
+      const debited = debitDonorWallet(name, branch, amount, `تحويل إلى ${tInfo.targetLabel}`);
       if (!debited) {
         showToast('تعذر خصم المبلغ من الحافظة.', 'error');
         return;
       }
 
-      const tInfo = resolveTargetInfo(targetVal);
       appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
       appState.approvedContributions.unshift({
         id: `wallet_don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
