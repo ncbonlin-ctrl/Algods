@@ -686,22 +686,6 @@
           <input type="file" id="phone-backup-file-input" accept=".json,application/json,text/plain" onchange="handleManualBackupFileImport(this)" class="hidden" />
         </label>
       </div>
-
-      <!-- إدارة بصمة الدخول للمشرف -->
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5">
-        <div class="text-xs">
-          <p class="font-black text-slate-900">بصمة الدخول السريع للإدارة</p>
-          <p id="biometric-status-label" class="font-bold text-slate-500 mt-0.5">غير مفعّلة على هذا الجهاز</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" id="register-biometric-btn" onclick="registerAdminBiometric()" class="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">
-            تفعيل البصمة
-          </button>
-          <button type="button" id="remove-biometric-btn" onclick="removeAdminBiometric()" class="h-10 px-4 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 font-black text-xs transition cursor-pointer">
-            إزالة البصمة
-          </button>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -1857,7 +1841,6 @@
       }
       if (notifPanel) notifPanel.classList.toggle('hidden', !isAdminMode);
       renderAdminNotifications();
-      updateBiometricButtonsUI();
       updateBackupAdminUI();
     }
 
