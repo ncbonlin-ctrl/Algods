@@ -926,12 +926,45 @@
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
+        const hours24 = now.getHours();
+        const period = hours24 >= 12 ? 'مساءً' : 'صباحاً';
+        const hours12 = String(hours24 % 12 || 12).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}`;
+        return `${year}-${month}-${day} ${hours12}:${minutes} ${period}`;
       } catch (e) {
         return new Date().toISOString().slice(0, 16).replace('T', ' ');
       }
+    }
+
+    function formatDateTimeWithPeriod(rawDate) {
+      if (!rawDate) return formatNowDate();
+      const str = String(rawDate).trim();
+      if (str.includes('صباحاً') || str.includes('مساءً')) {
+        return str;
+      }
+      try {
+        const match = str.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{2})/);
+        if (match) {
+          const datePart = match[1];
+          const h24 = parseInt(match[2], 10);
+          const min = match[3];
+          const period = h24 >= 12 ? 'مساءً' : 'صباحاً';
+          const h12 = String(h24 % 12 || 12).padStart(2, '0');
+          return `${datePart} ${h12}:${min} ${period}`;
+        }
+        const parsed = new Date(str);
+        if (!Number.isNaN(parsed.getTime())) {
+          const year = parsed.getFullYear();
+          const month = String(parsed.getMonth() + 1).padStart(2, '0');
+          const day = String(parsed.getDate()).padStart(2, '0');
+          const h24 = parsed.getHours();
+          const period = h24 >= 12 ? 'مساءً' : 'صباحاً';
+          const h12 = String(h24 % 12 || 12).padStart(2, '0');
+          const min = String(parsed.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day} ${h12}:${min} ${period}`;
+        }
+      } catch (e) {}
+      return str;
     }
 
     function formatFullArabicDateTime(rawDate) {
@@ -1803,7 +1836,7 @@
       setTxt('stat-total-disbursed', formatCurrency(m.totalDisb));
       setTxt('stat-disbursed-summary', `حالات مسددة / مصروفة: ${m.completedCases} من ${m.casesCount}`);
       setTxt('stat-available-balance', formatCurrency(m.availableBalance));
-      setTxt('stat-last-updated', `آخر تحديث: ${appState.lastUpdated || formatNowDate()}`);
+      setTxt('stat-last-updated', `آخر تحديث: ${formatDateTimeWithPeriod(appState.lastUpdated || formatNowDate())}`);
       setTxt('stat-cases-badge', `${m.casesCount} حالات`);
       setTxt('stat-coverage-text', `${m.coveragePct}% من ${formatCurrency(m.totalReq)}`);
       const bar = document.getElementById('stat-coverage-bar');
@@ -2362,21 +2395,24 @@
         const isCompleted = Boolean(c.closed) || (req > 0 && rawFunded >= req);
         const myVote = deviceVotes[String(c.id)] || '';
 
+        const loggedDisbTotal = caseDisbs.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+        const unloggedDisb = Math.max(0, disb - loggedDisbTotal);
+
         const fundContributionsHtml = [
-          ...(disb > 0 ? [`
+          ...(unloggedDisb > 0 ? [`
             <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
               <div>
-                <span class="font-black text-emerald-950">مساهمة الإدارة (رصيد الصندوق)</span>
-                <span class="text-[11px] font-bold text-emerald-700 block">صرف مباشر من رصيد الصندوق</span>
+                <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
+                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(appState.lastUpdated || formatNowDate())}</span>
               </div>
-              <span class="font-black text-emerald-800 whitespace-nowrap">${formatCurrency(disb)}</span>
+              <span class="font-black text-emerald-800 whitespace-nowrap">${formatCurrency(unloggedDisb)}</span>
             </div>
           `] : []),
           ...caseDisbs.map(d => `
-            <div class="bg-emerald-50/80 border border-emerald-200/70 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
+            <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
               <div>
-                <span class="font-black text-emerald-950">${escapeHtml(d.contributorName || 'مساهمة الصندوق')}</span>
-                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(d.createdAt || '')}${d.note ? ` • ${escapeHtml(d.note)}` : ''}</span>
+                <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
+                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(d.createdAt || appState.lastUpdated || formatNowDate()))}</span>
               </div>
               <span class="font-black text-emerald-800 whitespace-nowrap">${formatCurrency(d.amount)}</span>
             </div>
@@ -2390,7 +2426,7 @@
             <div class="min-w-0">
               ${renderDonorIdentityBadge(x.contributorName, x.branch, x.amount)}
               <div class="text-[11px] font-bold text-slate-500 mt-1">
-                ${escapeHtml(formatNumericDateOnly(x.createdAt))} • ${escapeHtml(formatNumericTimeAmPm(x.createdAt))}
+                ${escapeHtml(formatDateTimeWithPeriod(x.editedAt || x.approvedAt || x.createdAt))}
               </div>
             </div>
             <span class="font-black ${isElite ? 'text-amber-800' : 'text-emerald-700'} whitespace-nowrap">+${formatCurrency(x.amount)}</span>
@@ -3199,7 +3235,7 @@
                 </p>
               ` : ''}
               ${ed.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(ed.note)}</p>` : ''}
-              <p class="text-[11px] text-slate-400 font-bold">وقت التعديل: ${escapeHtml(ed.editedAt || ed.createdAt || '')}</p>
+              <p class="text-[11px] text-slate-400 font-bold">وقت التعديل: ${escapeHtml(formatDateTimeWithPeriod(ed.editedAt || ed.createdAt || ''))}</p>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
               ${isAdminMode && ed.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(ed.id)}', 'approved')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">اطلاع على الوصل</button>` : ''}
@@ -3223,7 +3259,7 @@
               ${isAdminMode && p.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(p.phone)}</span>` : ''}
             </p>
             ${p.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
-            <p class="text-[11px] text-slate-400 font-bold">${escapeHtml(p.createdAt || '')}</p>
+            <p class="text-[11px] text-slate-400 font-bold">${escapeHtml(formatDateTimeWithPeriod(p.createdAt || ''))}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2 shrink-0">
             ${isAdminMode && p.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(p.id)}', 'pending')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">عرض الوصل</button>` : ''}
@@ -3349,7 +3385,7 @@
               ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
             </td>
             <td class="py-3.5 px-5 text-left align-middle">
-              <div class="text-xs font-bold text-slate-500">${escapeHtml(formatNumericDateOnly(item.approvedAt || item.createdAt))}</div>
+              <div class="text-xs font-bold text-slate-500">${escapeHtml(formatDateTimeWithPeriod(item.editedAt || item.approvedAt || item.createdAt))}</div>
               <div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
                 ${isAdminMode && item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
                 ${canUserEdit ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] transition cursor-pointer">تعديل مساهمتي</button>` : ''}
