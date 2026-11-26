@@ -1916,7 +1916,10 @@
           createdAt: String(a.createdAt || formatNowDate()),
           approvedAt: String(a.approvedAt || a.createdAt || formatNowDate()),
           userEditUsed: Boolean(a.userEditUsed),
-          userEditCount: Number(a.userEditCount) || 0
+          userEditCount: Number(a.userEditCount) || 0,
+          pendingAdminReapproval: Boolean(a.pendingAdminReapproval),
+          previousSnapshot: a.previousSnapshot && typeof a.previousSnapshot === 'object' ? { ...a.previousSnapshot } : null,
+          editedAt: String(a.editedAt || '')
         }))
       );
 
@@ -1934,10 +1937,10 @@
       try {
         const s = stateObj || appState;
         const cStr = (s.cases || []).map(c => `${c.id}:${c.title}:${c.requiredAmount}:${c.disbursedAmount}:${c.closed}:${c.votesYes}:${c.votesNo}:${(c.rejections || []).length}`).join('|');
-        const pStr = (s.pendingContributions || []).map(p => `${p.id}:${p.amount}:${p.target}:${p.contributorName}`).join('|');
-        const aStr = (s.approvedContributions || []).map(a => `${a.id}:${a.type}:${a.amount}:${a.target}:${a.contributorName}`).join('|');
-        return `${cStr}#${pStr}#${aStr}`;
-      } catch (e) {
+      const pStr = (s.pendingContributions || []).map(p => `${p.id}:${p.amount}:${p.target}:${p.contributorName}`).join('|');
+      const aStr = (s.approvedContributions || []).map(a => `${a.id}:${a.type}:${a.amount}:${a.target}:${a.contributorName}:${a.pendingAdminReapproval ? 1 : 0}`).join('|');
+      return `${cStr}#${pStr}#${aStr}`;
+    } catch (e) {
         return '';
       }
     }
@@ -2924,29 +2927,107 @@
       item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
 
       if (!isAdminMode) {
+        item.previousSnapshot = {
+          contributorName: item.contributorName,
+          branch: item.branch,
+          amount: Number(item.amount) || 0,
+          target: item.target,
+          targetLabel: item.targetLabel,
+          method: item.method,
+          note: item.note || '',
+          phone: item.phone || '',
+          receiptName: item.receiptName || ''
+        };
         item.userEditUsed = true;
         item.userEditCount = (Number(item.userEditCount) || 0) + 1;
+        item.pendingAdminReapproval = true;
+        item.editedAt = formatNowDate();
       }
 
-      saveAppState('تعديل مساهمة');
+      item.contributorName = name;
+      item.branch = branch;
+      item.amount = amount;
+      item.target = target;
+      if (target === 'general') {
+        item.targetLabel = 'رصيد الصندوق العام';
+      } else {
+        const cObj = (appState.cases || []).find(x => String(x.id) === String(target));
+        item.targetLabel = cObj ? cObj.title : (item.targetLabel || 'حالة');
+      }
+      item.method = method;
+      item.note = note;
+      item.phone = method.includes('النقال') ? phone : '';
+      item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
+      item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
+
+      saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف');
       closeEditContributionModal();
       renderAll();
-      showToast('تم حفظ تعديل المساهمة بنجاح.', 'success');
+      showToast(
+        isAdminMode
+          ? 'تم حفظ تعديل المساهمة بنجاح.'
+          : 'تم حفظ تعديلك وإرساله للمشرف للمراجعة وإعادة الاعتماد والنشر.',
+        'success'
+      );
+    }
+
+    function recycleAndReapproveEditedContribution(id) {
+      if (!isAdminMode) return;
+      const item = (appState.approvedContributions || []).find(x => String(x.id) === String(id));
+      if (!item) return;
+      item.pendingAdminReapproval = false;
+      item.previousSnapshot = null;
+      item.approvedAt = formatNowDate();
+      saveAppState('إعادة تدوير واعتماد تعديل مساهمة');
+      renderAll();
+      showToast('تمت مراجعة التعديل وإعادة تدويره واعتماده ونشره في سجل المساهمات.', 'success');
     }
 
     function renderPendingContributions() {
       const listEl = document.getElementById('pending-contributions-list');
       const badgeEl = document.getElementById('pending-count-badge');
       const pending = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
-      if (badgeEl) badgeEl.textContent = `${pending.length} طلبات`;
+      const editedForReapproval = (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
+        .filter(x => x && x.type !== 'disbursement' && x.pendingAdminReapproval);
+      const totalReviewItems = pending.length + editedForReapproval.length;
+      if (badgeEl) badgeEl.textContent = `${totalReviewItems} طلبات`;
       if (!listEl) return;
 
-      if (!pending.length) {
-        listEl.innerHTML = `<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs font-bold text-amber-900">لا توجد طلبات مساهمات معلقة حالياً.</div>`;
-        return;
-      }
+      const editedHtml = editedForReapproval.map(ed => {
+        const prev = ed.previousSnapshot || {};
+        return `
+          <div class="bg-amber-50/90 border-2 border-amber-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div class="space-y-1 text-xs">
+              <div class="flex flex-wrap items-center gap-2">
+                ${renderDonorIdentityBadge(ed.contributorName, ed.branch, ed.amount)}
+                <span class="bg-amber-500 text-emerald-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">تعديل بعد الاعتماد — بانتظار إعادة التدوير</span>
+                <span class="bg-white border border-amber-300 text-amber-950 font-black px-2.5 py-0.5 rounded-full text-[11px]">${escapeHtml(ed.targetLabel || 'رصيد الصندوق العام')}</span>
+              </div>
+              <p class="font-bold text-slate-700">
+                القيمة الجديدة: <span class="font-black text-emerald-700">${formatCurrency(ed.amount)}</span>
+                ${prev.amount !== undefined ? ` <span class="text-slate-500">(السابقة: ${formatCurrency(prev.amount)})</span>` : ''}
+                • الطريقة: <span class="font-bold text-slate-800">${escapeHtml(ed.method || '')}</span>
+                ${isAdminMode && ed.phone ? ` • الهاتف: <span class="font-mono font-bold">${escapeHtml(ed.phone)}</span>` : ''}
+              </p>
+              ${prev.contributorName || prev.targetLabel ? `
+                <p class="text-[11px] font-bold text-amber-900 bg-white/80 border border-amber-200 rounded-xl px-2.5 py-1">
+                  قبل التعديل: ${escapeHtml(prev.contributorName || ed.contributorName)} (${escapeHtml(prev.branch || ed.branch)}) — الوجهة: ${escapeHtml(prev.targetLabel || ed.targetLabel)}
+                </p>
+              ` : ''}
+              ${ed.note ? `<p class="text-slate-500 font-semibold">ملاحظة: ${escapeHtml(ed.note)}</p>` : ''}
+              <p class="text-[11px] text-slate-400 font-bold">وقت التعديل: ${escapeHtml(ed.editedAt || ed.createdAt || '')}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              ${isAdminMode && ed.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(ed.id)}', 'approved')" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs transition cursor-pointer">اطلاع على الوصل</button>` : ''}
+              <button type="button" onclick="recycleAndReapproveEditedContribution('${escapeHtml(ed.id)}')" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs transition cursor-pointer">تدوير واعتماد ونشر</button>
+              <button type="button" onclick="openEditContributionModal('${escapeHtml(ed.id)}', 'approved')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition cursor-pointer">تعديل</button>
+              <button type="button" onclick="deleteApprovedEntry('${escapeHtml(ed.id)}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs transition cursor-pointer">حذف</button>
+            </div>
+          </div>
+        `;
+      }).join('');
 
-      listEl.innerHTML = pending.map(p => `
+      const pendingHtml = pending.map(p => `
         <div class="bg-white border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
           <div class="space-y-1 text-xs">
             <div class="flex flex-wrap items-center gap-2">
@@ -2968,6 +3049,13 @@
           </div>
         </div>
       `).join('');
+
+      if (!editedHtml && !pendingHtml) {
+        listEl.innerHTML = `<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs font-bold text-amber-900">لا توجد طلبات مساهمات أو تعديلات معلقة حالياً.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = editedHtml + pendingHtml;
     }
 
     function approvePendingContribution(id) {
@@ -3036,6 +3124,7 @@
 
       const filtered = list.filter(item => {
         if (!item) return false;
+        if (item.pendingAdminReapproval && !isAdminMode) return false;
         const isDisb = item.type === 'disbursement';
         const isCase = !isDisb && item.target && item.target !== 'general';
         if (filterType === 'disbursement' && !isDisb) return false;
@@ -3066,6 +3155,7 @@
           <tr class="hover:bg-slate-50/80 transition">
             <td class="py-3.5 px-5 align-top">
               <div class="flex flex-wrap items-center gap-1.5">${renderDonorIdentityBadge(item.contributorName, item.branch, isDisb ? 0 : item.amount)}</div>
+          ${item.pendingAdminReapproval && isAdminMode ? `<div class="mt-1"><span class="inline-block bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">معدّلة — بانتظار إعادة التدوير والاعتماد</span></div>` : ''}
           <div class="text-xs font-bold text-slate-600 mt-1">
             ${escapeHtml(item.targetLabel || '')}
           </div>
@@ -3079,6 +3169,7 @@
               <div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
                 ${isAdminMode && item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] transition cursor-pointer">الوصل</button>` : ''}
                 ${canUserEdit ? `<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', 'approved')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] transition cursor-pointer">تعديل مساهمتي</button>` : ''}
+                ${isAdminMode && item.pendingAdminReapproval ? `<button type="button" onclick="recycleAndReapproveEditedContribution('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[11px] transition cursor-pointer">تدوير واعتماد</button>` : ''}
                 ${isAdminMode ? (
                   isDisb
                     ? `<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] transition cursor-pointer">تعديل</button>`
