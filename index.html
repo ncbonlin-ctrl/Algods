@@ -252,9 +252,29 @@
       (function () {
         try {
           var raw = localStorage.getItem('sayaan_takaful_state_v1') || localStorage.getItem('sayaan_takaful_auto_backup_latest_v1');
-          if (!raw) return;
-          var parsed = JSON.parse(raw);
-          var s = parsed && parsed.state ? parsed.state : parsed;
+          var s = null;
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            s = parsed && parsed.state ? parsed.state : parsed;
+          }
+          if ((!s || typeof s !== 'object' || !Array.isArray(s.approvedContributions)) && window.XMLHttpRequest) {
+            var cfgRaw = localStorage.getItem('sayaan_takaful_firebase_cfg_v1');
+            var cfg = cfgRaw ? JSON.parse(cfgRaw) : {};
+            var dbUrl = String(cfg.dbUrl || 'https://sirf-dgv-default-rtdb.firebaseio.com').trim().replace(/\/+$/, '');
+            if (dbUrl) {
+              var authParam = cfg.authSecret ? '?auth=' + encodeURIComponent(cfg.authSecret) : '';
+              var xhr = new XMLHttpRequest();
+              xhr.open('GET', dbUrl + '/sayaanTakafulState.json' + authParam, false);
+              xhr.send(null);
+              if (xhr.status >= 200 && xhr.status < 300 && xhr.responseText) {
+                var remote = JSON.parse(xhr.responseText);
+                if (remote && remote.state) {
+                  s = remote.state;
+                  try { localStorage.setItem('sayaan_takaful_state_v1', JSON.stringify(s)); } catch (err) {}
+                }
+              }
+            }
+          }
           if (!s || typeof s !== 'object') return;
           var approved = Array.isArray(s.approvedContributions) ? s.approvedContributions : [];
           var cases = Array.isArray(s.cases) ? s.cases : [];
@@ -306,7 +326,6 @@
         } catch (e) {}
       })();
     </script>
-    </section>
 
     <!-- قسم الحالات المعروضة للتصويت -->
     <section class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-5">
