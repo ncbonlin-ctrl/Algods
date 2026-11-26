@@ -1200,6 +1200,14 @@
       } catch (e) {}
       hasLocalStateStored = false;
       appState = getDefaultAppState();
+      // محاولة استعادة أحدث لقطة محلية إذا وُجدت لتفادي ظهور الأصفار مؤقتاً
+      try {
+        const snaps = getAutoSnapshots();
+        if (snaps && snaps.length > 0 && snaps[0].state) {
+          appState = normalizeState(snaps[0].state);
+          hasLocalStateStored = true;
+        }
+      } catch (e) {}
     }
 
     function getAutoSnapshots() {
@@ -1438,13 +1446,34 @@
           (remoteNormalized.disbursements?.length || 0) > 0 ||
           (remoteNormalized.pendingContributions?.length || 0) > 0;
 
-        // توحيد البيانات بالكامل عبر المتصفحات: اعتماد أحدث نسخة من قاعدة البيانات أو دمج العناصر الجديدة إذا اختلفت الطوابع
+        // توحيد المضمون والوقت عبر المتصفحات حتى مع اختلاف ساعة الجهاز أو المتصفح
         const isDifferentClient = remoteNormalized.originClient && remoteNormalized.originClient !== clientInstanceId;
-        if (!hasLocalStateStored || (!hasLocalData && hasRemoteData) || remoteMs > localMs || (isDifferentClient && remoteMs >= localMs - 5000)) {
+        const localSig = JSON.stringify({
+          c: appState?.cases || [],
+          a: appState?.approvedContributions || [],
+          d: appState?.disbursements || [],
+          p: appState?.pendingContributions || []
+        });
+        const remoteSig = JSON.stringify({
+          c: remoteNormalized.cases || [],
+          a: remoteNormalized.approvedContributions || [],
+          d: remoteNormalized.disbursements || [],
+          p: remoteNormalized.pendingContributions || []
+        });
+
+        if (
+          !hasLocalStateStored ||
+          (!hasLocalData && hasRemoteData) ||
+          (hasRemoteData && localSig !== remoteSig && (isDifferentClient || remoteMs >= localMs)) ||
+          remoteMs > localMs
+        ) {
           appState = remoteNormalized;
           hasLocalStateStored = true;
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
+        } else if (hasLocalData && !hasRemoteData) {
+          // إذا كانت البيانات موجودة في هذا المتصفح (مثل فايرفوكس) وقاعدة البيانات فارغة، ارفعها فوراً لتوحيد كروم وباقي المتصفحات
+          pushStateToFirebase(true);
         } else if (tombstonesChanged && appState) {
           appState = normalizeState(applyTombstonesToState(appState));
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
@@ -3397,8 +3426,16 @@
       });
 
       startFirebasePolling();
-      if (hasLocalStateStored && readStorageSafe(RESTORED_LOCK_KEY)) {
-        pushStateToFirebase(true);
+      if (hasLocalStateStored) {
+        const hasDataOnBoot =
+          (appState?.cases?.length || 0) > 0 ||
+          (appState?.approvedContributions?.length || 0) > 0 ||
+          (appState?.disbursements?.length || 0) > 0 ||
+          (appState?.pendingContributions?.length || 0) > 0;
+        if (readStorageSafe(RESTORED_LOCK_KEY) || hasDataOnBoot) {
+          pushStateToFirebase(true);
+          pushAllDonorWalletsToFirebase();
+        }
       }
       if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
       autoBackupMinuteTimer = setInterval(() => {
