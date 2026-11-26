@@ -1544,9 +1544,21 @@
 
     function renderTargetSelects() {
       const selects = ['contrib-target', 'edit-contrib-target'];
+      const approved = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
+      const openCases = (appState.cases || []).filter(c => {
+        if (!c) return false;
+        const req = Number(c.requiredAmount) || 0;
+        const disb = Number(c.disbursedAmount) || 0;
+        const caseContribs = approved
+          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id))
+          .reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
+        const funded = disb + caseContribs;
+        const isCompleted = Boolean(c.closed) || (req > 0 && funded >= req);
+        return !isCompleted;
+      });
       const optionsHtml = [
         '<option value="general">رصيد الصندوق العام (أورام ودية)</option>',
-        ...(appState.cases || []).map(c =>
+        ...openCases.map(c =>
           `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)} (${escapeHtml(c.category)})</option>`
         )
       ].join('');
@@ -1574,16 +1586,33 @@
       container.innerHTML = cases.map(c => {
         const req = Number(c.requiredAmount) || 0;
         const disb = Number(c.disbursedAmount) || 0;
-        const caseContribs = (appState.approvedContributions || [])
-          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id))
+        const caseContribsList = (appState.approvedContributions || [])
+          .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(c.id));
+        const caseContribs = caseContribsList
           .reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
         const funded = disb + caseContribs;
+        const remainingAmount = Math.max(0, req - funded);
+        const surplusAmount = req > 0 ? Math.max(0, funded - req) : 0;
         const pct = req > 0 ? Math.min(100, Math.round((funded / req) * 100)) : 0;
         const isCompleted = Boolean(c.closed) || (req > 0 && funded >= req);
         const myVote = deviceVotes[String(c.id)] || '';
         const approveCount = Number(c.votes?.approve) || 0;
         const rejectCount = Number(c.votes?.reject) || 0;
         const rejections = Array.isArray(c.rejections) ? c.rejections : [];
+
+        const caseContributorsHtml = caseContribsList.length
+          ? `<div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-2.5 space-y-1.5">
+              <p class="text-[11px] font-black text-emerald-900">المساهمات المضافة للحالة (${caseContribsList.length})</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${caseContribsList.map(m => `
+                  <span class="inline-flex items-center gap-1 bg-white border border-emerald-200 text-slate-800 text-[11px] font-extrabold px-2.5 py-1 rounded-xl">
+                    <span>${escapeHtml(m.contributorName || 'مساهم')}</span>
+                    <span class="text-emerald-700 font-black">(${formatCurrency(m.amount)})</span>
+                  </span>
+                `).join('')}
+              </div>
+            </div>`
+          : '';
 
         const rejectionsHtml = rejections.length
           ? `<div class="bg-rose-50/90 border border-rose-200 rounded-2xl p-3 space-y-2 mt-3">
@@ -1625,8 +1654,20 @@
                 <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'}" style="width: ${pct}%"></div>
                 </div>
-                <div class="text-left text-[11px] font-black text-emerald-800">${pct}%</div>
+                <div class="flex items-center justify-between text-[11px] font-black">
+                  <span class="${remainingAmount > 0 ? 'text-amber-800' : 'text-emerald-700'}">
+                    ${remainingAmount > 0 ? `القيمة المتبقية: ${formatCurrency(remainingAmount)}` : 'تم استكمال القيمة المطلوبة بالكامل'}
+                  </span>
+                  <span class="text-emerald-800">${pct}%</span>
+                </div>
+                ${surplusAmount > 0 ? `
+                  <div class="text-[11px] font-extrabold text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1">
+                    تم تحويل الفائض (${formatCurrency(surplusAmount)}) تلقائياً إلى رصيد الصندوق العام.
+                  </div>
+                ` : ''}
               </div>
+
+              ${caseContributorsHtml}
 
               ${rejectionsHtml}
             </div>
@@ -1873,7 +1914,25 @@
       const remaining = Math.max(0, (Number(c.requiredAmount) || 0) - funded);
 
       const labelEl = document.getElementById('disburse-case-label');
-      if (labelEl) labelEl.textContent = `الحالة: ${c.title} (${c.category})`;
+      if (labelEl) {
+        labelEl.innerHTML = `
+          <div class="font-black text-slate-900 mb-2">الحالة: ${escapeHtml(c.title)} (${escapeHtml(c.category)})</div>
+          <ul class="space-y-1.5 text-xs font-extrabold text-slate-700 border-t border-slate-200 pt-2">
+            <li class="flex items-center justify-between">
+              <span>رصيد الصندوق المتاح:</span>
+              <span class="text-emerald-800 font-black">${formatCurrency(metrics.availableBalance)}</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span>رصيد الحالة المغطى حالياً:</span>
+              <span class="text-sky-800 font-black">${formatCurrency(funded)}</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span>الباقي من سداد الحالة:</span>
+              <span class="text-amber-800 font-black">${formatCurrency(remaining)}</span>
+            </li>
+          </ul>
+        `;
+      }
 
       const balEl = document.getElementById('disburse-fund-balance');
       if (balEl) {
@@ -1895,7 +1954,7 @@
 
       const amtInput = document.getElementById('disburse-amount-input');
       const noteInput = document.getElementById('disburse-note-input');
-      if (amtInput) amtInput.value = '';
+      if (amtInput) amtInput.value = remaining > 0 ? String(remaining) : '';
       if (noteInput) noteInput.value = '';
 
       const modal = document.getElementById('disburse-modal');
