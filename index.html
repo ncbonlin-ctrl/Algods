@@ -290,6 +290,9 @@
           />
         </div>
       </div>
+
+      <!-- قائمة طلبات المساهمات بانتظار التعديل أو النشر أو الحذف -->
+      <div id="pending-contributions-list" class="space-y-3"></div>
     </section>
 
     <!-- قسم الحالات المعروضة للتصويت -->
@@ -2555,10 +2558,10 @@
           </div>
           <div class="w-full overflow-x-auto pb-1">
             <div class="flex flex-nowrap items-center justify-center gap-2.5 min-w-max mx-auto">
-              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[132px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">عرض الإيصال</button>` : ''}
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[132px] px-4 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">تعديل</button>
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[132px] px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">اعتماد ونشر</button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[132px] px-4 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[15px] rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">حذف</button>
+              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[120px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">عرض الإيصال</button>` : ''}
+              <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','pending')" class="h-12 min-w-[110px] px-4 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">تعديل</button>
+              <button type="button" onclick="approvePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[115px] px-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">نشر</button>
+              <button type="button" onclick="deletePendingContribution('${escapeHtml(item.id)}')" class="h-12 min-w-[110px] px-4 bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-sm rounded-2xl inline-flex items-center justify-center whitespace-nowrap transition cursor-pointer">حذف</button>
             </div>
           </div>
         </div>
@@ -2611,188 +2614,11 @@
       saveAppState('اعتماد ونشر مساهمة في السجل');
       renderAll();
       showToast(toastMsg);
-    }
 
-    function deletePendingContribution(id) {
-      if (!isAdminMode) return;
-      addDeletedId(id);
-      appState.pendingContributions = appState.pendingContributions.filter(p => p.id !== id);
-      saveAppState('حذف طلب مساهمة');
-      renderAll();
-      showToast('تم حذف طلب المساهمة.');
-    }
-
-    /* =====================================================================
-       سجل المساهمات والصرف المعتمد وتعديله
-       ===================================================================== */
-    function normalizeContributorKey(name) {
-      return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    }
-
-    function getContributorStatsMap() {
-      const statsMap = new Map();
-      for (const entry of appState.approvedContributions) {
-        if (!entry || entry.type === 'disbursement') continue;
-        const key = normalizeContributorKey(entry.contributorName);
-        if (!key) continue;
-        const amt = Number(entry.amount) || 0;
-        const prev = statsMap.get(key) || { count: 0, totalAmount: 0 };
-        statsMap.set(key, {
-          count: prev.count + 1,
-          totalAmount: prev.totalAmount + amt
-        });
-      }
-      return statsMap;
-    }
-
-    function qualifiesForHonorBadge(stat) {
-      if (!stat) return false;
-      const moreThanThreeTimes = stat.count > 3;
-      const threeTimesOverFiveThousand = stat.count === 3 && stat.totalAmount > 5000;
-      return moreThanThreeTimes || threeTimesOverFiveThousand;
-    }
-
-    function scheduleLedgerRender() {
-      if (ledgerSearchTimer) clearTimeout(ledgerSearchTimer);
-      ledgerSearchTimer = setTimeout(() => {
-        ledgerSearchTimer = null;
-        if (typeof requestAnimationFrame === 'function') {
-          requestAnimationFrame(() => renderLedger());
-        } else {
-          renderLedger();
-        }
-      }, 90);
-    }
-
-    function renderLedger() {
-      const tbody = document.getElementById('ledger-table-body');
-      if (!tbody) return;
-      const search = (document.getElementById('ledger-search-input')?.value || '').trim().toLowerCase();
-      const filter = document.getElementById('ledger-filter-select')?.value || 'all';
-
-      const filtered = appState.approvedContributions.filter(item => {
-        if (filter !== 'all' && item.type !== filter) return false;
-        if (!search) return true;
-        const hay = `${item.contributorName} ${item.branch} ${item.targetLabel} ${item.note} ${item.method}`.toLowerCase();
-        return hay.includes(search);
-      });
-
-      if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-400">لا توجد قيود مطابقة للبحث أو التصفية.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(item => {
-        const isDisb = item.type === 'disbursement';
-        const contribAmount = Number(item.amount) || 0;
-        const isHighValueDonor = !isDisb && contribAmount >= 10000;
-
-        const highDonorBadgeHtml = isHighValueDonor
-          ? `<div class="mt-1 inline-flex items-center gap-1 text-xs high-donor-glow">
-              <span class="high-donor-star">★</span>
-              <span>مساهم مميز</span>
-            </div>`
-          : '';
-
-        const contributorNameHtml = isHighValueDonor
-          ? `<span class="inline-flex items-center gap-1 high-donor-glow text-xs sm:text-sm">
-              <span class="high-donor-star">★</span>
-              <span>${escapeHtml(item.contributorName)}</span>
-            </span>`
-          : `<span class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(item.contributorName)}</span>`;
-
-        const branchHtml = isHighValueDonor
-          ? `<span class="text-slate-600 font-bold">${escapeHtml(item.branch)}</span>`
-          : `<span>${escapeHtml(item.branch)}</span>`;
-
-        const targetLabelHtml = isHighValueDonor
-          ? `<span class="recipient-tri-glow">${escapeHtml(item.targetLabel)}</span>`
-          : `<span>${escapeHtml(item.targetLabel)}</span>`;
-
-        const editUsed = Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1;
-        const remainingEdits = editUsed ? 0 : 1;
-        const canUserEdit = !isDisb && isMyContribution(item.id) && remainingEdits > 0;
-        const typeBadge = isDisb
-          ? '<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>'
-          : (item.type === 'case'
-            ? '<span class="inline-block bg-amber-100 text-amber-950 text-[11px] font-black px-2.5 py-1 rounded-full">دعم حالة</span>'
-            : '<span class="inline-block bg-emerald-100 text-emerald-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
-
-        const actions = [];
-        if (isAdminMode) {
-          if (item.receiptData) {
-            actions.push(`<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer">الإيصال</button>`);
-          }
-          if (isDisb) {
-            actions.push(`<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 cursor-pointer">تعديل</button>`);
-          } else {
-            actions.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 cursor-pointer">تعديل</button>`);
-          }
-          actions.push(`<button type="button" onclick="deleteApprovedLedgerEntry('${escapeHtml(item.id)}')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 cursor-pointer">حذف</button>`);
-        } else if (canUserEdit) {
-          actions.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="text-[11px] font-black px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-emerald-950 cursor-pointer">تعديل مساهمتي (1/1)</button>`);
-        } else if (!isDisb && isMyContribution(item.id) && editUsed) {
-          actions.push(`<span class="inline-block text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600">تم استخدام التعديل (0/1)</span>`);
-        }
-
-        return `
-          <tr class="hover:bg-slate-50/90 transition">
-            <td class="py-3.5 px-5">
-              <p>${contributorNameHtml}</p>
-              <p class="text-[11px] font-bold text-slate-500 mt-0.5">${branchHtml} — ${targetLabelHtml}</p>
-              ${item.note ? `<p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(item.note)}</p>` : ''}
-              ${highDonorBadgeHtml}
-            </td>
-            <td class="py-3.5 px-3 text-center">${typeBadge}</td>
-            <td class="py-3.5 px-3 text-center font-black text-xs sm:text-sm ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
-              ${isDisb ? '-' : '+'}${formatCurrency(item.amount)}
-            </td>
-            <td class="py-3.5 px-5 text-left">
-              <p class="text-[11px] font-bold text-slate-500">${escapeHtml(item.createdAt)}</p>
-              ${actions.length ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">${actions.join('')}</div>` : ''}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function deleteApprovedLedgerEntry(id) {
-      if (!isAdminMode) return;
-      const entry = appState.approvedContributions.find(a => a.id === id);
-      if (!entry) return;
-      if (entry.type === 'disbursement' && entry.target) {
-        const targetCase = appState.cases.find(c => c.id === entry.target);
-        if (targetCase) {
-          targetCase.disbursedAmount = Math.max(0, (Number(targetCase.disbursedAmount) || 0) - (Number(entry.amount) || 0));
-          if (targetCase.disbursedAmount < (Number(targetCase.requiredAmount) || 0)) {
-            targetCase.closed = false;
-          }
-        }
-      }
-      addDeletedId(id);
-      appState.approvedContributions = appState.approvedContributions.filter(a => a.id !== id);
-      saveAppState('حذف قيد من السجل');
-      renderAll();
-      showToast('تم حذف القيد وإلغاء القيمة من الحالة واسترجاعها إلى الصندوق.');
-    }
-
-    function openAdminDisbursementEditModal(id) {
-      if (!isAdminMode) return;
-      const entry = appState.approvedContributions.find(a => a.id === id && a.type === 'disbursement');
-      if (!entry) return;
-      document.getElementById('edit-disb-entry-id').value = entry.id;
-      document.getElementById('edit-disb-amount').value = entry.amount;
-      document.getElementById('edit-disb-note').value = entry.note || '';
-      const modal = document.getElementById('admin-disbursement-edit-modal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeAdminDisbursementEditModal() {
-      const modal = document.getElementById('admin-disbursement-edit-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+      // تمرير سلس إلى سجل المساهمات بالأسفل لإظهار القيد المنشور مباشرة
+      const ledgerSection = document.getElementById('ledger-section');
+      if (ledgerSection) {
+        ledgerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
