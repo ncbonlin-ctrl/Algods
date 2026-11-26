@@ -1346,10 +1346,22 @@
           setCloudStatusUI('online');
           return;
         }
-        const remoteMs = Number(remote.updatedAtMs) || 0;
+        const remoteNormalized = normalizeState(remote);
+        const remoteMs = Number(remoteNormalized.updatedAtMs) || 0;
         const localMs = Number(appState?.updatedAtMs) || 0;
-        if (!hasLocalStateStored || remoteMs > localMs || (remoteMs === localMs && remoteMs > lastPushedAtMs)) {
-          appState = normalizeState(remote);
+        const hasLocalData =
+          (appState?.cases?.length || 0) > 0 ||
+          (appState?.approvedContributions?.length || 0) > 0 ||
+          (appState?.disbursements?.length || 0) > 0 ||
+          (appState?.pendingContributions?.length || 0) > 0;
+        const hasRemoteData =
+          (remoteNormalized.cases?.length || 0) > 0 ||
+          (remoteNormalized.approvedContributions?.length || 0) > 0 ||
+          (remoteNormalized.disbursements?.length || 0) > 0 ||
+          (remoteNormalized.pendingContributions?.length || 0) > 0;
+
+        if (!hasLocalStateStored || (!hasLocalData && hasRemoteData) || remoteMs > localMs) {
+          appState = remoteNormalized;
           hasLocalStateStored = true;
           writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
@@ -1549,9 +1561,19 @@
       });
 
       let totalContributions = 0;
+      let validContributionsCount = 0;
       approved.forEach((item) => {
         const amt = Math.max(0, Number(item.amount) || 0);
+        // استثناء شحن المحفظة الشخصية من رصيد الصندوق العام؛ لأن رصيد الحافظة خاص بالمساهم فقط ولا يُحتسب ضمن رصيد الصندوق إلا عند التبرع الفعلي منه للصندوق أو لحالة
+        if (
+          item.targetType === 'personal_wallet' ||
+          item.targetId === 'personal_wallet' ||
+          String(item.targetLabel || '').includes('المحفظة الشخصية')
+        ) {
+          return;
+        }
         totalContributions += amt;
+        validContributionsCount += 1;
         if (item.targetType === 'case' && item.targetId) {
           const cid = String(item.targetId);
           caseDirectMap[cid] = (caseDirectMap[cid] || 0) + amt;
@@ -1582,7 +1604,7 @@
 
       return {
         totalContributions,
-        contributionsCount: approved.length,
+        contributionsCount: validContributionsCount,
         totalDisbursed,
         availableBalance,
         caseDirectMap,
@@ -2572,9 +2594,9 @@
               يمكنك شحن المحفظة مباشرة من وجهة التبرع أو عبر الشحن السريع، وأي فائض يتجاوز سقف الحالة يرجع إلى حافظتك فوراً لتوجيهه للصندوق أو لأي حالة مفتوحة بعدد غير محدود من المرات.
             </p>
           </div>
-          <div class="bg-emerald-950 text-amber-300 px-4 py-2.5 rounded-2xl border border-amber-400/50 text-center shrink-0 min-w-[140px]">
-            <span class="block text-[10px] font-extrabold text-emerald-200">رصيد الحافظة الحالي</span>
-            <span class="text-base sm:text-lg font-black">${formatCurrency(rec.balance)}</span>
+          <div class="bg-emerald-950 text-amber-300 px-5 py-3 rounded-2xl border border-amber-400/50 text-center shrink-0 min-w-[165px]">
+            <span class="block text-xs font-extrabold text-emerald-200">رصيد الحافظة الحالي</span>
+            <span class="text-xl sm:text-2xl font-black mt-0.5 block">${formatCurrency(rec.balance)}</span>
           </div>
         </div>
 
