@@ -2412,17 +2412,20 @@
       const bodyEl = document.getElementById('receipt-viewer-body');
       if (titleEl) titleEl.textContent = `إيصال المساهمة: ${item.contributorName || ''}`;
       if (bodyEl) {
-        if (item.receiptData && String(item.receiptData).startsWith('data:image')) {
-          bodyEl.innerHTML = `<img src="${item.receiptData}" alt="إيصال التحويل" class="max-h-[60vh] w-auto object-contain rounded-xl" />`;
-        } else if (item.receiptData) {
-          bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-700 py-6">ملف مرفق: ${escapeHtml(item.receiptName || 'مستند الإيصال')}</p>`;
-        } else {
+        const dataUrl = String(item.receiptData || '');
+        if (dataUrl.startsWith('data:image')) {
+          bodyEl.innerHTML = `<img src="${dataUrl}" alt="إيصال المساهمة" class="max-h-[60vh] rounded-xl object-contain" />`;
+        } else if (dataUrl.startsWith('data:application/pdf')) {
+          bodyEl.innerHTML = `<iframe src="${dataUrl}" class="w-full h-[55vh] rounded-xl border-0"></iframe>`;
+        } else if (item.phone) {
           bodyEl.innerHTML = `
-            <div class="text-center space-y-2 py-6 px-4">
-              <p class="text-xs font-black text-slate-700">لا توجد صورة إيصال مرفقة لهذه المساهمة.</p>
-              <p class="text-xs font-bold text-slate-500">طريقة الدفع: ${escapeHtml(item.method || 'غير محددة')}${item.phone ? ` — الهاتف: <span dir="ltr" class="font-mono font-black text-slate-800">${escapeHtml(item.phone)}</span>` : ''}</p>
+            <div class="text-center space-y-2 p-4">
+              <p class="text-xs font-extrabold text-slate-600">تحويل رصيد عبر النقال من الرقم:</p>
+              <p dir="ltr" class="font-mono text-lg font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl">${escapeHtml(item.phone)}</p>
             </div>
           `;
+        } else {
+          bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-500 py-6">لا يوجد إيصال مرفق لهذه المساهمة.</p>`;
         }
       }
       if (modal) {
@@ -2440,24 +2443,22 @@
     }
 
     function getCaseContributionsList(caseId) {
-      return (appState.approvedContributions || []).filter(
-        x => x && x.type !== 'disbursement' && String(x.target) === String(caseId)
-      );
+      return (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
+        .filter(x => x && x.type !== 'disbursement' && String(x.target) === String(caseId));
     }
 
     function getCaseDisbursementsList(caseId) {
-      return (appState.approvedContributions || []).filter(
-        x => x && x.type === 'disbursement' && String(x.target) === String(caseId)
-      );
+      return (Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [])
+        .filter(x => x && x.type === 'disbursement' && String(x.target) === String(caseId));
     }
 
     function isHighValueContribution(amount) {
       return (Number(amount) || 0) >= 10000;
     }
 
-    function renderDonorIdentityBadge(name, branch, amount) {
+    function renderDonorIdentityBadge(name, branch, amount = 0) {
       const safeName = escapeHtml(name || 'فاعل خير');
-      const safeBranch = branch ? escapeHtml(branch) : '';
+      const safeBranch = escapeHtml(branch || '');
       if (!isHighValueContribution(amount)) {
         return `
           <span class="font-black text-slate-900">${safeName}</span>
@@ -2557,38 +2558,35 @@
             <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
               <div>
                 <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
-                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(appState.lastUpdated || formatNowDate())}</span>
+                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(appState.lastUpdated || formatNowDate()))}</span>
               </div>
-              <span class="font-black text-emerald-800 whitespace-nowrap">${formatCurrency(unloggedDisb)}</span>
+              <span class="font-black text-emerald-700">${formatCurrency(unloggedDisb)}</span>
             </div>
           `] : []),
           ...caseDisbs.map(d => `
             <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
               <div>
                 <span class="font-black text-emerald-950">مساهمة من رصيد الصندوق</span>
-                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(d.createdAt || appState.lastUpdated || formatNowDate()))}</span>
+                <span class="text-[11px] font-bold text-slate-500 block">${escapeHtml(formatDateTimeWithPeriod(d.approvedAt || d.createdAt || formatNowDate()))}</span>
               </div>
-              <span class="font-black text-emerald-800 whitespace-nowrap">${formatCurrency(d.amount)}</span>
+              <span class="font-black text-emerald-700">${formatCurrency(d.amount)}</span>
             </div>
           `)
         ].join('');
 
-        const donorsHtml = caseContribs.map(x => {
-          const isElite = isHighValueContribution(x.amount);
-          return `
-          <div class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
+        const donorsHtml = caseContribs.map(item => `
+          <div class="bg-white/95 border border-slate-200/90 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
             <div class="min-w-0">
-              ${renderDonorIdentityBadge(x.contributorName, x.branch, x.amount)}
-              <div class="text-[11px] font-bold text-slate-500 mt-1">
-                ${escapeHtml(formatDateTimeWithPeriod(x.editedAt || x.approvedAt || x.createdAt))}
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${renderDonorIdentityBadge(item.contributorName, item.branch, item.amount)}
               </div>
+              <span class="text-[11px] font-bold text-slate-500 block mt-0.5">${escapeHtml(formatDateTimeWithPeriod(item.editedAt || item.approvedAt || item.createdAt || formatNowDate()))}</span>
             </div>
-            <span class="font-black ${isElite ? 'text-amber-800' : 'text-emerald-700'} whitespace-nowrap">+${formatCurrency(x.amount)}</span>
+            <span class="font-black text-emerald-700 shrink-0">${formatCurrency(item.amount)}</span>
           </div>
-        `;
-        }).join('');
+        `).join('');
 
-        const rejectionsHtml = Array.isArray(c.rejections) && c.rejections.length
+        const rejectionsHtml = (!isCompleted && Array.isArray(c.rejections) && c.rejections.length)
           ? `<div class="space-y-1.5 pt-1">
               <p class="text-[11px] font-black text-rose-700">ملاحظات وأسباب عدم الموافقة (${c.rejections.length}):</p>
               ${c.rejections.map(r => `
@@ -2607,6 +2605,35 @@
               `).join('')}
             </div>`
           : '';
+
+        const votesYesCount = Math.max(0, Number(c.votesYes) || 0);
+        const votesNoCount = Math.max(0, Number(c.votesNo) || 0);
+        const totalVotesCount = votesYesCount + votesNoCount;
+        const yesPct = totalVotesCount > 0 ? Math.round((votesYesCount / totalVotesCount) * 100) : 0;
+        const noPct = totalVotesCount > 0 ? Math.max(0, 100 - yesPct) : 0;
+
+        const completedVoteBarHtml = `
+          <div class="bg-slate-50/95 border border-slate-200/90 rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between text-xs font-black">
+              <span class="text-slate-700">بيان التصويت على الحالة:</span>
+              <span class="text-[11px] font-bold text-slate-500">إجمالي الأصوات: ${totalVotesCount}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs font-black">
+              <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-3 py-2 flex items-center justify-between">
+                <span>نعم (موافق)</span>
+                <span class="bg-emerald-700 text-white px-2 py-0.5 rounded-full text-[11px]">${votesYesCount} (${yesPct}%)</span>
+              </div>
+              <div class="bg-rose-50 border border-rose-200 text-rose-900 rounded-xl px-3 py-2 flex items-center justify-between">
+                <span>لا (غير موافق)</span>
+                <span class="bg-rose-600 text-white px-2 py-0.5 rounded-full text-[11px]">${votesNoCount} (${noPct}%)</span>
+              </div>
+            </div>
+            <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
+              <div class="bg-emerald-600 h-full transition-all duration-300" style="width: ${yesPct}%"></div>
+              <div class="bg-rose-500 h-full transition-all duration-300" style="width: ${noPct}%"></div>
+            </div>
+          </div>
+        `;
 
         return `
           <article class="${theme.cardClass} rounded-3xl p-5 pt-6 flex flex-col justify-between gap-4 transition-transform duration-200 hover:-translate-y-0.5">
@@ -2663,18 +2690,18 @@
                 <div class="grid grid-cols-2 gap-2">
                   <button type="button" onclick="voteCaseYes('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'yes' ? 'bg-emerald-700 text-white shadow-sm' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
                     <span>موافق</span>
-                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesYes) || 0}</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${votesYesCount}</span>
                   </button>
                   <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="py-2.5 px-3 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${myVote === 'no' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'}">
                     <span>غير موافق</span>
-                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${Number(c.votesNo) || 0}</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded-full">${votesNoCount}</span>
                   </button>
                 </div>
 
                 <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs sm:text-sm transition cursor-pointer">
                   المساهمة في هذه الحالة (${rawFunded > 0 && remaining > 0 ? `متبقي: ${formatCurrency(remaining)}` : `القيمة الكاملة: ${formatCurrency(req)}`})
                 </button>
-              ` : ''}
+              ` : completedVoteBarHtml}
 
               ${isAdminMode ? `
                 <div class="grid grid-cols-3 gap-2 pt-1">
@@ -3045,7 +3072,11 @@
       if (item.target && item.target !== 'general') {
         const c = (appState.cases || []).find(x => String(x.id) === String(item.target));
         if (c) {
-          c.disbursedAmount = Math.max(0, (Number(c.disbursedAmount) || 0) - oldAmt + newAmt);
+          const newDisb = Math.max(0, (Number(c.disbursedAmount) || 0) - oldAmt + newAmt);
+          c.disbursedAmount = newDisb;
+          const req = Math.max(0, Number(c.requiredAmount) || 0);
+          const contribSum = getCaseContributionsList(c.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          c.closed = req > 0 && (newDisb + contribSum) >= req;
         }
       }
 
@@ -3281,6 +3312,8 @@
             .reduce((s, x) => s + (Number(x.amount) || 0), 0);
           const maxAllowedForCase = Math.max(0, req - disb - otherContribs);
           const prevAmt = Number(item.amount) || 0;
+          const prevTarget = String(item.target || 'general');
+
           if ((c.closed || (req > 0 && (disb + otherContribs + prevAmt) >= req)) && amount > prevAmt) {
             amount = prevAmt;
             showToast('الحالة مكتملة السداد؛ يُسمح بإنقاص القيمة فقط ولا يمكن زيادتها.', 'warning');
@@ -3289,6 +3322,8 @@
           }
         }
       }
+
+      const prevTarget = String(item.target || 'general');
 
       item.contributorName = name;
       item.branch = branch;
@@ -3324,21 +3359,18 @@
         item.editedAt = formatNowDate();
       }
 
-      item.contributorName = name;
-      item.branch = branch;
-      item.amount = amount;
-      item.target = target;
-      if (target === 'general') {
-        item.targetLabel = 'رصيد الصندوق العام';
-      } else {
-        const cObj = (appState.cases || []).find(x => String(x.id) === String(target));
-        item.targetLabel = cObj ? cObj.title : (item.targetLabel || 'حالة');
+      // تحديث حالة الاكتمال تلقائياً عند تغيير أو إنقاص القيمة لتسترجع الحالة وضع التصويت والتعليقات
+      const affectedTargets = new Set([prevTarget, String(target || 'general')]);
+      for (const tid of affectedTargets) {
+        if (!tid || tid === 'general') continue;
+        const cObj = (appState.cases || []).find(x => String(x.id) === tid);
+        if (cObj) {
+          const req = Math.max(0, Number(cObj.requiredAmount) || 0);
+          const disb = Math.max(0, Number(cObj.disbursedAmount) || 0);
+          const contribSum = getCaseContributionsList(cObj.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          cObj.closed = req > 0 && (disb + contribSum) >= req;
+        }
       }
-      item.method = method;
-      item.note = note;
-      item.phone = method.includes('النقال') ? phone : '';
-      item.receiptData = method.includes('المصرف') ? editReceiptDataUrl : '';
-      item.receiptName = method.includes('المصرف') ? editReceiptFileName : '';
 
       saveAppState(isAdminMode ? 'تعديل مساهمة' : 'إرسال تعديل مساهمة لمراجعة المشرف');
       closeEditContributionModal();
@@ -3481,8 +3513,21 @@
 
     function deleteApprovedEntry(id) {
       if (!isAdminMode) return;
+      const targetItem = (appState.approvedContributions || []).find(x => String(x.id) === String(id));
       addDeletedId(id);
       appState.approvedContributions = (appState.approvedContributions || []).filter(x => String(x.id) !== String(id));
+      if (targetItem && targetItem.target && targetItem.target !== 'general') {
+        const cObj = (appState.cases || []).find(x => String(x.id) === String(targetItem.target));
+        if (cObj) {
+          if (targetItem.type === 'disbursement') {
+            cObj.disbursedAmount = Math.max(0, (Number(cObj.disbursedAmount) || 0) - (Number(targetItem.amount) || 0));
+          }
+          const req = Math.max(0, Number(cObj.requiredAmount) || 0);
+          const disb = Math.max(0, Number(cObj.disbursedAmount) || 0);
+          const contribSum = getCaseContributionsList(cObj.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          cObj.closed = req > 0 && (disb + contribSum) >= req;
+        }
+      }
       saveAppState('حذف قيد معتمد');
       renderAll();
       showToast('تم حذف القيد من السجل.', 'success');
