@@ -869,11 +869,11 @@
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto">
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-lg font-black text-slate-900">تعديل المساهمة</h3>
-        <span id="edit-contrib-attempts-badge" class="bg-amber-100 text-amber-950 text-xs font-black px-3 py-1 rounded-full">المحاولات المتبقية: 1/1</span>
+        <span id="edit-contrib-attempts-badge" class="bg-amber-100 text-amber-950 text-xs font-black px-3 py-1 rounded-full">صلاحية المشرف</span>
         <button type="button" onclick="closeEditContributionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer">×</button>
       </div>
       <p class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
-        تنبيه: يُسمح للمساهم بتعديل مساهمته مرة واحدة فقط (1/1) ويُغلق التعديل تلقائياً بعد استخدامها.
+        تنبيه: تعديل المساهمات وعرض الإيصالات وحذفها متاح حصرياً لوضع المشرف لحماية خصوصية المساهمين.
       </p>
       <form onsubmit="handleEditContributionSubmit(event)" class="space-y-3">
         <input type="hidden" id="edit-contrib-id" />
@@ -2587,12 +2587,12 @@
               <div class="flex flex-col items-end gap-1.5">
                 <span class="text-[11px] font-bold text-slate-400">${escapeHtml(formatDateTimeWithPeriod(item.date))}</span>
                 <div class="flex flex-wrap items-center justify-end gap-1.5">
-                  ${item.receiptDataUrl ? `
+                  ${isAdminMode && item.receiptDataUrl ? `
                     <button type="button" onclick="openReceiptViewer('${escapeHtml(item.id)}', '${scope}')" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
-                      الإيصال
+                      عرض الإيصال
                     </button>
                   ` : ''}
-                  ${(isAdminMode && !isDisb) || canDonorEdit ? `
+                  ${isAdminMode && !isDisb ? `
                     <button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}', '${scope}')" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">
                       تعديل
                     </button>
@@ -2616,6 +2616,10 @@
     }
 
     function openReceiptViewer(id, scope) {
+      if (!isAdminMode) {
+        showToast('عرض الإيصالات مقتصر على وضع المشرف فقط حفاظاً على الخصوصية.', 'warning');
+        return;
+      }
       const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
       const item = list.find(x => String(x.id) === String(id));
       if (!item || !item.receiptDataUrl) return;
@@ -2645,13 +2649,13 @@
     }
 
     function openEditContributionModal(id, scope) {
+      if (!isAdminMode) {
+        showToast('تعديل المساهمات مقتصر على وضع المشرف فقط حفاظاً على الخصوصية.', 'warning');
+        return;
+      }
       const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
       const item = list.find(x => String(x.id) === String(id));
       if (!item) return;
-      if (!isAdminMode && (Number(item.editCount) || 0) >= 1) {
-        showToast('تم استنفاد محاولة التعديل المسموحة لهذه المساهمة (1/1).', 'warning');
-        return;
-      }
       populateTargetCaseSelects();
       document.getElementById('edit-contrib-id').value = String(item.id);
       document.getElementById('edit-contrib-scope').value = scope;
@@ -2667,7 +2671,7 @@
       editReceiptFileName = item.receiptFileName || '';
       const badge = document.getElementById('edit-contrib-attempts-badge');
       if (badge) {
-        badge.textContent = isAdminMode ? 'صلاحية الإدارة' : `المحاولات المتبقية: ${Math.max(0, 1 - (Number(item.editCount) || 0))}/1`;
+        badge.textContent = 'صلاحية المشرف';
       }
       toggleEditPaymentFields();
       const nameEl = document.getElementById('edit-contrib-receipt-name');
@@ -2753,7 +2757,7 @@
 
     function handleEditContributionSubmit(e) {
       e.preventDefault();
-      if (isLoadingEditReceipt) return;
+      if (!isAdminMode || isLoadingEditReceipt) return;
       const id = document.getElementById('edit-contrib-id').value;
       const scope = document.getElementById('edit-contrib-scope').value;
       const list = scope === 'pending' ? (appState.pendingContributions || []) : (appState.approvedContributions || []);
@@ -2781,14 +2785,11 @@
       item.phone = method.includes('النقال') ? phone : '';
       item.receiptDataUrl = method.includes('المصرف') ? editReceiptDataUrl : '';
       item.receiptFileName = method.includes('المصرف') ? editReceiptFileName : '';
-      if (!isAdminMode) {
-        item.editCount = (Number(item.editCount) || 0) + 1;
-      }
 
       closeEditContributionModal();
-      saveAppState('تعديل بيانات مساهمة', true);
+      saveAppState('تعديل بيانات مساهمة من المشرف', true);
       renderAll();
-      showToast('تم حفظ تعديل المساهمة ومزامنتها مع Firebase.', 'success');
+      showToast('تم حفظ تعديل المساهمة ومزامنتها لحظياً مع Firebase.', 'success');
     }
 
     function openAdminDisbursementEditModal(entryId) {
