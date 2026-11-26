@@ -1685,7 +1685,8 @@
         appState.pendingContributions = deduplicateContributionsList(appState.pendingContributions || []).filter(p => p && !deletedSet.has(String(p.id)));
         appState.approvedContributions = deduplicateContributionsList(appState.approvedContributions || []).filter(a => a && !deletedSet.has(String(a.id)));
         appState.lastUpdated = formatNowDate();
-        appState.updatedAtMs = Number(customUpdatedAtMs) || Math.max(Number(appState.updatedAtMs) || 0, Date.now());
+        const nowStamp = Date.now();
+        appState.updatedAtMs = Number(customUpdatedAtMs) || Math.max((Number(appState.updatedAtMs) || 0) + 1, nowStamp);
         hasLocalStateStored = true;
         hasUnsyncedLocalChanges = true;
         const serializedState = JSON.stringify(appState);
@@ -1699,16 +1700,18 @@
         }
         saveAutoBackupSnapshot(reason, false);
         if (pushCloud) {
-          scheduleFirebasePush(60, true);
+          lastSyncedFingerprint = '';
+          pushStateToFirebase(true);
+          scheduleFirebasePush(120, true);
         }
       } catch (e) {}
     }
-
-    function startAutoBackupTimer() {
-      if (autoBackupMinuteTimer) clearInterval(autoBackupMinuteTimer);
-      autoBackupMinuteTimer = setInterval(() => {
-        saveAutoBackupSnapshot('نسخة دورية تلقائية', false);
-      }, BACKUP_INTERVAL_MS);
+    function startFirebasePolling() {
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      pullStateFromFirebase();
+      firebasePollTimer = setInterval(() => {
+        pullStateFromFirebase();
+      }, 1000);
     }
 
     function exportManualBackupFile() {
