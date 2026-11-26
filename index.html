@@ -253,11 +253,18 @@
         try {
           var raw = localStorage.getItem('sayaan_takaful_state_v1') || localStorage.getItem('sayaan_takaful_auto_backup_latest_v1');
           var s = null;
+          var localTs = 0;
           if (raw) {
             var parsed = JSON.parse(raw);
-            s = parsed && parsed.state ? parsed.state : parsed;
+            if (parsed && parsed.state) {
+              s = parsed.state;
+              localTs = Number(parsed.updatedAt || parsed.state.updatedAtMs || 0) || 0;
+            } else {
+              s = parsed;
+              localTs = Number((parsed && parsed.updatedAtMs) || 0) || 0;
+            }
           }
-          if ((!s || typeof s !== 'object' || !Array.isArray(s.approvedContributions)) && window.XMLHttpRequest) {
+          if (window.XMLHttpRequest) {
             var cfgRaw = localStorage.getItem('sayaan_takaful_firebase_cfg_v1');
             var cfg = cfgRaw ? JSON.parse(cfgRaw) : {};
             var dbUrl = String(cfg.dbUrl || 'https://sirf-dgv-default-rtdb.firebaseio.com').trim().replace(/\/+$/, '');
@@ -268,9 +275,13 @@
               xhr.send(null);
               if (xhr.status >= 200 && xhr.status < 300 && xhr.responseText) {
                 var remote = JSON.parse(xhr.responseText);
-                if (remote && remote.state) {
+                var remoteTs = Number((remote && (remote.updatedAt || (remote.state && remote.state.updatedAtMs))) || 0) || 0;
+                if (remote && remote.state && (!s || remoteTs >= localTs)) {
                   s = remote.state;
-                  try { localStorage.setItem('sayaan_takaful_state_v1', JSON.stringify(s)); } catch (err) {}
+                  s.updatedAtMs = remoteTs || Date.now();
+                  try {
+                    localStorage.setItem('sayaan_takaful_state_v1', JSON.stringify(s));
+                  } catch (err) {}
                 }
               }
             }
@@ -311,7 +322,7 @@
           }
           var avail = Math.max(0, totalContrib - totalDisb - totalCaseTrans + totalSurplus);
           var pct = totalReq > 0 ? Math.min(100, Math.round((totalCovered / totalReq) * 100)) : 0;
-          var fmt = function (n) { return (Number(n) || 0).toLocaleString('ar-LY', { maximumFractionDigits: 2 }) + ' د.ل'; };
+          var fmt = function (n) { return (Number(n) || 0).toLocaleString('ar-LY', { maximumFractionDigits: 3 }) + ' د.ل'; };
           var setTxt = function (id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
           setTxt('stat-total-contributions', fmt(totalContrib));
           setTxt('stat-contributions-count', 'عدد المساهمات: ' + contribCount);
@@ -889,7 +900,7 @@
 
     function formatCurrency(num) {
       const val = Number(num) || 0;
-      return `${val.toLocaleString('ar-LY', { maximumFractionDigits: 2 })} د.ل`;
+      return `${val.toLocaleString('ar-LY', { maximumFractionDigits: 3 })} د.ل`;
     }
 
     function formatNumericDateOnly(rawDate) {
