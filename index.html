@@ -2124,7 +2124,7 @@
     }
 
     function isHighValueContribution(amount) {
-      return (Number(amount) || 0) > 10000;
+      return (Number(amount) || 0) >= 10000;
     }
 
     function renderDonorIdentityBadge(name, branch, amount) {
@@ -3069,7 +3069,6 @@
           <div class="text-xs font-bold text-slate-600 mt-1">
             ${escapeHtml(item.targetLabel || '')}
           </div>
-          ${item.note ? `<div class="mt-1"><span class="elite-donor-identity-chip"><span class="elite-glow-star" aria-hidden="true">✦</span><span class="font-black text-amber-950 text-[11px]">مساهمات مميزة</span></span></div>` : ''}
         </td>
             <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap">${typeBadge}</td>
             <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap font-black ${isDisb ? 'text-rose-600' : 'text-emerald-700'}">
