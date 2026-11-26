@@ -10,11 +10,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
+    html {
+      scroll-behavior: smooth;
+    }
     body {
       font-family: 'Cairo', sans-serif;
       background-color: #f3f7f4;
       color: #0f172a;
       overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
     .header-gradient {
       background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
@@ -1519,12 +1523,21 @@
 
       const nameVal = (document.getElementById('contrib-name')?.value || '').trim();
       const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
-      const wallets = getDonorWalletsMap();
-      const activeKey = normalizeDonorKey(nameVal, branchVal);
-      const activeWallet = nameVal ? wallets[activeKey] : null;
-      const balance = activeWallet ? Math.max(0, Number(activeWallet.balance) || 0) : 0;
+      const balance = nameVal ? getDonorWalletBalance(nameVal, branchVal) : 0;
+      const walletsMap = getDonorWalletsMap();
+      const allWallets = Object.values(walletsMap).filter(w => w && (Number(w.balance) || 0) > 0);
+      const metrics = computeFinancialMetrics();
 
-      const allWallets = Object.values(wallets || {}).filter(w => (Number(w?.balance) || 0) > 0);
+      const isCaseCompleted = (c) => {
+        if (!c) return false;
+        const req = Math.max(0, Number(c.required) || 0);
+        if (req <= 0) return false;
+        const direct = metrics.caseDirectMap[String(c.id)] || 0;
+        const disb = Math.max(0, Number(c.disbursed) || 0);
+        return Math.max(direct, disb) >= req;
+      };
+
+      const openCases = (appState.cases || []).filter(c => !isCaseCompleted(c));
 
       panel.innerHTML = `
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1549,7 +1562,7 @@
               <input type="number" id="wallet-donate-amount" min="0.01" max="${balance}" step="any" placeholder="المبلغ من الحافظة" class="w-36 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-black text-emerald-900 outline-none focus:border-emerald-600" />
               <select id="wallet-donate-target" class="flex-1 min-w-[160px] bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-600">
                 <option value="general">الصندوق العام (أورام ودية)</option>
-                ${(appState.cases || []).map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('')}
+                ${openCases.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('')}
               </select>
             </div>
             <button type="button" onclick="handleDonateFromDonorWallet()" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-2xs transition cursor-pointer shrink-0">
@@ -1599,6 +1612,11 @@
       }
 
       const targetCase = (appState.cases || []).find(c => String(c.id) === String(targetId));
+      if (targetId !== 'general' && targetCase && isCaseCompleted(targetCase)) {
+        showToast('تمت تغطية تكاليف هذه الحالة بالكامل وهي مغلقة تلقائياً.', 'warning');
+        renderDonorWalletPanel();
+        return;
+      }
       const targetLabel = targetCase ? targetCase.name : 'الصندوق العام';
 
       if (!debitDonorWallet(nameVal, branchVal, amt, targetLabel)) {
@@ -1906,6 +1924,15 @@
 
     function populateTargetCaseSelects() {
       const cases = Array.isArray(appState.cases) ? appState.cases : [];
+      const metrics = computeFinancialMetrics();
+      const openCases = cases.filter(c => {
+        const req = Math.max(0, Number(c.required) || 0);
+        if (req <= 0) return true;
+        const direct = metrics.caseDirectMap[String(c.id)] || 0;
+        const disb = Math.max(0, Number(c.disbursed) || 0);
+        return Math.max(direct, disb) < req;
+      });
+
       const selects = [
         document.getElementById('contrib-target'),
         document.getElementById('edit-contrib-target')
@@ -1914,12 +1941,14 @@
         if (!sel) return;
         const prev = sel.value || 'general';
         let html = `<option value="general">الصندوق العام (أورام ودية)</option>`;
-        cases.forEach(c => {
+        openCases.forEach(c => {
           html += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`;
         });
         sel.innerHTML = html;
         if (Array.from(sel.options).some(o => o.value === prev)) {
           sel.value = prev;
+        } else {
+          sel.value = 'general';
         }
       });
     }
@@ -1962,8 +1991,8 @@
                 <span class="inline-flex items-center gap-1.5 bg-emerald-950 text-amber-300 text-xs font-black px-3 py-1 rounded-full">
                   ${escapeHtml(c.category)}
                 </span>
-                <span class="${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full">
-                  ${isCompleted ? 'مكتملة التغطية ✓' : 'قيد التصويت والدعم'}
+                <span class="${isCompleted ? 'bg-rose-600 text-white' : 'bg-amber-500 text-emerald-950 status-badge-glow'} text-xs font-black px-3 py-1 rounded-full">
+                  ${isCompleted ? 'مكتملة ومغلقة تلقائياً ✓' : 'قيد التصويت والدعم'}
                 </span>
               </div>
 
@@ -2023,9 +2052,15 @@
             </div>
 
             <div class="pt-2 border-t border-slate-200/70 space-y-2">
-              <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm py-2.5 px-4 rounded-2xl shadow-xs transition cursor-pointer">
-                ساهم لهذه الحالة الآن
-              </button>
+              ${isCompleted ? `
+                <div class="w-full bg-slate-100 text-slate-600 border border-slate-200 font-black text-xs sm:text-sm py-2.5 px-4 rounded-2xl text-center">
+                  تمت تغطية تكاليف الحالة بالكامل — الحالة مغلقة تلقائياً
+                </div>
+              ` : `
+                <button type="button" onclick="scrollToContributeSection('${escapeHtml(c.id)}')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm py-2.5 px-4 rounded-2xl shadow-xs transition cursor-pointer">
+                  ساهم لهذه الحالة الآن
+                </button>
+              `}
 
               ${isAdminMode ? `
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
@@ -2439,6 +2474,16 @@
       }
 
       const targetCase = (appState.cases || []).find(c => String(c.id) === String(targetCaseId));
+      if (targetCaseId !== 'general' && targetCase) {
+        const metrics = computeFinancialMetrics();
+        const req = Math.max(0, Number(targetCase.required) || 0);
+        const collected = Math.max(metrics.caseDirectMap[String(targetCase.id)] || 0, Number(targetCase.disbursed) || 0);
+        if (req > 0 && collected >= req) {
+          showToast('تمت تغطية تكاليف هذه الحالة بالكامل وهي مغلقة تلقائياً.', 'warning');
+          populateTargetCaseSelects();
+          return;
+        }
+      }
       const newEntry = {
         id: `contrib_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         type: 'contribution',
