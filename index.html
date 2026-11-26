@@ -2527,62 +2527,88 @@
         .filter(x => x.type !== 'disbursement')
         .reduce((max, x) => Math.max(max, Number(x.amount) || 0), 0);
 
-      const items = appState.approvedContributions.filter(item => {
+      // حساب إجمالي مساهمات كل مساهم (سواء دفعة واحدة أو متقطعة) لتمييز من بلغ 10,000 د.ل فأكثر
+      const contributorTotalsMap = new Map();
+      for (const entry of appState.approvedContributions) {
+        if (!entry || entry.type === 'disbursement') continue;
+        const key = `${String(entry.contributorName || '').trim().toLowerCase()}||${String(entry.branch || '').trim().toLowerCase()}`;
+        contributorTotalsMap.set(key, (contributorTotalsMap.get(key) || 0) + (Number(entry.amount) || 0));
+      }
+
+      const filteredItems = appState.approvedContributions.filter(item => {
         if (!item) return false;
         const isDisb = item.type === 'disbursement';
-        if (filterType === 'general' && (isDisb || item.type === 'case')) return false;
-        if (filterType === 'case' && (isDisb || item.type !== 'case')) return false;
+        if (filterType === 'general' && (isDisb || (item.target && item.target !== 'general'))) return false;
+        if (filterType === 'case' && (isDisb || !item.target || item.target === 'general')) return false;
         if (filterType === 'disbursement' && !isDisb) return false;
 
-        if (!query) return true;
-        const hay = [
-          item.contributorName,
-          item.branch,
-          item.targetLabel,
-          item.note,
-          item.method,
-          item.amount
-        ].join(' ').toLowerCase();
-        return hay.includes(query);
+        if (query) {
+          const hay = [
+            item.contributorName,
+            item.branch,
+            item.targetLabel,
+            item.note,
+            item.method
+          ].map(v => String(v || '').toLowerCase()).join(' ');
+          if (!hay.includes(query)) return false;
+        }
+        return true;
       });
 
-      if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد قيود مطابقة في سجل المساهمات والصرف المعتمد.</td></tr>';
+      if (!filteredItems.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-500">لا توجد قيود مطابقة للبحث أو التصفية الحالية.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = items.map(item => {
+      tbody.innerHTML = filteredItems.map(item => {
         const isDisb = item.type === 'disbursement';
         const amt = Number(item.amount) || 0;
-        const isFeaturedContributor = !isDisb && amt >= 10000;
+        const contributorKey = `${String(item.contributorName || '').trim().toLowerCase()}||${String(item.branch || '').trim().toLowerCase()}`;
+        const contributorTotalAmt = contributorTotalsMap.get(contributorKey) || amt;
+        const isFeaturedContributor = !isDisb && (amt >= 10000 || contributorTotalAmt >= 10000);
         const isTopDonor = !isDisb && maxContributionAmt > 0 && amt === maxContributionAmt;
         const canUserEdit = !isAdminMode && !isDisb && isMyContribution(item.id) && !(Boolean(item.userEditUsed) || (Number(item.userEditCount) || 0) >= 1);
 
         const typeBadge = isDisb
-          ? '<span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-black px-2.5 py-1 rounded-full">صرف مساعدة</span>'
-          : (item.type === 'case'
-              ? '<span class="inline-block bg-amber-100 text-amber-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>'
-              : '<span class="inline-block bg-emerald-100 text-emerald-900 text-[11px] font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
+          ? '<span class="inline-block bg-rose-100 text-rose-800 text-xs font-black px-2.5 py-1 rounded-full">صرف</span>'
+          : (item.target && item.target !== 'general'
+              ? '<span class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-2.5 py-1 rounded-full">مساهمة حالة</span>'
+              : '<span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">مساهمة عامة</span>');
 
-        const actionsHtml = isAdminMode
-          ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">
-              ${item.receiptData ? `<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">الإيصال</button>` : ''}
-              <button type="button" onclick="${isDisb ? `openAdminDisbursementEditModal('${escapeHtml(item.id)}')` : `openEditContributionModal('${escapeHtml(item.id)}','approved')`}" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">تعديل</button>
-              <button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">حذف</button>
-            </div>`
-          : (canUserEdit
-              ? `<div class="mt-1.5 flex justify-end"><button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg cursor-pointer">تعديل (1/1)</button></div>`
-              : '');
+        const actionBtns = [];
+        if (item.receiptData) {
+          actionBtns.push(`<button type="button" onclick="openReceiptViewerModal('${escapeHtml(item.id)}','approved')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">الإيصال</button>`);
+        }
+        if (isAdminMode) {
+          if (isDisb) {
+            actionBtns.push(`<button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(item.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل الصرف</button>`);
+          } else {
+            actionBtns.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل</button>`);
+          }
+          actionBtns.push(`<button type="button" onclick="deleteApprovedEntry('${escapeHtml(item.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">حذف</button>`);
+        } else if (canUserEdit) {
+          actionBtns.push(`<button type="button" onclick="openEditContributionModal('${escapeHtml(item.id)}','approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل (1/1)</button>`);
+        }
+
+        const actionsHtml = actionBtns.length
+          ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5">${actionBtns.join('')}</div>`
+          : '';
 
         return `
           <tr class="hover:bg-slate-50/90 transition">
             <td class="py-3.5 px-5">
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="font-black text-slate-900 ${isTopDonor ? 'high-donor-glow' : ''}">
-                  ${isTopDonor ? '<span class="high-donor-star">★</span> ' : ''}${escapeHtml(item.contributorName)}
-                </span>
-                ${item.branch ? `<span class="text-[11px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>` : ''}
-                ${isFeaturedContributor ? `<span class="high-donor-glow text-[11px] font-black inline-flex items-center gap-1"><span class="high-donor-star">★</span><span>مساهم مميز</span></span>` : ''}
+              <div class="space-y-1.5">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="font-black text-slate-900 ${isTopDonor ? 'high-donor-glow' : ''}">
+                    ${isTopDonor ? '<span class="high-donor-star">★</span> ' : ''}${escapeHtml(item.contributorName)}
+                  </span>
+                  ${item.branch ? `<span class="text-[11px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(item.branch)}</span>` : ''}
+                </div>
+                ${
+                  isFeaturedContributor
+                    ? `<div><span class="high-donor-glow text-[11px] font-black inline-flex items-center gap-1"><span class="high-donor-star">★</span><span>مساهم مميز</span></span></div>`
+                    : ''
+                }
               </div>
               <p class="text-xs font-bold text-slate-500 mt-0.5">${escapeHtml(item.targetLabel || '')}${item.note ? ` • ${escapeHtml(item.note)}` : ''}</p>
             </td>
@@ -3554,6 +3580,10 @@
         renderAll();
       }
     }
+
+    // قراءة الحالة فوراً قبل DOMContentLoaded لتفادي ظهور الصفر المؤقت عند التحديث
+    loadLocalState();
+    renderStats();
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalState();
