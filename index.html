@@ -2736,6 +2736,11 @@
     }
 
     function openRejectVoteModal(caseId) {
+      const votes = getDeviceVotes();
+      if (votes[String(caseId)] === 'no') {
+        showToast('لقد قمت بتسجيل عدم الموافقة وإضافة التعليق على هذه الحالة مسبقاً (مرة واحدة فقط).', 'info');
+        return;
+      }
       pendingRejectCaseId = String(caseId);
       const inp = document.getElementById('reject-reason-input');
       if (inp) inp.value = '';
@@ -2765,18 +2770,24 @@
 
       const votes = getDeviceVotes();
       const prev = votes[String(c.id)];
+      if (prev === 'no') {
+        showToast('لقد قمت بتسجيل عدم الموافقة وإضافة التعليق على هذه الحالة مسبقاً (مرة واحدة فقط).', 'info');
+        closeRejectVoteModal();
+        return;
+      }
       if (prev === 'yes') {
         c.votesYes = Math.max(0, (Number(c.votesYes) || 0) - 1);
       }
-      if (prev !== 'no') {
-        c.votesNo = (Number(c.votesNo) || 0) + 1;
-      }
+      c.votesNo = (Number(c.votesNo) || 0) + 1;
       c.rejections = Array.isArray(c.rejections) ? c.rejections : [];
-      c.rejections.push({
-        id: `rej_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        reason,
-        createdAt: formatNowDate()
-      });
+      const existsSameReason = c.rejections.some(r => String(r?.reason || '').trim() === reason);
+      if (!existsSameReason) {
+        c.rejections.push({
+          id: `rej_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          reason,
+          createdAt: formatNowDate()
+        });
+      }
       setDeviceVote(c.id, 'no');
       saveAppState('تسجيل ملاحظة عدم موافقة');
       closeRejectVoteModal();
