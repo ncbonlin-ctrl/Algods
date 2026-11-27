@@ -17,6 +17,7 @@
       font-family: 'Cairo', sans-serif;
       background-color: #f3f7f4;
       color: #0f172a;
+      font-size: 16.5px;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
@@ -482,37 +483,14 @@
       </div>
 
       <form id="new-contribution-form" onsubmit="handleNewContributionSubmit(event)" class="space-y-4">
-        <!-- بطاقة الحافظة الذكية المستقلة للمساهم (فوق حقل اسم المساهم المتبرع مباشرة) -->
-        <div id="smart-donor-wallet-card" class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border-2 border-amber-400/75 shadow-md space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-700/60 pb-3 text-center sm:text-right">
-            <div class="space-y-0.5">
-              <span class="inline-block bg-amber-400 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full">حافظة ذكية مستقلة • قيد محاسبي مستقل</span>
-              <h3 id="donor-wallet-owner-title" class="text-sm sm:text-base font-black text-white">حافظة المساهم الذكية</h3>
-              <p class="text-[11px] font-bold text-emerald-200">رصيد مستقل خاص بالمساهم — لا يُحتسب في الصندوق أو سجل المساهمات إلا عند التبرع به فعلياً.</p>
-            </div>
-            <div class="bg-emerald-950/80 border border-amber-400/50 rounded-2xl px-4 py-2.5 text-center shrink-0">
-              <p class="text-[11px] font-extrabold text-amber-300">رصيد الحافظة الحالي</p>
-              <p id="donor-wallet-balance-display" class="text-xl sm:text-2xl font-black text-white mt-0.5">0 د.ل</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <input type="number" id="wallet-donate-amount" min="1" step="any" placeholder="مبلغ التبرع من الحافظة..." class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-black text-center outline-none focus:border-amber-400" />
-            <select id="wallet-donate-target" class="bg-white text-slate-900 border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-center outline-none focus:border-amber-400"></select>
-            <button type="button" onclick="handleDonateFromWallet()" class="bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-emerald-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              تبرع من الحافظة
-            </button>
-          </div>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="contribute-field-card">
             <label for="contrib-name" class="block text-xs font-black text-emerald-950 mb-1.5">* اسم المساهم / المتبرع</label>
-            <input type="text" id="contrib-name" required oninput="renderDonorWalletPanel()" placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
+            <input type="text" id="contrib-name" required placeholder="مثال: محمد سالم أو فاعل خير" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition" />
           </div>
           <div class="contribute-field-card">
             <label for="contrib-branch" class="block text-xs font-black text-emerald-950 mb-1.5">* اللحمة / فرع</label>
-            <select id="contrib-branch" required onchange="renderDonorWalletPanel()" class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
+            <select id="contrib-branch" required class="w-full bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:border-emerald-600 outline-none transition">
               <option value="الهمايلة">الهمايلة</option>
               <option value="أولاد سلام">أولاد سلام</option>
               <option value="أولاد إمحمد">أولاد إمحمد</option>
@@ -801,7 +779,7 @@
           <div>
             <label for="editor-case-category" class="block text-xs font-extrabold text-slate-700 mb-1">* التصنيف</label>
             <select id="editor-case-category" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-emerald-600">
-              <option value="علاج مرضى الأورام">علاج مرضى الأورام</option>
+              <option value="مرضى الأورام">مرضى الأورام</option>
               <option value="دية">دية</option>
             </select>
           </div>
@@ -972,99 +950,157 @@
     const STORAGE_KEY = 'sayaan_takaful_state_v1';
     const TOMBSTONE_KEY = 'sayaan_takaful_deleted_ids_v1';
     const DEVICE_VOTE_KEY = 'sayaan_takaful_device_votes_v1';
+    const DEVICE_EDIT_USED_KEY = 'sayaan_takaful_device_edits_v1';
     const MY_CONTRIBUTIONS_KEY = 'sayaan_takaful_my_contribs_v1';
-    const DONOR_WALLETS_KEY = 'sayaan_takaful_donor_wallets_v1';
-    const WALLET_TOMBSTONE_KEY = 'sayaan_takaful_wallet_deleted_v1';
     const FIREBASE_CFG_KEY = 'sayaan_takaful_firebase_cfg_v1';
-    const RESTORED_LOCK_KEY = 'sayaan_takaful_restored_lock_v1';
-    const AUTO_SNAPSHOTS_KEY = 'sayaan_takaful_auto_snapshots_v1';
-    const DEFAULT_FIREBASE_DB_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
-    const ADMIN_AUTH_EMAIL = 'Ncbonlin@gmail.com';
-    const ADMIN_AUTH_PASS = '756$$Gd70';
-    const BACKUP_INTERVAL_MS = 60 * 1000;
-    const MAX_AUTO_SNAPSHOTS = 10;
+    const BACKUP_SNAPSHOTS_KEY = 'sayaan_takaful_auto_snapshots_v1';
+    const MAX_AUTO_SNAPSHOTS = 35;
+    const BACKUP_INTERVAL_MS = 60000;
+    const DEFAULT_FIREBASE_URL = 'https://sirf-dgv-default-rtdb.firebaseio.com';
+    const ADMIN_EMAIL = 'm@m.com';
+    const ADMIN_PASS = '123456';
 
     let appState = null;
     let isAdminLoggedIn = false;
     let pendingRejectCaseId = null;
+    let editingCaseId = null;
     let disburseTargetCaseId = null;
     let newReceiptDataUrl = '';
     let newReceiptFileName = '';
     let editReceiptDataUrl = '';
     let editReceiptFileName = '';
-    let editReceiptCleared = false;
     let hasLocalStateStored = false;
     let autoBackupMinuteTimer = null;
+    let clientInstanceId = '';
+    try {
+      clientInstanceId = sessionStorage.getItem('sayaan_client_id') || '';
+      if (!clientInstanceId) {
+        clientInstanceId = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+        sessionStorage.setItem('sayaan_client_id', clientInstanceId);
+      }
+    } catch (e) {
+      clientInstanceId = `c_${Math.random().toString(36).slice(2, 9)}`;
+    }
     let firebasePollTimer = null;
     let firebaseEventSource = null;
-    let walletsEventSource = null;
     let ledgerRenderTimer = null;
     let isPushingToFirebase = false;
-    let isPushingWalletsToFirebase = false;
     let lastPushedAtMs = 0;
-    let lastWalletsPushedAtMs = 0;
     let syncVersionCounter = 0;
-    let lastAppliedRemoteSig = '';
-    const clientInstanceId = `cli_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
-    function readStorageSafe(key) {
-      try {
-        if (window.localStorage) {
-          const v = window.localStorage.getItem(key);
-          if (v !== null && v !== undefined) return v;
-        }
-      } catch (e) {}
-      try {
-        if (window.name && window.name.startsWith('SAYaan_WIN_BAG:')) {
-          const bag = JSON.parse(window.name.slice('SAYaan_WIN_BAG:'.length));
-          if (bag && Object.prototype.hasOwnProperty.call(bag, key)) {
-            return bag[key];
+    function normalizeState(raw) {
+      const def = getDefaultAppState();
+      if (!raw || typeof raw !== 'object') return def;
+
+      const cases = Array.isArray(raw.cases) && raw.cases.length
+        ? raw.cases.map((c, idx) => ({
+            id: String(c?.id || `case_${idx + 1}_${Date.now()}`),
+            name: String(c?.name || 'حالة تكافلية').replace(/علاج\s+مرضى الأورام/g, 'مرضى الأورام'),
+            category: c?.category === 'دية' ? 'دية' : 'مرضى الأورام',
+            requiredAmount: Math.max(0, Number(c?.requiredAmount) || 0),
+            description: String(c?.description || ''),
+            votes: {
+              approve: Math.max(0, Number(c?.votes?.approve) || 0),
+              reject: Math.max(0, Number(c?.votes?.reject) || 0)
+            },
+            rejections: Array.isArray(c?.rejections)
+              ? c.rejections.map((r, rIdx) => ({
+                  id: String(r?.id || `rej_${rIdx}_${Date.now()}`),
+                  reason: String(r?.reason || ''),
+                  date: String(r?.date || formatNowDate())
+                }))
+              : []
+          }))
+        : def.cases;
+
+      const sanitizeContrib = (item) => {
+        const tInfo = resolveTargetInfo(
+          item?.targetType === 'case' && item?.targetId ? `case:${item.targetId}` : 'general'
+        );
+        return {
+          id: String(item?.id || `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
+          name: String(item?.name || 'متبرع'),
+          branch: String(item?.branch || 'الهمايلة'),
+          amount: Math.max(0, Number(item?.amount) || 0),
+          targetType: tInfo.targetType,
+          targetId: tInfo.targetId,
+          targetLabel: String(item?.targetLabel || tInfo.targetLabel),
+          method: String(item?.method || 'المصرف (تحويل مصرفي)'),
+          phone: String(item?.phone || ''),
+          receiptDataUrl: String(item?.receiptDataUrl || ''),
+          receiptFileName: String(item?.receiptFileName || ''),
+          note: String(item?.note || ''),
+          date: String(item?.date || formatNowDate()),
+          approvedAt: item?.approvedAt ? String(item.approvedAt) : undefined,
+          approvedAtMs: Number(item?.approvedAtMs) || undefined
+        };
+      };
+
+      const approvedContributions = Array.isArray(raw.approvedContributions)
+        ? raw.approvedContributions.map(sanitizeContrib)
+        : [];
+
+      const pendingContributions = Array.isArray(raw.pendingContributions)
+        ? raw.pendingContributions.map(sanitizeContrib)
+        : [];
+
+      const disbursements = Array.isArray(raw.disbursements)
+        ? raw.disbursements.map((d, idx) => ({
+            id: String(d?.id || `disb_${idx}_${Date.now()}`),
+            caseId: String(d?.caseId || ''),
+            caseName: String(d?.caseName || 'صرف عام'),
+            category: String(d?.category || ''),
+            amount: Math.max(0, Number(d?.amount) || 0),
+            note: String(d?.note || ''),
+            date: String(d?.date || formatNowDate())
+          }))
+        : [];
+
+      return {
+        cases,
+        approvedContributions,
+        pendingContributions,
+        disbursements,
+        lastUpdated: String(raw.lastUpdated || formatNowDate()),
+        updatedAtMs: Math.max(0, Number(raw.updatedAtMs) || 0),
+        syncVer: Math.max(0, Number(raw.syncVer) || 0),
+        originClient: String(raw.originClient || '')
+      };
+    }
+
+    function getDefaultAppState() {
+      return {
+        cases: [
+          {
+            id: 'case_1',
+            name: 'مرضى الأورام - جلسات الكيماوي والتحاليل',
+            category: 'مرضى الأورام',
+            requiredAmount: 15000,
+            description: 'دعم عاجل لتغطية تكاليف جلسات الكيماوي والفحوصات المخبرية والأشعة لمرضى الأورام من أبناء القبيلة.',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
+          },
+          {
+            id: 'case_2',
+            name: 'دية - صلح وإعتاق رقبة',
+            category: 'دية',
+            requiredAmount: 50000,
+            description: 'مساهمة تكافلية لإتمام صلح وحقن دماء وفق الضوابط الشرعية والقبلية.',
+            votes: { approve: 0, reject: 0 },
+            rejections: []
           }
-        }
-      } catch (e) {}
-      return null;
+        ],
+        approvedContributions: [],
+        pendingContributions: [],
+        disbursements: [],
+        lastUpdated: formatNowDate(),
+        updatedAtMs: Date.now(),
+        syncVer: 1,
+        originClient: clientInstanceId
+      };
     }
 
-    function writeStorageSafe(key, value) {
-      try {
-        if (window.localStorage) {
-          window.localStorage.setItem(key, value);
-        }
-      } catch (e) {}
-      try {
-        let bag = {};
-        if (window.name && window.name.startsWith('SAYaan_WIN_BAG:')) {
-          bag = JSON.parse(window.name.slice('SAYaan_WIN_BAG:'.length)) || {};
-        }
-        bag[key] = value;
-        const serialized = 'SAYaan_WIN_BAG:' + JSON.stringify(bag);
-        if (serialized.length < 1800000) {
-          window.name = serialized;
-        }
-      } catch (e) {}
-    }
-
-    function getStateContentSignature(stateObj) {
-      if (!stateObj || typeof stateObj !== 'object') return '';
-      return JSON.stringify({
-        cases: stateObj.cases || [],
-        pendingContributions: stateObj.pendingContributions || [],
-        approvedContributions: stateObj.approvedContributions || [],
-        disbursements: stateObj.disbursements || [],
-        caseLedgerItems: stateObj.caseLedgerItems || []
-      });
-    }
-
-    function hasAnyMeaningfulData(stateObj) {
-      if (!stateObj || typeof stateObj !== 'object') return false;
-      return (
-        (Array.isArray(stateObj.cases) && stateObj.cases.length > 0) ||
-        (Array.isArray(stateObj.approvedContributions) && stateObj.approvedContributions.length > 0) ||
-        (Array.isArray(stateObj.disbursements) && stateObj.disbursements.length > 0) ||
-        (Array.isArray(stateObj.pendingContributions) && stateObj.pendingContributions.length > 0)
-      );
-    }
-
+    // دوال التنسيق والأمان المساعدة
     function escapeHtml(str) {
       return String(str ?? '')
         .replace(/&/g, '&amp;')
@@ -1074,727 +1110,327 @@
         .replace(/'/g, '&#39;');
     }
 
-    function formatNumber(num) {
-      const n = Number(num) || 0;
-      const hasDecimals = Math.abs(n % 1) > 0.0001;
-      return n.toLocaleString('en-US', {
-        minimumFractionDigits: hasDecimals ? 2 : 0,
-        maximumFractionDigits: 2
-      });
-    }
-
-    function formatCurrency(num) {
-      return `${formatNumber(num)} د.ل`;
+    function formatCurrency(val) {
+      const num = Number(val);
+      const safe = Number.isFinite(num) ? num : 0;
+      return `${safe.toLocaleString('en-US', { maximumFractionDigits: 2 })} د.ل`;
     }
 
     function formatNowDate() {
-      const d = new Date();
-      const pad = (x) => String(x).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      try {
+        return new Date().toLocaleString('ar-LY', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return new Date().toISOString().slice(0, 16).replace('T', ' ');
+      }
     }
 
-    function showToast(msg, type = 'success') {
-      const box = document.getElementById('toast-box');
-      const textEl = document.getElementById('toast-text');
-      const iconEl = document.getElementById('toast-icon');
-      if (!box || !textEl) return;
-
-      box.classList.remove(
-        'hidden',
-        'from-emerald-600', 'via-teal-500', 'to-cyan-600',
-        'from-rose-600', 'via-red-500', 'to-amber-600',
-        'from-amber-500', 'via-orange-500', 'to-rose-500',
-        'toast-animate-in'
-      );
-      box.classList.add('flex');
-
-      if (type === 'error') {
-        box.classList.add('from-rose-600', 'via-red-500', 'to-amber-600');
-        if (iconEl) iconEl.textContent = '!';
-      } else if (type === 'warning') {
-        box.classList.add('from-amber-500', 'via-orange-500', 'to-rose-500');
-        if (iconEl) iconEl.textContent = '★';
-      } else {
-        box.classList.add('from-emerald-600', 'via-teal-500', 'to-cyan-600');
-        if (iconEl) iconEl.textContent = '✓';
+    function resolveTargetInfo(targetVal) {
+      const raw = String(targetVal || 'general');
+      if (raw.startsWith('case:')) {
+        const cid = raw.slice(5);
+        const found = (appState?.cases || []).find((c) => String(c.id) === String(cid));
+        if (found) {
+          return {
+            targetType: 'case',
+            targetId: String(found.id),
+            targetLabel: `حالة: ${found.name} (${found.category})`
+          };
+        }
       }
+      return {
+        targetType: 'general',
+        targetId: 'general',
+        targetLabel: 'صندوق التكافل الاجتماعي (أورام وديّة)'
+      };
+    }
 
-      textEl.textContent = msg;
-      void box.offsetWidth;
-      box.classList.add('toast-animate-in');
+    function showToast(message, type = 'info') {
+      const box = document.getElementById('toast-box');
+      const txt = document.getElementById('toast-text');
+      const icon = document.getElementById('toast-icon');
+      if (!box || !txt) return;
 
-      clearTimeout(showToast._timer);
-      showToast._timer = setTimeout(() => {
+      txt.textContent = String(message || '');
+      if (icon) {
+        icon.textContent = type === 'error' ? '!' : '✓';
+      }
+      box.classList.remove('hidden');
+      box.classList.add('flex', 'toast-animate-in');
+
+      if (window.__toastHideTimer) clearTimeout(window.__toastHideTimer);
+      window.__toastHideTimer = setTimeout(() => {
         box.classList.add('hidden');
         box.classList.remove('flex', 'toast-animate-in');
       }, 3600);
     }
 
-    function getDefaultAppState() {
-      return {
-        updatedAtMs: Date.now(),
-        cases: [],
-        pendingContributions: [],
-        approvedContributions: [],
-        disbursements: [],
-        caseLedgerItems: []
-      };
-    }
-
-    function getDeletedIdsSet() {
+    function getDeviceVotesMap() {
       try {
-        const raw = readStorageSafe(TOMBSTONE_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        return new Set(Array.isArray(arr) ? arr.map(String) : []);
+        const raw = localStorage.getItem(DEVICE_VOTE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
       } catch (e) {
-        return new Set();
+        return {};
       }
     }
 
-    function addDeletedIds(ids) {
-      if (!Array.isArray(ids) || !ids.length) return;
-      const set = getDeletedIdsSet();
-      ids.forEach((id) => {
-        if (id !== undefined && id !== null && String(id).trim() !== '') {
-          set.add(String(id));
+    // التحقق مما إذا كانت الحالة مغلقة للتصويت أو مكتملة الدفع لاستبعادها من القوائم
+    function isCaseExcludedFromTargets(c) {
+      if (!c) return true;
+      if (c.votingClosed === true || c.isCompleted === true) return true;
+      const reqAmt = Math.max(0, Number(c.requiredAmount) || 0);
+      if (reqAmt <= 0) return false;
+      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
+      const funded =
+        approved.filter((x) => x.targetType === 'case' && String(x.targetId) === String(c.id)).reduce((s, x) => s + (Number(x.amount) || 0), 0) +
+        disbursements.filter((d) => String(d.caseId) === String(c.id)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+      return funded >= reqAmt;
+    }
+
+    function clearNewReceiptSelection() {
+      newReceiptDataUrl = '';
+      newReceiptFileName = '';
+      const input = document.getElementById('contrib-receipt');
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      const wrap = document.getElementById('new-receipt-preview-wrap');
+      const img = document.getElementById('new-receipt-preview-img');
+      if (input) input.value = '';
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      if (clearBtn) clearBtn.classList.add('hidden');
+      if (wrap) wrap.classList.add('hidden');
+      if (img) img.src = '';
+    }
+
+    function handleNewReceiptFileChange(input) {
+      const file = input?.files && input.files[0];
+      if (!file) {
+        clearNewReceiptSelection();
+        return;
+      }
+      newReceiptFileName = file.name || 'receipt';
+      const nameEl = document.getElementById('contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-new-receipt-btn');
+      const wrap = document.getElementById('new-receipt-preview-wrap');
+      const img = document.getElementById('new-receipt-preview-img');
+
+      if (nameEl) nameEl.textContent = `الملف المحدد: ${newReceiptFileName}`;
+      if (clearBtn) clearBtn.classList.remove('hidden');
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        newReceiptDataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (img && wrap && file.type && file.type.startsWith('image/')) {
+          img.src = newReceiptDataUrl;
+          wrap.classList.remove('hidden');
+        } else if (wrap) {
+          wrap.classList.add('hidden');
         }
-      });
-      writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(Array.from(set)));
-      pushDeletedIdsToFirebase(Array.from(set));
+      };
+      reader.readAsDataURL(file);
     }
 
-    function buildFirebaseTombstonesEndpoint() {
-      const cfg = getFirebaseConfig();
-      if (!cfg || !cfg.dbUrl) return '';
-      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-      return `${cfg.dbUrl}/sayaanTakafulDeletedIds.json${secret}`;
-    }
-
-    async function pushDeletedIdsToFirebase(idsArray) {
-      const endpoint = buildFirebaseTombstonesEndpoint();
-      if (!endpoint) return;
+    function getFirebaseBaseUrl() {
       try {
-        await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ids: Array.isArray(idsArray) ? idsArray : [],
-            updatedAtMs: Date.now(),
-            originClient: clientInstanceId
-          })
-        });
-      } catch (e) {}
-    }
-
-    async function pullDeletedIdsFromFirebase() {
-      const endpoint = buildFirebaseTombstonesEndpoint();
-      if (!endpoint) return false;
-      try {
-        const res = await fetch(endpoint, { cache: 'no-store' });
-        if (!res.ok) return false;
-        const remote = await res.json();
-        const remoteIds = Array.isArray(remote?.ids) ? remote.ids : Array.isArray(remote) ? remote : [];
-        if (!remoteIds.length) return false;
-        const localSet = getDeletedIdsSet();
-        const beforeSize = localSet.size;
-        remoteIds.forEach((id) => {
-          if (id !== undefined && id !== null && String(id).trim() !== '') {
-            localSet.add(String(id));
-          }
-        });
-        writeStorageSafe(TOMBSTONE_KEY, JSON.stringify(Array.from(localSet)));
-        return localSet.size !== beforeSize;
+        const saved = JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || '{}');
+        const url = String(saved?.url || DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '');
+        return url || DEFAULT_FIREBASE_URL;
       } catch (e) {
-        return false;
+        return DEFAULT_FIREBASE_URL;
       }
     }
 
-    function applyTombstonesToState(stateObj) {
-      if (!stateObj || typeof stateObj !== 'object') return stateObj;
-      const deletedSet = getDeletedIdsSet();
-      if (!deletedSet.size) return stateObj;
-      const filterArr = (arr) =>
-        (Array.isArray(arr) ? arr : []).filter((item) => item && item.id && !deletedSet.has(String(item.id)));
-      return {
-        ...stateObj,
-        cases: filterArr(stateObj.cases),
-        pendingContributions: filterArr(stateObj.pendingContributions),
-        approvedContributions: filterArr(stateObj.approvedContributions),
-        disbursements: filterArr(stateObj.disbursements),
-        caseLedgerItems: filterArr(stateObj.caseLedgerItems)
-      };
+    function getFirebaseAuthQuery() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || '{}');
+        const token = String(saved?.auth || '').trim();
+        return token ? `?auth=${encodeURIComponent(token)}` : '';
+      } catch (e) {
+        return '';
+      }
     }
 
-    function normalizeState(raw) {
-      const base = getDefaultAppState();
-      if (!raw || typeof raw !== 'object') return base;
-      const deletedSet = getDeletedIdsSet();
-      const filterDeleted = (arr) =>
-        (Array.isArray(arr) ? arr : []).filter((item) => item && item.id && !deletedSet.has(String(item.id)));
+    function buildFirebaseStateEndpoint() {
+      return `${getFirebaseBaseUrl()}/sayaan_takaful_state.json${getFirebaseAuthQuery()}`;
+    }
 
-      return {
-        updatedAtMs: Number(raw.updatedAtMs) || Date.now(),
-        originClient: String(raw.originClient || ''),
-        cases: filterDeleted(raw.cases).map((c) => ({
-          ...c,
-          id: String(c.id),
-          name: String(c.name || '').trim(),
-          category: String(c.category || 'دية').trim(),
-          required: Math.max(0, Number(c.required) || 0),
-          disbursed: Math.max(0, Number(c.disbursed) || 0),
-          description: String(c.description || '').trim(),
-          votesApprove: Math.max(0, Number(c.votesApprove) || 0),
-          votesReject: Math.max(0, Number(c.votesReject) || 0),
-          rejections: Array.isArray(c.rejections) ? c.rejections : []
-        })),
-        pendingContributions: filterDeleted(raw.pendingContributions),
-        approvedContributions: filterDeleted(raw.approvedContributions),
-        disbursements: filterDeleted(raw.disbursements),
-        caseLedgerItems: filterDeleted(raw.caseLedgerItems)
-      };
+    function saveLocalStateOnly() {
+      try {
+        syncVersionCounter = Math.max(syncVersionCounter + 1, Number(appState?.syncVer) || 0);
+        appState.syncVer = syncVersionCounter;
+        appState.updatedAtMs = Date.now();
+        appState.lastUpdated = formatNowDate();
+        appState.originClient = clientInstanceId;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        hasLocalStateStored = true;
+      } catch (e) {
+        // تجاهل خطأ التخزين المحلي عند امتلاء السعة
+      }
+    }
+
+    function pushStateToFirebase() {
+      if (isPushingToFirebase) return;
+      isPushingToFirebase = true;
+      lastPushedAtMs = Date.now();
+      fetch(buildFirebaseStateEndpoint(), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appState)
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const dot = document.getElementById('cloud-status-dot');
+          const txt = document.getElementById('cloud-status-text');
+          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]';
+          if (txt) txt.textContent = 'متصل ومتزامن';
+        })
+        .catch(() => {
+          const dot = document.getElementById('cloud-status-dot');
+          const txt = document.getElementById('cloud-status-text');
+          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+          if (txt) txt.textContent = 'وضع محلي مؤقت';
+        })
+        .finally(() => {
+          isPushingToFirebase = false;
+        });
+    }
+
+    function saveAndSync(reasonLabel = 'تحديث') {
+      saveLocalStateOnly();
+      saveAutoBackupSnapshot(reasonLabel, false);
+      renderAll();
+      pushStateToFirebase();
+    }
+
+    function saveAutoBackupSnapshot(label = 'لقطة تلقائية', showMsg = false) {
+      try {
+        const rawList = JSON.parse(localStorage.getItem(BACKUP_SNAPSHOTS_KEY) || '[]');
+        const list = Array.isArray(rawList) ? rawList : [];
+        list.unshift({
+          id: `snap_${Date.now()}`,
+          label,
+          date: formatNowDate(),
+          state: appState
+        });
+        localStorage.setItem(BACKUP_SNAPSHOTS_KEY, JSON.stringify(list.slice(0, MAX_AUTO_SNAPSHOTS)));
+        if (showMsg) showToast('تم حفظ نقطة استعادة تلقائية.', 'success');
+      } catch (e) {
+        // تجاهل خطأ اللقطات
+      }
     }
 
     function loadInitialAppState() {
       try {
-        const raw = readStorageSafe(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          hasLocalStateStored = true;
           appState = normalizeState(JSON.parse(raw));
+          hasLocalStateStored = true;
+          syncVersionCounter = Number(appState.syncVer) || 0;
           return;
         }
-      } catch (e) {}
-      hasLocalStateStored = false;
-      appState = getDefaultAppState();
-      // محاولة استعادة أحدث لقطة محلية إذا وُجدت لتفادي ظهور الأصفار مؤقتاً
-      try {
-        const snaps = getAutoSnapshots();
-        if (snaps && snaps.length > 0 && snaps[0].state) {
-          appState = normalizeState(snaps[0].state);
-          hasLocalStateStored = true;
-        }
-      } catch (e) {}
-    }
-
-    function getAutoSnapshots() {
-      try {
-        const raw = readStorageSafe(AUTO_SNAPSHOTS_KEY);
-        const list = raw ? JSON.parse(raw) : [];
-        return Array.isArray(list) ? list : [];
       } catch (e) {
-        return [];
+        // تجاهل القراءة الفاشلة
       }
+      appState = getDefaultAppState();
+      syncVersionCounter = Number(appState.syncVer) || 1;
     }
 
-    function saveAutoBackupSnapshot(label = 'نقطة حفظ تلقائية', notify = false) {
-      try {
-        if (!appState) return;
-        const snapshots = getAutoSnapshots();
-        const snap = {
-          id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          label,
-          savedAt: formatNowDate(),
-          savedAtMs: Date.now(),
-          state: JSON.parse(JSON.stringify(appState))
-        };
-        const updated = [snap, ...snapshots].slice(0, MAX_AUTO_SNAPSHOTS);
-        writeStorageSafe(AUTO_SNAPSHOTS_KEY, JSON.stringify(updated));
-        renderAutoSnapshotsList();
-        if (notify) showToast(`تم حفظ نقطة الاستعادة: ${label}`, 'success');
-      } catch (e) {}
-    }
+    function renderPendingPanel() {
+      const panel = document.getElementById('admin-pending-panel');
+      const listEl = document.getElementById('pending-contributions-list');
+      const badge = document.getElementById('pending-count-badge');
+      const topBtn = document.getElementById('admin-notifications-btn');
+      const topBadge = document.getElementById('admin-notifications-count-badge');
+      const pending = Array.isArray(appState?.pendingContributions) ? appState.pendingContributions : [];
 
-    function renderAutoSnapshotsList() {
-      const listEl = document.getElementById('auto-recovery-snapshots-list');
-      if (!listEl) return;
-      const snaps = getAutoSnapshots();
-      if (!snaps.length) {
-        listEl.innerHTML = `<p class="text-xs font-bold text-slate-500 text-center py-3">لا توجد لقطات استعادة محفوظة حالياً.</p>`;
+      if (topBtn && topBadge) {
+        if (isAdminLoggedIn && pending.length > 0) {
+          topBtn.classList.remove('hidden');
+          topBtn.classList.add('inline-flex');
+          topBadge.textContent = String(pending.length);
+        } else {
+          topBtn.classList.add('hidden');
+          topBtn.classList.remove('inline-flex');
+        }
+      }
+
+      if (!panel || !listEl) return;
+      if (!isAdminLoggedIn) {
+        panel.classList.add('hidden');
         return;
       }
-      listEl.innerHTML = snaps
+      panel.classList.remove('hidden');
+      if (badge) badge.textContent = `${pending.length} طلبات`;
+
+      if (!pending.length) {
+        listEl.innerHTML = `<div class="bg-white/80 border border-amber-200 rounded-2xl p-4 text-center text-xs font-bold text-amber-900">لا توجد مساهمات معلقة بانتظار الاعتماد حالياً.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = pending
         .map(
-          (s, idx) => `
-          <div class="bg-white border border-emerald-200/80 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="text-xs font-black text-slate-900 truncate">${idx === 0 ? '★ ' : ''}${escapeHtml(s.label)}</p>
-              <p class="text-[11px] font-bold text-slate-500">${escapeHtml(s.savedAt)}</p>
+          (p) => `
+          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div class="space-y-1">
+              <p class="text-sm font-black text-slate-900">${escapeHtml(p.name)} <span class="text-xs font-bold text-emerald-700">(${escapeHtml(p.branch)})</span></p>
+              <p class="text-xs font-black text-emerald-800">المبلغ: ${escapeHtml(formatCurrency(p.amount))} • الوجهة: ${escapeHtml(p.targetLabel)}</p>
+              <p class="text-[11px] font-bold text-slate-600">طريقة الدفع: ${escapeHtml(p.method)}${p.phone ? ` • هاتف: ${escapeHtml(p.phone)}` : ''}${p.note ? ` • ملاحظة: ${escapeHtml(p.note)}` : ''}</p>
+              <p class="text-[10px] font-bold text-slate-400">${escapeHtml(p.date || '')}</p>
             </div>
-            <button type="button" onclick="restoreAutoSnapshotById('${escapeHtml(s.id)}')" class="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
-              استعادة ومزامنة
-            </button>
-          </div>`
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+              ${
+                p.receiptDataUrl
+                  ? `<button type="button" onclick="openReceiptViewerByPendingId('${escapeHtml(p.id)}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">معاينة الوصل</button>`
+                  : ''
+              }
+              <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">تعديل</button>
+              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-xs px-3 py-2 rounded-xl transition cursor-pointer">حذف</button>
+              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer">نشر</button>
+            </div>
+          </div>
+        `
         )
         .join('');
     }
 
-    function restoreAutoSnapshotById(snapId) {
-      const snaps = getAutoSnapshots();
-      const target = snaps.find((s) => s.id === snapId);
-      if (!target || !target.state) {
-        showToast('تعذر العثور على نقطة الاستعادة المحددة.', 'error');
-        return;
-      }
-      appState = normalizeState(target.state);
-      appState.updatedAtMs = Date.now();
-      hasLocalStateStored = true;
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-      writeStorageSafe(RESTORED_LOCK_KEY, '1');
-      renderAll();
-      pushStateToFirebase(true);
-      showToast(`تمت استعادة (${target.label}) ومزامنتها مع Firebase.`, 'success');
-    }
-
-    function restoreLatestAutoSnapshot() {
-      const snaps = getAutoSnapshots();
-      if (!snaps.length) {
-        showToast('لا توجد نقاط استعادة محفوظة بعد.', 'warning');
-        return;
-      }
-      restoreAutoSnapshotById(snaps[0].id);
-    }
-
-    function exportManualBackupFile() {
-      try {
-        const payload = {
-          exportedAt: formatNowDate(),
-          appState: appState || getDefaultAppState(),
-          donorWallets: getDonorWalletsMap()
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sayaan-takaful-backup-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('تم تحميل ملف النسخة الاحتياطية بنجاح.', 'success');
-      } catch (e) {
-        showToast('تعذر تصدير ملف النسخة الاحتياطية.', 'error');
-      }
-    }
-
-    function handleManualBackupFileImport(input) {
-      const file = input?.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(String(reader.result || '{}'));
-          const candidateState = parsed.appState || parsed;
-          appState = normalizeState(candidateState);
-          appState.updatedAtMs = Date.now();
-          hasLocalStateStored = true;
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          if (parsed.donorWallets && typeof parsed.donorWallets === 'object') {
-            saveDonorWalletsMap(parsed.donorWallets);
-          }
-          renderAll();
-          pushStateToFirebase(true);
-          showToast('تمت استعادة النسخة الاحتياطية ومزامنتها مع Firebase.', 'success');
-        } catch (e) {
-          showToast('ملف النسخة الاحتياطية غير صالح.', 'error');
-        } finally {
-          input.value = '';
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function getFirebaseConfig() {
-      try {
-        const raw = readStorageSafe(FIREBASE_CFG_KEY);
-        const parsed = raw ? JSON.parse(raw) : null;
-        if (parsed && parsed.dbUrl) {
-          return {
-            dbUrl: String(parsed.dbUrl).trim().replace(/\/+$/, ''),
-            authSecret: String(parsed.authSecret || '').trim()
-          };
-        }
-      } catch (e) {}
-      return { dbUrl: DEFAULT_FIREBASE_DB_URL, authSecret: '' };
-    }
-
-    function buildFirebaseStateEndpoint() {
-      const cfg = getFirebaseConfig();
-      if (!cfg || !cfg.dbUrl) return '';
-      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-      return `${cfg.dbUrl}/sayaanTakafulState.json${secret}`;
-    }
-
-    function setCloudStatusUI(mode, customText = '') {
-      const dot = document.getElementById('cloud-status-dot');
-      const text = document.getElementById('cloud-status-text');
-      if (!dot || !text) return;
-      if (mode === 'syncing') {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping';
-        text.textContent = customText || 'جاري المزامنة...';
-      } else if (mode === 'offline') {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
-        text.textContent = customText || 'وضع محلي';
-      } else {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
-        text.textContent = customText || 'متصل ومتزامن';
-      }
-    }
-
-    async function pushStateToFirebase(force = false) {
-      const endpoint = buildFirebaseStateEndpoint();
-      if (!endpoint || !appState) return;
-      if (isPushingToFirebase && !force) return;
-      isPushingToFirebase = true;
-      setCloudStatusUI('syncing');
-      try {
-        // تحقق أولاً مما هو موجود في السحابة حتى لا نمسح بيانات أحدث بحالة محلية فارغة أو أقدم
-        const checkRes = await fetch(endpoint, { cache: 'no-store' });
-        if (checkRes.ok) {
-          const cloudRaw = await checkRes.json();
-          if (cloudRaw && typeof cloudRaw === 'object') {
-            const cloudNorm = normalizeState(cloudRaw);
-            const cloudHasData = hasAnyMeaningfulData(cloudNorm);
-            const localHasData = hasAnyMeaningfulData(appState);
-            const cloudVer = Number(cloudNorm.syncVer) || 0;
-            const localVer = Number(appState.syncVer) || 0;
-            const cloudSig = getStateContentSignature(cloudNorm);
-            const localSig = getStateContentSignature(appState);
-
-            if (cloudHasData && !localHasData && !force) {
-              appState = cloudNorm;
-              hasLocalStateStored = true;
-              writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-              renderAll();
-              setCloudStatusUI('online');
-              return;
-            }
-            if (cloudHasData && cloudSig !== localSig && cloudVer > localVer && !force) {
-              appState = cloudNorm;
-              hasLocalStateStored = true;
-              writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-              renderAll();
-              setCloudStatusUI('online');
-              return;
-            }
-          }
-        }
-
-        syncVersionCounter = Math.max(syncVersionCounter + 1, Number(appState.syncVer) || 0) + 1;
-        appState.syncVer = syncVersionCounter;
-        appState.updatedAtMs = Date.now();
-        appState.originClient = clientInstanceId;
-        writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 6000) : null;
-        const res = await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(appState),
-          signal: controller ? controller.signal : undefined
-        });
-        if (timeoutId) clearTimeout(timeoutId);
-        if (res.ok) {
-          lastPushedAtMs = Date.now();
-          lastAppliedRemoteSig = getStateContentSignature(appState);
-          setCloudStatusUI('online');
-        } else {
-          setCloudStatusUI('offline');
-        }
-      } catch (e) {
-        setCloudStatusUI('offline');
-      } finally {
-        isPushingToFirebase = false;
-      }
-    }
-
-    async function pullStateFromFirebase(silent = true) {
-      const endpoint = buildFirebaseStateEndpoint();
-      if (!endpoint) return;
-      try {
-        const tombstonesChanged = await pullDeletedIdsFromFirebase();
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 4500) : null;
-        const res = await fetch(endpoint, {
-          cache: 'no-store',
-          signal: controller ? controller.signal : undefined
-        });
-        if (timeoutId) clearTimeout(timeoutId);
-        if (!res.ok) {
-          if (!silent) setCloudStatusUI('offline');
-          return;
-        }
-        const remote = await res.json();
-        if (!remote || typeof remote !== 'object') {
-          if (tombstonesChanged && appState) {
-            appState = normalizeState(applyTombstonesToState(appState));
-            writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-            renderAll();
-          }
-          setCloudStatusUI('online');
-          return;
-        }
-        const remoteNormalized = normalizeState(remote);
-        syncVersionCounter = Math.max(syncVersionCounter, Number(remoteNormalized.syncVer) || 0);
-        const remoteMs = Number(remoteNormalized.updatedAtMs) || 0;
-        const localMs = Number(appState?.updatedAtMs) || 0;
-        const hasLocalData = hasAnyMeaningfulData(appState);
-        const hasRemoteData = hasAnyMeaningfulData(remoteNormalized);
-
-        const isDifferentClient = remoteNormalized.originClient && remoteNormalized.originClient !== clientInstanceId;
-        const localSig = getStateContentSignature(appState);
-        const remoteSig = getStateContentSignature(remoteNormalized);
-
-        if (
-          (hasRemoteData && localSig !== remoteSig && (isDifferentClient || Number(remoteNormalized.syncVer || 0) >= Number(appState?.syncVer || 0) || remoteMs >= localMs)) ||
-          (!hasLocalData && hasRemoteData) ||
-          (!hasLocalStateStored && hasRemoteData) ||
-          (remoteMs > localMs && hasRemoteData)
-        ) {
-          appState = remoteNormalized;
-          hasLocalStateStored = true;
-          lastAppliedRemoteSig = remoteSig;
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          renderAll();
-        } else if (hasLocalData && !hasRemoteData && (Date.now() - lastPushedAtMs > 2500)) {
-          pushStateToFirebase(true);
-        } else if (tombstonesChanged && appState) {
-          appState = normalizeState(applyTombstonesToState(appState));
-          writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-          renderAll();
-        }
-        await pullAllDonorWalletsFromFirebase();
-        setCloudStatusUI('online');
-      } catch (e) {
-        if (!silent) setCloudStatusUI('offline');
-      }
+    function renderAll() {
+      populateTargetSelects();
+      renderStats();
+      renderCases();
+      renderLedger();
+      renderPendingPanel();
     }
 
     function startFirebasePolling() {
-      pullStateFromFirebase(true);
       if (firebasePollTimer) clearInterval(firebasePollTimer);
-      firebasePollTimer = setInterval(() => {
-        pullStateFromFirebase(true);
-      }, 900);
-
-      try {
-        const cfg = getFirebaseConfig();
-        if (cfg && cfg.dbUrl && typeof EventSource !== 'undefined') {
-          if (firebaseEventSource) {
-            try { firebaseEventSource.close(); } catch (e) {}
-          }
-          const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-          const sseUrl = `${cfg.dbUrl}/sayaanTakafulState.json${secret}`;
-          firebaseEventSource = new EventSource(sseUrl);
-          firebaseEventSource.addEventListener('put', () => {
-            pullStateFromFirebase(true);
-          });
-          firebaseEventSource.addEventListener('patch', () => {
-            pullStateFromFirebase(true);
-          });
-          firebaseEventSource.onerror = () => {};
-
-          if (walletsEventSource) {
-            try { walletsEventSource.close(); } catch (e) {}
-          }
-          const walletsSseUrl = `${cfg.dbUrl}/sayaanDonorWallets.json${secret}`;
-          walletsEventSource = new EventSource(walletsSseUrl);
-          walletsEventSource.addEventListener('put', () => {
-            pullAllDonorWalletsFromFirebase();
-          });
-          walletsEventSource.addEventListener('patch', () => {
-            pullAllDonorWalletsFromFirebase();
-          });
-          walletsEventSource.onerror = () => {};
-        }
-      } catch (e) {}
-    }
-
-    function saveAndSync(snapshotLabel = '') {
-      if (!appState) appState = getDefaultAppState();
-      syncVersionCounter = Math.max(syncVersionCounter + 1, Number(appState.syncVer) || 0) + 1;
-      appState.syncVer = syncVersionCounter;
-      appState.updatedAtMs = Date.now();
-      appState.originClient = clientInstanceId;
-      hasLocalStateStored = true;
-      writeStorageSafe(STORAGE_KEY, JSON.stringify(appState));
-      if (snapshotLabel) {
-        saveAutoBackupSnapshot(snapshotLabel, false);
-      }
-      renderAll();
-      pushStateToFirebase(true);
-      pushAllDonorWalletsToFirebase();
-    }
-
-    function openFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      const cfg = getFirebaseConfig();
-      const urlInp = document.getElementById('firebase-db-url-input');
-      const secInp = document.getElementById('firebase-auth-secret-input');
-      if (urlInp) urlInp.value = cfg.dbUrl || DEFAULT_FIREBASE_DB_URL;
-      if (secInp) secInp.value = cfg.authSecret || '';
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleFirebaseConfigSubmit(event) {
-      event.preventDefault();
-      const dbUrl = (document.getElementById('firebase-db-url-input')?.value || '').trim().replace(/\/+$/, '');
-      const authSecret = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
-      if (!dbUrl) {
-        showToast('يرجى إدخال رابط قاعدة بيانات Firebase.', 'error');
-        return;
-      }
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl, authSecret }));
-      closeFirebaseConfigModal();
-      startFirebasePolling();
-      pushStateToFirebase(true);
-      showToast('تم حفظ إعدادات Firebase والاتصال بنجاح.', 'success');
-    }
-
-    function disconnectFirebaseCloud() {
-      writeStorageSafe(FIREBASE_CFG_KEY, JSON.stringify({ dbUrl: '', authSecret: '' }));
-      if (firebaseEventSource) {
-        try { firebaseEventSource.close(); } catch (e) {}
-        firebaseEventSource = null;
-      }
-      setCloudStatusUI('offline');
-      closeFirebaseConfigModal();
-      showToast('تم فصل الربط السحابي؛ تعمل المنصة محلياً.', 'warning');
-    }
-
-    function handleAdminHeaderClick() {
-      if (isAdminLoggedIn) {
-        isAdminLoggedIn = false;
-        showToast('تم الخروج من وضع الإدارة.', 'warning');
-        renderAll();
-        return;
-      }
-      const modal = document.getElementById('admin-login-modal');
-      const errEl = document.getElementById('admin-login-error');
-      const emailInp = document.getElementById('admin-email-input');
-      const passInp = document.getElementById('admin-pass-input');
-      if (errEl) errEl.classList.add('hidden');
-      if (emailInp) emailInp.value = '';
-      if (passInp) passInp.value = '';
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        setTimeout(() => emailInp?.focus(), 60);
-      }
-    }
-
-    function closeAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleAdminLoginSubmit(event) {
-      event.preventDefault();
-      const email = (document.getElementById('admin-email-input')?.value || '').trim().toLowerCase();
-      const pass = (document.getElementById('admin-pass-input')?.value || '').trim();
-      const errEl = document.getElementById('admin-login-error');
-      if (email === ADMIN_AUTH_EMAIL.toLowerCase() && pass === ADMIN_AUTH_PASS) {
-        isAdminLoggedIn = true;
-        closeAdminLoginModal();
-        renderAll();
-        pullStateFromFirebase(true);
-        showToast('تم تسجيل الدخول إلى وضع الإدارة بنجاح.', 'success');
-      } else if (errEl) {
-        errEl.classList.remove('hidden');
-      }
-    }
-
-    function scrollToContributeSection(targetValue = '') {
-      populateTargetSelects();
-      const targetSel = document.getElementById('contrib-target');
-      if (targetValue && targetSel) {
-        const exists = Array.from(targetSel.options).some((o) => o.value === targetValue);
-        if (exists) targetSel.value = targetValue;
-      }
-      const sec = document.getElementById('contribute-section');
-      if (sec) {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        sec.classList.remove('target-highlight-ring');
-        void sec.offsetWidth;
-        sec.classList.add('target-highlight-ring');
-      }
-    }
-
-    function jumpToPendingApprovalQueue() {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const panel = document.getElementById('admin-pending-panel');
-      if (panel) {
-        panel.classList.remove('hidden');
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-
-    function copyPaymentDetail(val, label) {
-      const text = String(val || '');
-      let copied = false;
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        copied = document.execCommand('copy');
-        ta.remove();
-      } catch (e) {}
-      if (!copied && navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(() => {});
-      }
-      showToast(`تم نسخ ${label}: ${text}`, 'success');
-    }
-
-    function resolveTargetInfo(targetValue) {
-      const val = String(targetValue || 'general').trim();
-      if (val === 'personal_wallet') {
-        return {
-          targetType: 'personal_wallet',
-          targetId: 'personal_wallet',
-          targetLabel: 'المحفظة الشخصية الذكية'
-        };
-      }
-      if (val.startsWith('case:')) {
-        const caseId = val.slice(5);
-        const foundCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
-        return {
-          targetType: 'case',
-          targetId: String(caseId),
-          targetLabel: foundCase ? `${foundCase.name} (${foundCase.category})` : `حالة #${caseId}`
-        };
-      }
-      return {
-        targetType: 'general',
-        targetId: 'general',
-        targetLabel: 'الصندوق العام (أورام وديّة)'
+      const syncOnce = () => {
+        if (isPushingToFirebase || Date.now() - lastPushedAtMs < 1500) return;
+        fetch(buildFirebaseStateEndpoint(), { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((remote) => {
+            if (!remote || typeof remote !== 'object') return;
+            const remoteVer = Number(remote.syncVer) || 0;
+            const localVer = Number(appState?.syncVer) || 0;
+            if (remoteVer > localVer && remote.originClient !== clientInstanceId) {
+              appState = normalizeState(remote);
+              syncVersionCounter = remoteVer;
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+              } catch (e) {}
+              renderAll();
+            }
+          })
+          .catch(() => {});
       };
-    }
-
-    function handleContribTargetChange() {
-      const sel = document.getElementById('contrib-target');
-      const val = sel ? sel.value : '';
-      renderDonorWalletPanel();
-      if (val === 'personal_wallet') {
-        showToast('تم اختيار شحن المحفظة الشخصية الذكية؛ سيبقى الرصيد مستقلاً في حافظتك بعد الاعتماد.', 'warning');
-      }
+      syncOnce();
+      firebasePollTimer = setInterval(syncOnce, 6000);
     }
 
     function populateTargetSelects() {
@@ -1802,17 +1438,11 @@
         document.getElementById('contrib-target'),
         document.getElementById('edit-contrib-target')
       ].filter(Boolean);
-      const walletTargetSel = document.getElementById('wallet-donate-target');
-      const cases = Array.isArray(appState?.cases) ? appState.cases : [];
+      const cases = (Array.isArray(appState?.cases) ? appState.cases : []).filter((c) => !isCaseExcludedFromTargets(c));
 
       selects.forEach((sel) => {
         const prevVal = sel.value;
-        const isNewForm = sel.id === 'contrib-target';
-        let html = isNewForm
-          ? `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>
-             <option value="personal_wallet">التبرع / شحن الحافظة الشخصية الذكية</option>`
-          : `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>
-             <option value="personal_wallet">التبرع / شحن الحافظة الشخصية الذكية</option>`;
+        let html = `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>`;
 
         cases.forEach((c) => {
           html += `<option value="case:${escapeHtml(c.id)}">حالة: ${escapeHtml(c.name)} (${escapeHtml(c.category)})</option>`;
@@ -1821,247 +1451,10 @@
         sel.innerHTML = html;
         if (prevVal && Array.from(sel.options).some((o) => o.value === prevVal)) {
           sel.value = prevVal;
-        } else if (isNewForm) {
+        } else {
           sel.value = 'general';
         }
       });
-
-      if (walletTargetSel) {
-        const prevW = walletTargetSel.value;
-        let wHtml = `<option value="general">تبرع لصندوق التكافل الاجتماعي (أورام وديّة)</option>`;
-        cases.forEach((c) => {
-          wHtml += `<option value="case:${escapeHtml(c.id)}">حالة: ${escapeHtml(c.name)}</option>`;
-        });
-        walletTargetSel.innerHTML = wHtml;
-        if (prevW && Array.from(walletTargetSel.options).some((o) => o.value === prevW)) {
-          walletTargetSel.value = prevW;
-        }
-      }
-    }
-    function getDonorWalletKey(name, branch) {
-      const cleanName = String(name || '').trim().toLowerCase().replace(/\s+/g, '_');
-      const cleanBranch = String(branch || '').trim().toLowerCase().replace(/\s+/g, '_');
-      return `${cleanName || 'guest'}__${cleanBranch || 'general'}`;
-    }
-
-    function getDonorWalletsMap() {
-      try {
-        const raw = readStorageSafe(DONOR_WALLETS_KEY);
-        const parsed = raw ? JSON.parse(raw) : {};
-        return parsed && typeof parsed === 'object' ? parsed : {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    function saveDonorWalletsMap(map) {
-      try {
-        writeStorageSafe(DONOR_WALLETS_KEY, JSON.stringify(map || {}));
-      } catch (e) {}
-    }
-
-    function getDonorWalletBalance(name, branch) {
-      if (!String(name || '').trim()) return 0;
-      const map = getDonorWalletsMap();
-      const key = getDonorWalletKey(name, branch);
-      const entry = map[key];
-      if (!entry) return 0;
-      return Math.max(0, Number(typeof entry === 'object' ? entry.balance : entry) || 0);
-    }
-
-    function creditDonorWallet(name, branch, amount, reason = 'شحن محفظة شخصية') {
-      const amt = Math.max(0, Number(amount) || 0);
-      if (amt <= 0) return;
-      const map = getDonorWalletsMap();
-      const key = getDonorWalletKey(name, branch);
-      const prev = map[key] && typeof map[key] === 'object' ? map[key] : { balance: 0, entries: [] };
-      const nextBalance = (Math.max(0, Number(prev.balance) || 0)) + amt;
-      const entries = Array.isArray(prev.entries) ? prev.entries.slice(0, 29) : [];
-      entries.unshift({
-        id: `w_tx_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-        type: 'credit',
-        amount: amt,
-        reason,
-        date: formatNowDate()
-      });
-      map[key] = {
-        key,
-        name: String(name || 'مساهم').trim(),
-        branch: String(branch || 'الهمايلة').trim(),
-        balance: nextBalance,
-        entries,
-        updatedAtMs: Date.now(),
-        originClient: clientInstanceId
-      };
-      saveDonorWalletsMap(map);
-      pushAllDonorWalletsToFirebase();
-    }
-
-    function debitDonorWallet(name, branch, amount, reason = 'تبرع من الحافظة الذكية') {
-      const amt = Math.max(0, Number(amount) || 0);
-      if (amt <= 0) return false;
-      const map = getDonorWalletsMap();
-      const key = getDonorWalletKey(name, branch);
-      const prev = map[key] && typeof map[key] === 'object' ? map[key] : { balance: 0, entries: [] };
-      const currentBal = Math.max(0, Number(prev.balance) || 0);
-      if (amt > currentBal) return false;
-      const entries = Array.isArray(prev.entries) ? prev.entries.slice(0, 29) : [];
-      entries.unshift({
-        id: `w_tx_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-        type: 'debit',
-        amount: amt,
-        reason,
-        date: formatNowDate()
-      });
-      map[key] = {
-        ...prev,
-        key,
-        name: String(name || 'مساهم').trim(),
-        branch: String(branch || 'الهمايلة').trim(),
-        balance: currentBal - amt,
-        entries,
-        updatedAtMs: Date.now(),
-        originClient: clientInstanceId
-      };
-      saveDonorWalletsMap(map);
-      pushAllDonorWalletsToFirebase();
-      return true;
-    }
-
-    function buildFirebaseWalletsEndpoint() {
-      const cfg = getFirebaseConfig();
-      if (!cfg || !cfg.dbUrl) return '';
-      const secret = cfg.authSecret ? `?auth=${encodeURIComponent(cfg.authSecret)}` : '';
-      return `${cfg.dbUrl}/sayaanDonorWallets.json${secret}`;
-    }
-
-    async function pushAllDonorWalletsToFirebase() {
-      const endpoint = buildFirebaseWalletsEndpoint();
-      if (!endpoint) return;
-      if (isPushingWalletsToFirebase) return;
-      isPushingWalletsToFirebase = true;
-      try {
-        const localMap = getDonorWalletsMap();
-        await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallets: localMap,
-            updatedAtMs: Date.now(),
-            originClient: clientInstanceId
-          })
-        });
-        lastWalletsPushedAtMs = Date.now();
-      } catch (e) {} finally {
-        isPushingWalletsToFirebase = false;
-      }
-    }
-
-    async function pullAllDonorWalletsFromFirebase() {
-      const endpoint = buildFirebaseWalletsEndpoint();
-      if (!endpoint) return;
-      try {
-        const res = await fetch(endpoint, { cache: 'no-store' });
-        if (!res.ok) return;
-        const remote = await res.json();
-        const remoteWallets = remote && typeof remote === 'object' && remote.wallets && typeof remote.wallets === 'object'
-          ? remote.wallets
-          : (remote && typeof remote === 'object' ? remote : null);
-        if (!remoteWallets) return;
-
-        const localMap = getDonorWalletsMap();
-        const merged = { ...localMap };
-        let changed = false;
-
-        Object.keys(remoteWallets).forEach((k) => {
-          if (k === 'updatedAtMs' || k === 'originClient') return;
-          const rVal = remoteWallets[k];
-          if (!rVal || typeof rVal !== 'object') return;
-          const rMs = Number(rVal.updatedAtMs) || 0;
-          const lVal = merged[k];
-          const lMs = lVal && typeof lVal === 'object' ? (Number(lVal.updatedAtMs) || 0) : 0;
-          if (!lVal || rMs >= lMs) {
-            merged[k] = {
-              ...rVal,
-              balance: Math.max(0, Number(rVal.balance) || 0)
-            };
-            changed = true;
-          }
-        });
-
-        if (changed) {
-          saveDonorWalletsMap(merged);
-          renderDonorWalletPanel();
-        } else if (Object.keys(localMap).length > 0 && (Date.now() - lastWalletsPushedAtMs > 4000)) {
-          pushAllDonorWalletsToFirebase();
-        }
-      } catch (e) {}
-    }
-
-    function handleDonateFromWallet() {
-      const name = (document.getElementById('contrib-name')?.value || '').trim();
-      const branch = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
-      const amount = Number(document.getElementById('wallet-donate-amount')?.value) || 0;
-      const targetVal = document.getElementById('wallet-donate-target')?.value || 'general';
-
-      if (!name) {
-        showToast('يرجى إدخال اسم المساهم أولاً لعرض حافظته والتبرع منها.', 'warning');
-        return;
-      }
-      if (amount <= 0) {
-        showToast('يرجى إدخال مبلغ صحيح للتبرع من الحافظة.', 'error');
-        return;
-      }
-      const currentBal = getDonorWalletBalance(name, branch);
-      if (amount > currentBal) {
-        showToast(`رصيد الحافظة الحالي (${formatCurrency(currentBal)}) غير كافٍ لهذا المبلغ.`, 'error');
-        return;
-      }
-
-      const tInfo = resolveTargetInfo(targetVal);
-      const debited = debitDonorWallet(name, branch, amount, `تحويل إلى ${tInfo.targetLabel}`);
-      if (!debited) {
-        showToast('تعذر خصم المبلغ من الحافظة.', 'error');
-        return;
-      }
-
-      appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
-      appState.approvedContributions.unshift({
-        id: `wallet_don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        name,
-        branch,
-        amount,
-        targetType: tInfo.targetType,
-        targetId: tInfo.targetId,
-        targetLabel: tInfo.targetLabel,
-        method: 'حافظة المساهم الذكية',
-        phone: '',
-        receiptDataUrl: '',
-        receiptFileName: '',
-        note: `تبرع من الحافظة الذكية إلى ${tInfo.targetLabel}`,
-        date: formatNowDate(),
-        approvedAt: formatNowDate(),
-        approvedAtMs: Date.now()
-      });
-
-      const amtInp = document.getElementById('wallet-donate-amount');
-      if (amtInp) amtInp.value = '';
-
-      saveAndSync(`تبرع ${name} من حافظته إلى ${tInfo.targetLabel}`);
-      showToast(`تم التبرع بـ ${formatCurrency(amount)} من حافظتك إلى ${tInfo.targetLabel} بنجاح.`, 'success');
-    }
-
-    function renderDonorWalletPanel() {
-      const nameVal = (document.getElementById('contrib-name')?.value || '').trim();
-      const branchVal = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
-      const titleEl = document.getElementById('donor-wallet-owner-title');
-      const badgeEl = document.getElementById('donor-wallet-balance-display');
-      if (titleEl) {
-        titleEl.textContent = nameVal ? `حافظة ${nameVal} الذكية (${branchVal})` : 'حافظة المساهم الذكية';
-      }
-      if (badgeEl) {
-        badgeEl.textContent = formatCurrency(getDonorWalletBalance(nameVal, branchVal));
-      }
     }
 
     function approvePendingContribution(pendingId) {
@@ -2074,18 +1467,6 @@
       if (idx === -1) return;
       const item = appState.pendingContributions[idx];
       appState.pendingContributions.splice(idx, 1);
-
-      const isPersonalWallet =
-        item.targetType === 'personal_wallet' ||
-        item.targetId === 'personal_wallet' ||
-        String(item.targetLabel || '').includes('المحفظة الشخصية');
-
-      if (isPersonalWallet) {
-        creditDonorWallet(item.name, item.branch || 'الهمايلة', item.amount, 'اعتماد شحن محفظة شخصية');
-        saveAndSync(`شحن حافظة ${item.name} الشخصية`);
-        showToast(`تم اعتماد وإضافة ${formatCurrency(item.amount)} إلى حافظة ${item.name} المستقلة.`, 'success');
-        return;
-      }
 
       appState.approvedContributions = Array.isArray(appState.approvedContributions) ? appState.approvedContributions : [];
       appState.approvedContributions.unshift({
@@ -2107,18 +1488,13 @@
 
       (appState?.approvedContributions || []).forEach((c) => {
         const isCase = c.targetType === 'case';
-        const isWalletCharge =
-          c.targetType === 'personal_wallet' ||
-          c.targetId === 'personal_wallet' ||
-          String(c.targetLabel || '').includes('المحفظة الشخصية');
         rows.push({
           kind: isCase ? 'case' : 'general',
-          typeLabel: isWalletCharge ? 'شحن محفظة شخصية' : (isCase ? 'مساهمة حالة' : 'مساهمة عامة'),
+          typeLabel: isCase ? 'مساهمة حالة' : 'مساهمة عامة',
           title: c.name || 'متبرع',
-          subtitle: `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.method === 'حافظة المساهم الذكية' ? ' • عبر حافظة المساهم' : ''}${c.method ? ` • ${c.method}` : ''}${c.note ? ` — ${c.note}` : ''}`,
+          subtitle: `${c.branch || ''} • ${c.targetLabel || 'الصندوق العام'}${c.method ? ` • ${c.method}` : ''}${c.note ? ` — ${c.note}` : ''}`,
           amount: Number(c.amount) || 0,
           isPositive: true,
-          isWalletCharge,
           date: c.date || c.approvedAt || '',
           rawId: c.id,
           scope: 'approved'
@@ -2128,29 +1504,14 @@
       (appState?.disbursements || []).forEach((d) => {
         rows.push({
           kind: 'disbursement',
-          typeLabel: 'عملية صرف',
+          typeLabel: 'صرف مساعدة',
           title: d.caseName || 'صرف من الصندوق',
-          subtitle: d.note || 'صرف مساعدة معتمدة',
+          subtitle: `${d.category ? `${d.category} • ` : ''}${d.note || 'صرف معتمد'}`,
           amount: Number(d.amount) || 0,
           isPositive: false,
           date: d.date || '',
           rawId: d.id,
           scope: 'disbursement'
-        });
-      });
-
-      (appState?.caseLedgerItems || []).forEach((item) => {
-        const isDisb = item.kind === 'disbursement';
-        rows.push({
-          kind: isDisb ? 'disbursement' : 'case',
-          typeLabel: isDisb ? 'عملية صرف' : 'مساهمة حالة',
-          title: item.title || 'قيد حالة',
-          subtitle: item.subtitle || '',
-          amount: Number(item.amount) || 0,
-          isPositive: !isDisb,
-          date: item.date || '',
-          rawId: item.id,
-          scope: 'case_item'
         });
       });
 
@@ -2162,7 +1523,13 @@
       });
 
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="py-8 px-4 text-center text-xs font-extrabold text-slate-400">لا توجد قيود مطابقة للعرض حالياً.</td></tr>`;
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-8 px-4 text-center text-xs sm:text-sm font-bold text-slate-400">
+              لا توجد قيود مطابقة للعرض في السجل حالياً.
+            </td>
+          </tr>
+        `;
         return;
       }
 
@@ -2174,24 +1541,48 @@
               : r.kind === 'case'
               ? 'bg-amber-100 text-amber-900'
               : 'bg-emerald-100 text-emerald-800';
-          const amtClass = r.isPositive ? 'text-emerald-700' : 'text-rose-600';
+          const amountClass = r.isPositive ? 'text-emerald-700' : 'text-rose-600';
           const sign = r.isPositive ? '+' : '-';
+
+          let actionsHtml = `<span class="text-[11px] font-bold text-slate-400">معتمد</span>`;
+          if (isAdminLoggedIn) {
+            if (r.scope === 'approved') {
+              actionsHtml = `
+                <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                  <button type="button" onclick="openEditContributionModal('${escapeHtml(r.rawId)}', 'approved')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل</button>
+                  <button type="button" onclick="deleteApprovedContribution('${escapeHtml(r.rawId)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">حذف</button>
+                </div>
+              `;
+            } else if (r.scope === 'disbursement') {
+              actionsHtml = `
+                <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                  <button type="button" onclick="openAdminDisbursementEditModal('${escapeHtml(r.rawId)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">تعديل</button>
+                  <button type="button" onclick="deleteDisbursementEntry('${escapeHtml(r.rawId)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-[11px] px-2.5 py-1 rounded-lg transition cursor-pointer">حذف</button>
+                </div>
+              `;
+            }
+          }
+
           return `
-            <tr class="hover:bg-slate-50/90 transition">
-              <td class="py-3.5 px-5 align-middle">
+            <tr class="hover:bg-slate-50/80 transition">
+              <td class="py-3.5 px-5 align-top">
                 <p class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(r.title)}</p>
-                <p class="text-[11px] font-bold text-slate-500 mt-0.5">${escapeHtml(r.subtitle)}</p>
+                <p class="text-[11px] font-bold text-slate-500 mt-0.5 leading-relaxed">${escapeHtml(r.subtitle)}</p>
               </td>
-              <td class="py-3.5 px-3 text-center align-middle">
+              <td class="py-3.5 px-3 text-center align-top whitespace-nowrap">
                 <span class="inline-block ${badgeClass} text-[11px] font-black px-2.5 py-1 rounded-full">${escapeHtml(r.typeLabel)}</span>
               </td>
-              <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap">
-                <span class="font-black text-xs sm:text-sm ${amtClass}">${sign}${formatCurrency(r.amount)}</span>
+              <td class="py-3.5 px-3 text-center align-top whitespace-nowrap">
+                <span class="font-black text-xs sm:text-sm ${amountClass}" dir="ltr">${sign}${escapeHtml(formatCurrency(r.amount))}</span>
               </td>
-              <td class="py-3.5 px-5 text-left align-middle whitespace-nowrap">
-                <span class="text-[11px] font-bold text-slate-500">${escapeHtml(r.date)}</span>
+              <td class="py-3.5 px-5 text-left align-top">
+                <div class="flex flex-col items-end gap-1.5">
+                  <span class="text-[11px] font-bold text-slate-500">${escapeHtml(r.date || '--')}</span>
+                  ${actionsHtml}
+                </div>
               </td>
-            </tr>`;
+            </tr>
+          `;
         })
         .join('');
     }
@@ -2208,797 +1599,285 @@
       const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
       const cases = Array.isArray(appState?.cases) ? appState.cases : [];
 
-      const activeApproved = approved.filter((c) => {
-        const isWalletCharge =
-          c.targetType === 'personal_wallet' ||
-          c.targetId === 'personal_wallet' ||
-          String(c.targetLabel || '').includes('المحفظة الشخصية');
-        return !isWalletCharge;
-      });
-
-      const totalContributions = activeApproved.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+      const totalContributions = approved.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
       const totalDisbursed = disbursements.reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
       const availableBalance = Math.max(0, totalContributions - totalDisbursed);
-
-      const totalRequired = cases.reduce((acc, c) => acc + (Number(c.required) || 0), 0);
-      const totalCaseDisbursed = cases.reduce((acc, c) => acc + (Number(c.disbursed) || 0), 0);
-      const coveragePct = totalRequired > 0 ? Math.min(100, Math.round((totalCaseDisbursed / totalRequired) * 100)) : 0;
-      const settledCasesCount = cases.filter((c) => Number(c.required) > 0 && Number(c.disbursed) >= Number(c.required)).length;
+      const totalRequired = cases.reduce((acc, c) => acc + (Number(c.requiredAmount) || 0), 0);
+      const coveragePct = totalRequired > 0 ? Math.min(100, Math.round((totalDisbursed / totalRequired) * 100)) : 0;
 
       const elTot = document.getElementById('stat-total-contributions');
       const elCnt = document.getElementById('stat-contributions-count');
       const elDisb = document.getElementById('stat-total-disbursed');
       const elDisbSum = document.getElementById('stat-disbursed-summary');
       const elAvail = document.getElementById('stat-available-balance');
-      const elLast = document.getElementById('stat-last-updated');
+      const elUpdated = document.getElementById('stat-last-updated');
       const elBadge = document.getElementById('stat-cases-badge');
-      const elCovTxt = document.getElementById('stat-coverage-text');
+      const elCovText = document.getElementById('stat-coverage-text');
       const elCovBar = document.getElementById('stat-coverage-bar');
 
       if (elTot) elTot.textContent = formatCurrency(totalContributions);
-      if (elCnt) elCnt.textContent = `عدد المساهمات: ${activeApproved.length}`;
+      if (elCnt) elCnt.textContent = `عدد المساهمات: ${approved.length}`;
       if (elDisb) elDisb.textContent = formatCurrency(totalDisbursed);
-      if (elDisbSum) elDisbSum.textContent = `حالات مسددة / مصروفة: ${settledCasesCount} من ${cases.length}`;
+      if (elDisbSum) elDisbSum.textContent = `عمليات الصرف المسجلة: ${disbursements.length}`;
       if (elAvail) elAvail.textContent = formatCurrency(availableBalance);
-      if (elLast) elLast.textContent = `آخر تحديث: ${formatNowDate()}`;
+      if (elUpdated) elUpdated.textContent = `آخر تحديث: ${appState?.lastUpdated || '--'}`;
       if (elBadge) elBadge.textContent = `${cases.length} حالات`;
-      if (elCovTxt) elCovTxt.textContent = `${coveragePct}% من ${formatCurrency(totalRequired)}`;
+      if (elCovText) elCovText.textContent = `${coveragePct}% من ${formatCurrency(totalRequired)}`;
       if (elCovBar) elCovBar.style.width = `${coveragePct}%`;
-    }
-
-    function renderCases() {
-      const container = document.getElementById('cases-container');
-      if (!container) return;
-      const cases = Array.isArray(appState?.cases) ? appState.cases : [];
-      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
-
-      if (!cases.length) {
-        container.innerHTML = `<div class="col-span-full text-center py-8 text-xs font-extrabold text-slate-400">لا توجد حالات معروضة حالياً.</div>`;
-        return;
-      }
-
-      container.innerHTML = cases
-        .map((c, idx) => {
-          const req = Math.max(0, Number(c.required) || 0);
-          const disb = Math.max(0, Number(c.disbursed) || 0);
-          const caseDonors = approved.filter((item) => item.targetType === 'case' && String(item.targetId) === String(c.id));
-          const caseDonorsSum = caseDonors.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
-          const effectiveFunded = Math.max(disb, caseDonorsSum);
-          const pct = req > 0 ? Math.min(100, Math.round((effectiveFunded / req) * 100)) : 0;
-          const themeClass = `case-card-theme-${idx % 6}`;
-          const barClass = pct >= 100 ? 'completed-timeline-glow' : 'glowing-timeline-bar';
-
-          const donorsHtml = caseDonors.length
-            ? `<div class="bg-white/85 border border-slate-200/90 rounded-2xl p-3 space-y-2">
-                 <div class="flex items-center justify-between text-[11px] font-black text-emerald-950 border-b border-slate-100 pb-1.5">
-                   <span>المساهمون في الحالة (${caseDonors.length})</span>
-                   <span>إجمالي المساهمات: ${formatCurrency(caseDonorsSum)}</span>
-                 </div>
-                 <div class="space-y-1.5 max-h-36 overflow-y-auto">
-                   ${caseDonors
-                     .map(
-                       (d) => `
-                       <div class="flex items-center justify-between gap-2 bg-slate-50/90 border border-slate-200/70 rounded-xl px-2.5 py-1.5 text-xs">
-                         <div class="min-w-0">
-                           <p class="font-black text-slate-900 truncate">${escapeHtml(d.name || 'متبرع')}</p>
-                           <p class="text-[11px] font-bold text-slate-500">اللحمة: ${escapeHtml(d.branch || 'غير محدد')}</p>
-                           <p class="text-[10px] font-bold text-slate-400">${escapeHtml(d.date || d.approvedAt || '')}</p>
-                         </div>
-                         <span class="shrink-0 font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">${formatCurrency(d.amount)}</span>
-                       </div>`
-                     )
-                     .join('')}
-                 </div>
-               </div>`
-            : `<p class="text-[11px] font-bold text-slate-500 bg-white/70 border border-slate-200/70 rounded-xl px-3 py-2 text-center">لا توجد مساهمات منشورة لهذه الحالة بعد.</p>`;
-
-          return `
-            <article class="${themeClass} rounded-3xl p-5 flex flex-col justify-between gap-4">
-              <div class="space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="bg-emerald-900 text-amber-300 text-[11px] font-black px-3 py-0.5 rounded-full status-badge-glow">${escapeHtml(c.category || 'دية')}</span>
-                  <span class="text-xs font-black text-emerald-900">${pct}% مكتمل</span>
-                </div>
-                <h3 class="text-base sm:text-lg font-black text-slate-900">${escapeHtml(c.name)}</h3>
-                <p class="text-xs font-bold text-slate-600 leading-relaxed">${escapeHtml(c.description || '')}</p>
-              </div>
-              <div class="space-y-2.5">
-                <div class="flex items-center justify-between text-xs font-black">
-                  <span class="text-slate-600">المصروف: ${formatCurrency(disb)}</span>
-                  <span class="text-slate-900">المطلوب: ${formatCurrency(req)}</span>
-                </div>
-                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
-                  <div class="h-full ${barClass} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                </div>
-                ${donorsHtml}
-                <div class="pt-1 flex items-center gap-2">
-                  <button type="button" onclick="scrollToContributeSection('case:${escapeHtml(c.id)}')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2.5 px-3 rounded-xl transition cursor-pointer">
-                    ساهم في هذه الحالة
-                  </button>
-                </div>
-                ${
-                  isAdminLoggedIn
-                    ? `<div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80">
-                         <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
-                           تعديل الحالة
-                         </button>
-                         <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-emerald-800 hover:bg-emerald-700 text-amber-300 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
-                           صرف المساعدة
-                         </button>
-                         <button type="button" onclick="deleteCaseById('${escapeHtml(c.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">
-                           حذف
-                         </button>
-                       </div>`
-                    : ''
-                }
-              </div>
-            </article>`;
-        })
-        .join('');
-    }
-
-    function openEditCaseModal(caseId) {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const targetCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
-      if (!targetCase) {
-        showToast('تعذر العثور على الحالة المطلوب تعديلها.', 'error');
-        return;
-      }
-      const modal = document.getElementById('case-editor-modal');
-      document.getElementById('case-editor-title').textContent = 'تعديل بيانات الحالة';
-      document.getElementById('editor-case-id').value = String(targetCase.id);
-      document.getElementById('editor-case-name').value = targetCase.name || '';
-      document.getElementById('editor-case-category').value = targetCase.category || 'دية';
-      document.getElementById('editor-case-required').value = Number(targetCase.required) || 0;
-      document.getElementById('editor-case-desc').value = targetCase.description || '';
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function deleteCaseById(caseId) {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const idx = (appState?.cases || []).findIndex((c) => String(c.id) === String(caseId));
-      if (idx === -1) return;
-      const removedCase = appState.cases[idx];
-      appState.cases.splice(idx, 1);
-      addDeletedIds([caseId]);
-      populateTargetSelects();
-      saveAndSync(`حذف الحالة: ${removedCase.name || caseId}`);
-      showToast('تم حذف الحالة ومزامنتها.', 'warning');
-    }
-
-    function renderPendingPanel() {
-      const panel = document.getElementById('admin-pending-panel');
-      const list = document.getElementById('pending-contributions-list');
-      const badge = document.getElementById('pending-count-badge');
-      const topBtn = document.getElementById('admin-notifications-btn');
-      const topBadge = document.getElementById('admin-notifications-count-badge');
-
-      const pending = Array.isArray(appState?.pendingContributions) ? appState.pendingContributions : [];
-      if (topBtn && topBadge) {
-        if (isAdminLoggedIn && pending.length > 0) {
-          topBtn.classList.remove('hidden');
-          topBtn.classList.add('inline-flex');
-          topBadge.textContent = String(pending.length);
-        } else {
-          topBtn.classList.add('hidden');
-          topBtn.classList.remove('inline-flex');
-        }
-      }
-
-      if (!panel || !list) return;
-      if (!isAdminLoggedIn) {
-        panel.classList.add('hidden');
-        return;
-      }
-      panel.classList.remove('hidden');
-      if (badge) badge.textContent = `${pending.length} طلبات`;
-
-      if (!pending.length) {
-        list.innerHTML = `<p class="text-xs font-extrabold text-amber-900 bg-white/80 rounded-2xl p-4 text-center">لا توجد طلبات مساهمات معلقة بانتظار الاعتماد حالياً.</p>`;
-        return;
-      }
-
-      list.innerHTML = pending
-        .map(
-          (p) => `
-          <div class="bg-white border border-amber-300 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div class="space-y-1.5">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="text-sm sm:text-base font-black text-slate-900">${escapeHtml(p.name || 'متبرع')}</p>
-                <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">${formatCurrency(p.amount)}</span>
-                <span class="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-0.5 rounded-full">${escapeHtml(p.branch || 'غير محدد')}</span>
-              </div>
-              <p class="text-xs font-extrabold text-emerald-900">وجهة التبرع: ${escapeHtml(p.targetLabel || 'الصندوق العام')}</p>
-              <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-                <span class="bg-amber-50 border border-amber-200 text-amber-950 px-2.5 py-1 rounded-xl">طريقة الدفع: ${escapeHtml(p.method || 'غير محددة')}</span>
-                ${p.phone ? `<span class="bg-slate-100 border border-slate-200 text-slate-900 font-mono px-2.5 py-1 rounded-xl" dir="ltr">رقم الهاتف: ${escapeHtml(p.phone)}</span>` : ''}
-                ${p.receiptFileName ? `<span class="bg-sky-50 border border-sky-200 text-sky-900 px-2.5 py-1 rounded-xl">الإيصال: ${escapeHtml(p.receiptFileName)}</span>` : ''}
-              </div>
-              ${p.note ? `<p class="text-xs font-bold text-slate-500">ملاحظة: ${escapeHtml(p.note)}</p>` : ''}
-              ${p.date ? `<p class="text-[11px] font-bold text-slate-400">تاريخ الإرسال: ${escapeHtml(p.date)}</p>` : ''}
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
-              <button type="button" onclick="previewPendingContributionReceipt('${escapeHtml(p.id)}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                معاينة الوصل
-              </button>
-              <button type="button" onclick="openEditContributionModal('${escapeHtml(p.id)}', 'pending')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                تعديل
-              </button>
-              <button type="button" onclick="deletePendingContribution('${escapeHtml(p.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs px-3 py-2.5 rounded-xl transition cursor-pointer">
-                حذف
-              </button>
-              <button type="button" onclick="approvePendingContribution('${escapeHtml(p.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
-                نشر
-              </button>
-            </div>
-          </div>`
-        )
-        .join('');
-    }
-
-    function deletePendingContribution(pendingId) {
-      if (!isAdminLoggedIn) return;
-      appState.pendingContributions = (appState.pendingContributions || []).filter((p) => String(p.id) !== String(pendingId));
-      addDeletedIds([pendingId]);
-      saveAndSync('حذف طلب مساهمة معلق');
-      showToast('تم حذف الطلب المعلق.', 'warning');
-    }
-
-    function toggleNewPaymentFields() {
-      const method = document.getElementById('contrib-method')?.value || '';
-      const bankBox = document.getElementById('new-bank-fields');
-      const mobBox = document.getElementById('new-mobile-fields');
-      if (bankBox) bankBox.classList.toggle('hidden', method !== 'المصرف (تحويل مصرفي)');
-      if (mobBox) mobBox.classList.toggle('hidden', method !== 'النقال (تحويل رصيد)');
-    }
-
-    function toggleEditPaymentFields() {
-      const method = document.getElementById('edit-contrib-method')?.value || '';
-      const bankBox = document.getElementById('edit-contrib-bank-fields');
-      const mobBox = document.getElementById('edit-contrib-mobile-fields');
-      if (bankBox) bankBox.classList.toggle('hidden', method !== 'المصرف (تحويل مصرفي)');
-      if (mobBox) mobBox.classList.toggle('hidden', method !== 'النقال (تحويل رصيد)');
-    }
-
-    function openReceiptViewerModal(title, dataUrl, fileName = '', phone = '', method = '') {
-      const modal = document.getElementById('receipt-viewer-modal');
-      const titleEl = document.getElementById('receipt-viewer-title');
-      const bodyEl = document.getElementById('receipt-viewer-body');
-      if (!modal || !bodyEl) return;
-
-      if (titleEl) titleEl.textContent = title || 'معاينة إيصال المساهمة';
-
-      if (dataUrl) {
-        const isPdf = String(fileName || '').toLowerCase().endsWith('.pdf') || String(dataUrl).startsWith('data:application/pdf');
-        if (isPdf) {
-          bodyEl.innerHTML = `
-            <p class="text-xs font-extrabold text-slate-700 mb-3">ملف الإيصال المرفق: ${escapeHtml(fileName || 'receipt.pdf')}</p>
-            <iframe src="${dataUrl}" class="w-full h-96 rounded-xl border border-slate-300 bg-white"></iframe>
-          `;
-        } else {
-          bodyEl.innerHTML = `
-            <img src="${dataUrl}" alt="${escapeHtml(fileName || 'إيصال التحويل')}" class="max-h-[58vh] w-auto object-contain rounded-xl border border-slate-200 bg-white p-1" />
-            ${fileName ? `<p class="text-[11px] font-bold text-slate-500 mt-2">${escapeHtml(fileName)}</p>` : ''}
-          `;
-        }
-      } else {
-        bodyEl.innerHTML = `
-          <div class="w-full text-center py-6 space-y-2">
-            <p class="text-sm font-black text-slate-800">لا يوجد إيصال صورة مرفق لهذا الطلب</p>
-            <p class="text-xs font-bold text-slate-500">طريقة الدفع: ${escapeHtml(method || 'غير محددة')}</p>
-            ${phone ? `<p class="text-xs font-mono font-black text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 inline-block" dir="ltr">رقم الهاتف المرسل منه: ${escapeHtml(phone)}</p>` : ''}
-          </div>
-        `;
-      }
-
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeReceiptViewerModal() {
-      const modal = document.getElementById('receipt-viewer-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function previewPendingContributionReceipt(pendingId) {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const item = (appState?.pendingContributions || []).find((p) => String(p.id) === String(pendingId));
-      if (!item) {
-        showToast('تعذر العثور على بيانات الإيصال لهذا الطلب.', 'error');
-        return;
-      }
-      openReceiptViewerModal(
-        `إيصال / بيانات دفع: ${item.name || 'متبرع'} (${formatCurrency(item.amount)})`,
-        item.receiptDataUrl || '',
-        item.receiptFileName || '',
-        item.phone || '',
-        item.method || ''
-      );
-    }
-
-    function openEditContributionModal(id, scope = 'pending') {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const list = scope === 'approved' ? (appState?.approvedContributions || []) : (appState?.pendingContributions || []);
-      const item = list.find((x) => String(x.id) === String(id));
-      if (!item) {
-        showToast('تعذر العثور على المساهمة المطلوب تعديلها.', 'error');
-        return;
-      }
-
-      populateTargetSelects();
-      document.getElementById('edit-contrib-id').value = String(item.id);
-      document.getElementById('edit-contrib-scope').value = scope;
-      document.getElementById('edit-contrib-name').value = item.name || '';
-      document.getElementById('edit-contrib-branch').value = item.branch || 'الهمايلة';
-      document.getElementById('edit-contrib-amount').value = Number(item.amount) || 0;
-
-      const targetSel = document.getElementById('edit-contrib-target');
-      const targetVal = item.targetType === 'case' && item.targetId ? `case:${item.targetId}` : (item.targetId || 'general');
-      if (targetSel) {
-        const exists = Array.from(targetSel.options).some((o) => o.value === targetVal);
-        targetSel.value = exists ? targetVal : 'general';
-      }
-
-      const methodSel = document.getElementById('edit-contrib-method');
-      if (methodSel) {
-        methodSel.value = item.method || 'المصرف (تحويل مصرفي)';
-      }
-      document.getElementById('edit-contrib-note').value = item.note || '';
-      document.getElementById('edit-contrib-phone').value = item.phone || '';
-
-      editReceiptDataUrl = item.receiptDataUrl || '';
-      editReceiptFileName = item.receiptFileName || '';
-      editReceiptCleared = false;
-
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const prevImg = document.getElementById('edit-contrib-receipt-img');
-      const clrBtn = document.getElementById('clear-edit-receipt-btn');
-
-      if (editReceiptDataUrl) {
-        if (nameEl) nameEl.textContent = editReceiptFileName ? `ملف مرفق: ${editReceiptFileName}` : 'يوجد إيصال مرفق';
-        if (prevImg && prevWrap && !String(editReceiptDataUrl).startsWith('data:application/pdf')) {
-          prevImg.src = editReceiptDataUrl;
-          prevWrap.classList.remove('hidden');
-        } else if (prevWrap) {
-          prevWrap.classList.add('hidden');
-        }
-        if (clrBtn) clrBtn.classList.remove('hidden');
-      } else {
-        if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
-        if (prevWrap) prevWrap.classList.add('hidden');
-        if (clrBtn) clrBtn.classList.add('hidden');
-      }
-
-      toggleEditPaymentFields();
-
-      const modal = document.getElementById('edit-contribution-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeEditContributionModal() {
-      const modal = document.getElementById('edit-contribution-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleEditReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      if (!file) return;
-      editReceiptFileName = file.name;
-      editReceiptCleared = false;
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const prevImg = document.getElementById('edit-contrib-receipt-img');
-      const clrBtn = document.getElementById('clear-edit-receipt-btn');
-      if (nameEl) nameEl.textContent = `تم اختيار: ${file.name}`;
-      if (clrBtn) clrBtn.classList.remove('hidden');
-      const reader = new FileReader();
-      reader.onload = () => {
-        editReceiptDataUrl = String(reader.result || '');
-        if (prevImg && prevWrap && file.type.startsWith('image/')) {
-          prevImg.src = editReceiptDataUrl;
-          prevWrap.classList.remove('hidden');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function clearEditReceiptSelection() {
-      editReceiptDataUrl = '';
-      editReceiptFileName = '';
-      editReceiptCleared = true;
-      const inp = document.getElementById('edit-contrib-receipt');
-      const nameEl = document.getElementById('edit-contrib-receipt-name');
-      const prevWrap = document.getElementById('edit-contrib-receipt-preview');
-      const clrBtn = document.getElementById('clear-edit-receipt-btn');
-      if (inp) inp.value = '';
-      if (nameEl) nameEl.textContent = 'تم حذف الإيصال المرفق';
-      if (prevWrap) prevWrap.classList.add('hidden');
-      if (clrBtn) clrBtn.classList.add('hidden');
-    }
-
-    function handleEditContributionSubmit(event) {
-      event.preventDefault();
-      if (!isAdminLoggedIn) return;
-      const id = document.getElementById('edit-contrib-id')?.value || '';
-      const scope = document.getElementById('edit-contrib-scope')?.value || 'pending';
-      const name = (document.getElementById('edit-contrib-name')?.value || '').trim();
-      const branch = (document.getElementById('edit-contrib-branch')?.value || 'الهمايلة').trim();
-      const amount = Number(document.getElementById('edit-contrib-amount')?.value) || 0;
-      const targetVal = document.getElementById('edit-contrib-target')?.value || 'general';
-      const method = (document.getElementById('edit-contrib-method')?.value || '').trim();
-      const note = (document.getElementById('edit-contrib-note')?.value || '').trim();
-      const phone = (document.getElementById('edit-contrib-phone')?.value || '').trim();
-
-      if (!name || amount <= 0 || !method) {
-        showToast('يرجى التحقق من صحة البيانات المدخلة.', 'error');
-        return;
-      }
-
-      const list = scope === 'approved' ? (appState.approvedContributions || []) : (appState.pendingContributions || []);
-      const idx = list.findIndex((x) => String(x.id) === String(id));
-      if (idx === -1) return;
-
-      const tInfo = resolveTargetInfo(targetVal);
-      const prevItem = list[idx];
-      list[idx] = {
-        ...prevItem,
-        name,
-        branch,
-        amount,
-        targetType: tInfo.targetType,
-        targetId: tInfo.targetId,
-        targetLabel: tInfo.targetLabel,
-        method,
-        phone: method === 'النقال (تحويل رصيد)' ? phone : '',
-        receiptDataUrl: method === 'المصرف (تحويل مصرفي)' ? (editReceiptCleared ? '' : editReceiptDataUrl) : '',
-        receiptFileName: method === 'المصرف (تحويل مصرفي)' ? (editReceiptCleared ? '' : editReceiptFileName) : '',
-        note
-      };
-
-      closeEditContributionModal();
-      saveAndSync(`تعديل بيانات مساهمة ${name}`);
-      showToast('تم حفظ تعديلات المساهمة ومزامنتها.', 'success');
-    }
-
-    function handleNewReceiptFileChange(input) {
-      const file = input?.files?.[0];
-      if (!file) return;
-      newReceiptFileName = file.name;
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const wrapEl = document.getElementById('new-receipt-preview-wrap');
-      const imgEl = document.getElementById('new-receipt-preview-img');
-      const clrBtn = document.getElementById('clear-new-receipt-btn');
-      if (nameEl) nameEl.textContent = `تم اختيار: ${file.name}`;
-      if (clrBtn) clrBtn.classList.remove('hidden');
-      const reader = new FileReader();
-      reader.onload = () => {
-        newReceiptDataUrl = String(reader.result || '');
-        if (imgEl && wrapEl && file.type.startsWith('image/')) {
-          imgEl.src = newReceiptDataUrl;
-          wrapEl.classList.remove('hidden');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function clearNewReceiptSelection() {
-      newReceiptDataUrl = '';
-      newReceiptFileName = '';
-      const inp = document.getElementById('contrib-receipt');
-      const nameEl = document.getElementById('contrib-receipt-name');
-      const wrapEl = document.getElementById('new-receipt-preview-wrap');
-      const clrBtn = document.getElementById('clear-new-receipt-btn');
-      if (inp) inp.value = '';
-      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
-      if (wrapEl) wrapEl.classList.add('hidden');
-      if (clrBtn) clrBtn.classList.add('hidden');
     }
 
     function handleNewContributionSubmit(event) {
       event.preventDefault();
       const name = (document.getElementById('contrib-name')?.value || '').trim();
       const branch = (document.getElementById('contrib-branch')?.value || 'الهمايلة').trim();
-      const amount = Number(document.getElementById('contrib-amount')?.value) || 0;
+      const amount = Number(document.getElementById('contrib-amount')?.value || 0);
       const targetVal = document.getElementById('contrib-target')?.value || 'general';
       const method = (document.getElementById('contrib-method')?.value || '').trim();
-      const note = (document.getElementById('contrib-note')?.value || '').trim();
       const phone = (document.getElementById('contrib-phone')?.value || '').trim();
+      const note = (document.getElementById('contrib-note')?.value || '').trim();
 
-      if (!name || amount <= 0 || !method) {
-        showToast('يرجى تعبئة الحقول المطلوبة بشكل صحيح.', 'error');
+      if (!name) {
+        showToast('يرجى إدخال اسم المساهم / المتبرع.', 'error');
+        return;
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('يرجى إدخال مبلغ صحيح أكبر من صفر.', 'error');
+        return;
+      }
+      if (!method) {
+        showToast('يرجى اختيار طريقة الدفع.', 'error');
         return;
       }
       if (method === 'النقال (تحويل رصيد)' && !/^\d{10}$/.test(phone)) {
-        showToast('يرجى إدخال رقم هاتف صحيح من 10 أرقام.', 'error');
+        showToast('يرجى إدخال رقم هاتف مرسل صحيح مكوّن من 10 أرقام.', 'error');
+        return;
+      }
+      if (method === 'المصرف (تحويل مصرفي)' && !newReceiptDataUrl) {
+        showToast('يرجى إرفاق صورة إيصال التحويل المصرفي.', 'error');
         return;
       }
 
       const tInfo = resolveTargetInfo(targetVal);
+      // إذا تجاوزت القيمة المطلوب للحالة يتم إيداع الفائض تلقائياً في الصندوق العام
+      let finalTargetType = tInfo.targetType;
+      let finalTargetId = tInfo.targetId;
+      let finalTargetLabel = tInfo.targetLabel;
+      let finalAmount = amount;
+      let finalNote = note;
+
+      if (tInfo.targetType === 'case') {
+        const targetCase = (appState?.cases || []).find((c) => String(c.id) === String(tInfo.targetId));
+        if (targetCase) {
+          const reqAmt = Math.max(0, Number(targetCase.requiredAmount) || 0);
+          const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+          const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
+          const funded =
+            approved.filter((x) => x.targetType === 'case' && String(x.targetId) === String(targetCase.id)).reduce((s, x) => s + (Number(x.amount) || 0), 0) +
+            disbursements.filter((d) => String(d.caseId) === String(targetCase.id)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+          const rem = Math.max(0, reqAmt - funded);
+          if (rem > 0 && amount > rem) {
+            const overflow = amount - rem;
+            finalAmount = rem;
+            const overflowNote = `فائض محول تلقائياً لرصيد الصندوق: ${formatCurrency(overflow)}`;
+            finalNote = finalNote ? `${finalNote} — ${overflowNote}` : overflowNote;
+
+            const overflowItem = {
+              id: `pending_ovf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              name,
+              branch,
+              amount: overflow,
+              targetType: 'general',
+              targetId: 'general',
+              targetLabel: 'صندوق التكافل الاجتماعي (فائض محول من حالة)',
+              method,
+              phone: method === 'النقال (تحويل رصيد)' ? phone : '',
+              receiptDataUrl: method === 'المصرف (تحويل مصرفي)' ? newReceiptDataUrl : '',
+              receiptFileName: method === 'المصرف (تحويل مصرفي)' ? newReceiptFileName : '',
+              note: `فائض مساهمة لحالة: ${targetCase.name}`,
+              date: formatNowDate()
+            };
+            appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
+            appState.pendingContributions.unshift(overflowItem);
+          }
+        }
+      }
+
       const item = {
         id: `pending_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         name,
         branch,
-        amount,
-        targetType: tInfo.targetType,
-        targetId: tInfo.targetId,
-        targetLabel: tInfo.targetLabel,
+        amount: finalAmount,
+        targetType: finalTargetType,
+        targetId: finalTargetId,
+        targetLabel: finalTargetLabel,
         method,
         phone: method === 'النقال (تحويل رصيد)' ? phone : '',
         receiptDataUrl: method === 'المصرف (تحويل مصرفي)' ? newReceiptDataUrl : '',
         receiptFileName: method === 'المصرف (تحويل مصرفي)' ? newReceiptFileName : '',
-        note,
+        note: finalNote,
         date: formatNowDate()
       };
-
-      if (tInfo.targetType === 'personal_wallet' || tInfo.targetId === 'personal_wallet') {
-        creditDonorWallet(name, branch, amount, 'تبرع / شحن محفظة شخصية');
-        document.getElementById('contrib-amount').value = '';
-        document.getElementById('contrib-note').value = '';
-        if (document.getElementById('contrib-phone')) document.getElementById('contrib-phone').value = '';
-        clearNewReceiptSelection();
-        saveAndSync(`شحن حافظة ${name} الشخصية`);
-        showToast(`تم شحن حافظة ${name} المستقلة بمبلغ ${formatCurrency(amount)}.`, 'success');
-        return;
-      }
 
       appState.pendingContributions = Array.isArray(appState.pendingContributions) ? appState.pendingContributions : [];
       appState.pendingContributions.unshift(item);
 
-      document.getElementById('contrib-amount').value = '';
-      document.getElementById('contrib-note').value = '';
-      if (document.getElementById('contrib-phone')) document.getElementById('contrib-phone').value = '';
+      saveAndSync(`إرسال مساهمة جديدة من ${name}`);
+      document.getElementById('new-contribution-form')?.reset();
       clearNewReceiptSelection();
-
-      saveAndSync(`طلب مساهمة جديد من ${name}`);
-      showToast('تم إرسال مساهمتك بنجاح وهي الآن بانتظار اعتماد الإدارة.', 'success');
-    }
-
-    function openAddCaseModal() {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const modal = document.getElementById('case-editor-modal');
-      document.getElementById('case-editor-title').textContent = 'إضافة حالة جديدة';
-      document.getElementById('editor-case-id').value = '';
-      document.getElementById('editor-case-name').value = '';
-      document.getElementById('editor-case-category').value = 'علاج مرضى الأورام';
-      document.getElementById('editor-case-required').value = '';
-      document.getElementById('editor-case-desc').value = '';
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
-
-    function closeCaseEditorModal() {
-      const modal = document.getElementById('case-editor-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function handleCaseEditorSubmit(event) {
-      event.preventDefault();
-      if (!isAdminLoggedIn) return;
-      const caseId = (document.getElementById('editor-case-id')?.value || '').trim();
-      const name = (document.getElementById('editor-case-name')?.value || '').trim();
-      const category = (document.getElementById('editor-case-category')?.value || 'دية').trim();
-      const required = Math.max(1, Number(document.getElementById('editor-case-required')?.value) || 0);
-      const description = (document.getElementById('editor-case-desc')?.value || '').trim();
-      if (!name || required <= 0) return;
-
-      appState.cases = Array.isArray(appState.cases) ? appState.cases : [];
-
-      if (caseId) {
-        const idx = appState.cases.findIndex((c) => String(c.id) === String(caseId));
-        if (idx !== -1) {
-          appState.cases[idx] = {
-            ...appState.cases[idx],
-            name,
-            category,
-            required,
-            description
-          };
-          closeCaseEditorModal();
-          populateTargetSelects();
-          saveAndSync(`تعديل حالة ${name}`);
-          showToast('تم تحديث بيانات الحالة ومزامنتها بنجاح.', 'success');
-          return;
-        }
-      }
-
-      appState.cases.unshift({
-        id: `case_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-        name,
-        category,
-        required,
-        disbursed: 0,
-        description,
-        votesApprove: 0,
-        votesReject: 0,
-        rejections: []
-      });
-
-      closeCaseEditorModal();
+      toggleNewPaymentFields();
       populateTargetSelects();
-      saveAndSync(`إضافة حالة ${name}`);
-      showToast('تمت إضافة الحالة ومزامنتها بنجاح.', 'success');
+      showToast('تم إرسال مساهمتك بنجاح وهي بانتظار اعتماد الإدارة ونشرها.', 'success');
     }
 
-    function openDisburseModal(caseId) {
-      if (!isAdminLoggedIn) {
-        handleAdminHeaderClick();
-        return;
-      }
-      const targetCase = (appState?.cases || []).find((c) => String(c.id) === String(caseId));
-      if (!targetCase) {
-        showToast('تعذر العثور على الحالة المطلوبة.', 'error');
-        return;
-      }
-      disburseTargetCaseId = String(caseId);
+    function renderCases() {
+      const container = document.getElementById('cases-container');
+      if (!container) return;
+      const cases = Array.isArray(appState?.cases) ? appState.cases : [];
 
+      if (!cases.length) {
+        container.innerHTML = `
+          <div class="col-span-full bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center text-xs sm:text-sm font-bold text-slate-500">
+            لا توجد حالات معروضة للتصويت حالياً.
+          </div>
+        `;
+        return;
+      }
+
+      const deviceVotes = getDeviceVotesMap();
       const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
       const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
-      const activeApproved = approved.filter((c) => {
-        const isWalletCharge =
-          c.targetType === 'personal_wallet' ||
-          c.targetId === 'personal_wallet' ||
-          String(c.targetLabel || '').includes('المحفظة الشخصية');
-        return !isWalletCharge;
-      });
-      const totalContrib = activeApproved.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-      const totalDisb = disbursements.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-      const avail = Math.max(0, totalContrib - totalDisb);
-      const remaining = Math.max(0, (Number(targetCase.required) || 0) - (Number(targetCase.disbursed) || 0));
 
-      document.getElementById('disburse-case-label').textContent = `الحالة: ${targetCase.name} (${targetCase.category})`;
-      const balEl = document.getElementById('disburse-fund-balance');
-      const remEl = document.getElementById('disburse-case-remaining');
-      if (balEl) {
-        balEl.textContent = formatCurrency(avail);
-        balEl.setAttribute('data-copy-value', String(avail));
-      }
-      if (remEl) {
-        remEl.textContent = formatCurrency(remaining);
-        remEl.setAttribute('data-copy-value', String(remaining));
-      }
-      document.getElementById('disburse-amount-input').value = '';
-      document.getElementById('disburse-note-input').value = '';
-      const zeroAlert = document.getElementById('disburse-zero-alert');
-      const subBtn = document.getElementById('disburse-submit-btn');
-      if (zeroAlert) zeroAlert.classList.toggle('hidden', avail > 0);
-      if (subBtn) subBtn.disabled = avail <= 0;
+      container.innerHTML = cases
+        .map((c, idx) => {
+          const themeClass = `case-card-theme-${idx % 6}`;
+          const reqAmt = Math.max(0, Number(c.requiredAmount) || 0);
+          const caseContribs = approved.filter((item) => item.targetType === 'case' && String(item.targetId) === String(c.id));
+          const caseDisbs = disbursements.filter((d) => String(d.caseId) === String(c.id));
+          const sumContribs = caseContribs.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          const sumDisbs = caseDisbs.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          const fundedAmt = sumContribs + sumDisbs;
+          const remainingAmt = Math.max(0, reqAmt - fundedAmt);
+          const pct = reqAmt > 0 ? Math.min(100, Math.round((fundedAmt / reqAmt) * 100)) : 0;
+          const isCompleted = reqAmt > 0 && fundedAmt >= reqAmt;
 
-      const modal = document.getElementById('disburse-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-    }
+          const approveCount = Math.max(0, Number(c.votes?.approve) || 0);
+          const rejectCount = Math.max(0, Number(c.votes?.reject) || 0);
+          const userVote = deviceVotes[c.id] || '';
+          const rejections = Array.isArray(c.rejections) ? c.rejections : [];
 
-    function closeDisburseModal() {
-      disburseTargetCaseId = null;
-      const modal = document.getElementById('disburse-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
+          const rejectionsHtml = rejections.length
+            ? `
+              <div class="mt-3 bg-rose-50/90 border border-rose-200 rounded-2xl p-3 space-y-2">
+                <p class="text-[11px] font-black text-rose-800">أسباب عدم الموافقة المسجلة (${rejections.length}):</p>
+                ${rejections
+                  .map(
+                    (r) => `
+                  <div class="bg-white/90 border border-rose-100 rounded-xl p-2.5 text-xs flex items-start justify-between gap-2">
+                    <div class="space-y-0.5">
+                      <p class="font-bold text-slate-800">${escapeHtml(r.reason)}</p>
+                      <p class="text-[10px] font-bold text-slate-400">${escapeHtml(r.date || '')}</p>
+                    </div>
+                    ${
+                      isAdminLoggedIn
+                        ? `<div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="openEditRejectionModal('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded cursor-pointer">تعديل</button>
+                            <button type="button" onclick="deleteRejectionItem('${escapeHtml(c.id)}', '${escapeHtml(r.id)}')" class="text-[10px] font-black bg-rose-100 text-rose-700 px-2 py-0.5 rounded cursor-pointer">حذف</button>
+                          </div>`
+                        : ''
+                    }
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
+            `
+            : '';
 
-    function copyDisburseFundBalance() {
-      const val = document.getElementById('disburse-fund-balance')?.getAttribute('data-copy-value') || '0';
-      copyPaymentDetail(val, 'رصيد الصندوق الحالي');
-    }
+          const adminCaseActionsHtml = isAdminLoggedIn
+            ? `
+              <div class="mt-3 pt-3 border-t border-slate-200/80 grid grid-cols-3 gap-2">
+                <button type="button" onclick="openEditCaseModal('${escapeHtml(c.id)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">تعديل الحالة</button>
+                <button type="button" onclick="openDisburseModal('${escapeHtml(c.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">صرف المساعدة</button>
+                <button type="button" onclick="deleteCaseById('${escapeHtml(c.id)}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black text-xs py-2 px-2 rounded-xl transition cursor-pointer">حذف</button>
+              </div>
+            `
+            : '';
 
-    function copyDisburseRemainingValue() {
-      const val = document.getElementById('disburse-case-remaining')?.getAttribute('data-copy-value') || '0';
-      copyPaymentDetail(val, 'القيمة المتبقية للحالة');
-    }
+          return `
+            <article id="case-card-${escapeHtml(c.id)}" class="${themeClass} rounded-3xl p-5 flex flex-col justify-between gap-4 transition">
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <span class="inline-block bg-emerald-900 text-amber-300 text-[11px] font-black px-3 py-0.5 rounded-full">${escapeHtml(c.category)}</span>
+                  <span class="status-badge-glow inline-block ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-400 text-emerald-950'} text-[11px] font-black px-3 py-0.5 rounded-full">
+                    ${isCompleted ? 'مكتملة التغطية' : 'قيد التصويت والدعم'}
+                  </span>
+                </div>
 
-    function handleDisburseSubmit(event) {
-      event.preventDefault();
-      if (!isAdminLoggedIn || !disburseTargetCaseId) return;
-      const amount = Number(document.getElementById('disburse-amount-input')?.value) || 0;
-      const note = (document.getElementById('disburse-note-input')?.value || '').trim();
-      if (amount <= 0) {
-        showToast('يرجى إدخال قيمة صرف صحيحة.', 'error');
-        return;
-      }
+                <h3 class="text-base sm:text-lg font-black text-slate-900 leading-snug">${escapeHtml(c.name)}</h3>
+                <p class="text-xs sm:text-sm font-bold text-slate-600 leading-relaxed">${escapeHtml(c.description)}</p>
 
-      const targetCase = (appState.cases || []).find((c) => String(c.id) === String(disburseTargetCaseId));
-      if (!targetCase) return;
+                <div class="bg-white/80 border border-slate-200/80 rounded-2xl p-3 space-y-2">
+                  <div class="flex items-center justify-between text-xs font-black">
+                    <span class="text-slate-600">المطلوب: <span class="text-slate-900">${escapeHtml(formatCurrency(reqAmt))}</span></span>
+                    <span class="text-emerald-800">المتبقي: <span class="text-emerald-700">${escapeHtml(formatCurrency(remainingAmt))}</span></span>
+                  </div>
+                  <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full ${isCompleted ? 'completed-timeline-glow' : 'glowing-timeline-bar'} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-500">
+                    <span>المغطى: ${escapeHtml(formatCurrency(fundedAmt))}</span>
+                    <span>${pct}%</span>
+                  </div>
+                </div>
+              </div>
 
-      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
-      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
-      const activeApproved = approved.filter((c) => {
-        const isWalletCharge =
-          c.targetType === 'personal_wallet' ||
-          c.targetId === 'personal_wallet' ||
-          String(c.targetLabel || '').includes('المحفظة الشخصية');
-        return !isWalletCharge;
-      });
-      const totalContrib = activeApproved.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-      const totalDisb = disbursements.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-      const avail = Math.max(0, totalContrib - totalDisb);
-      const remaining = Math.max(0, (Number(targetCase.required) || 0) - (Number(targetCase.disbursed) || 0));
+              <div class="space-y-2.5">
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="castCaseVote('${escapeHtml(c.id)}', 'approve')" class="${userVote === 'approve' ? 'bg-emerald-700 text-white ring-2 ring-emerald-400' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200'} font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>موافق</span>
+                    <span class="bg-white/25 px-2 py-0.5 rounded-full text-[11px]">${approveCount}</span>
+                  </button>
+                  <button type="button" onclick="openRejectVoteModal('${escapeHtml(c.id)}')" class="${userVote === 'reject' ? 'bg-rose-600 text-white ring-2 ring-rose-300' : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'} font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>غير موافق</span>
+                    <span class="bg-white/25 px-2 py-0.5 rounded-full text-[11px]">${rejectCount}</span>
+                  </button>
+                </div>
 
-      if (avail <= 0) {
-        showToast('رصيد الصندوق صفر، لا يمكن صرف أي مبلغ.', 'error');
-        return;
-      }
-      if (amount > avail) {
-        showToast(`لا يمكن الصرف؛ القيمة المدخلة (${formatCurrency(amount)}) تتجاوز رصيد الصندوق المتاح (${formatCurrency(avail)}).`, 'error');
-        return;
-      }
-      if (remaining <= 0) {
-        showToast('هذه الحالة مكتملة الاحتياج ولا تحتاج إلى صرف إضافي.', 'warning');
-        return;
-      }
-      if (amount > remaining) {
-        showToast(`لا يمكن الصرف؛ القيمة المدخلة (${formatCurrency(amount)}) تتجاوز القيمة المطلوبة للحالة (${formatCurrency(remaining)}).`, 'error');
-        return;
-      }
+                <button type="button" onclick="scrollToContributeSection('case:${escapeHtml(c.id)}')" class="w-full bg-emerald-900 hover:bg-emerald-800 text-amber-300 font-black text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
+                  تبرع لهذه الحالة
+                </button>
 
-      targetCase.disbursed = (Number(targetCase.disbursed) || 0) + amount;
-      appState.disbursements.unshift({
-        id: `disb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-        caseId: targetCase.id,
-        caseName: targetCase.name,
-        amount,
-        note: note || `صرف مساعدة لحالة: ${targetCase.name}`,
-        date: formatNowDate()
-      });
-
-      closeDisburseModal();
-      saveAndSync(`صرف ${formatCurrency(amount)} لحالة ${targetCase.name}`);
-      showToast('تم تسجيل عملية الصرف ومزامنتها بنجاح.', 'success');
-    }
-
-    function renderAdminControlsUI() {
-      const labelEl = document.getElementById('admin-toggle-label');
-      const addCaseBtn = document.getElementById('admin-add-case-btn');
-      const backupSec = document.getElementById('manual-backup-restore-section');
-      if (labelEl) labelEl.textContent = isAdminLoggedIn ? 'خروج الإدارة' : 'وضع الإدارة';
-      if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminLoggedIn);
-      if (backupSec) backupSec.classList.toggle('hidden', !isAdminLoggedIn);
-    }
-
-    function renderAll() {
-      renderAdminControlsUI();
-      populateTargetSelects();
-      renderDonorWalletPanel();
-      renderStats();
-      renderCases();
-      renderLedger();
-      renderPendingPanel();
-      renderAutoSnapshotsList();
+                ${rejectionsHtml}
+                ${
+                  caseContribs.length
+                    ? `
+                      <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-3 space-y-2">
+                        <p class="text-xs font-black text-emerald-950">المساهمون في هذه الحالة (${caseContribs.length}):</p>
+                        <div class="space-y-1.5 max-h-44 overflow-y-auto">
+                          ${caseContribs
+                            .map(
+                              (don) => `
+                            <div class="bg-white/95 border border-emerald-100 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                              <div class="min-w-0">
+                                <p class="font-black text-slate-900 truncate">${escapeHtml(don.name || 'متبرع')} <span class="text-emerald-700 font-extrabold">• ${escapeHtml(don.branch || '')}</span></p>
+                                <p class="text-[11px] font-bold text-slate-500 mt-0.5">${escapeHtml(don.date || don.approvedAt || '')}</p>
+                              </div>
+                              <span class="shrink-0 font-black text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-lg text-xs">${escapeHtml(formatCurrency(don.amount))}</span>
+                            </div>
+                          `
+                            )
+                            .join('')}
+                        </div>
+                      </div>
+                    `
+                    : ''
+                }
+                ${adminCaseActionsHtml}
+              </div>
+            </article>
+          `;
+        })
+        .join('');
     }
 
     function initApp() {
@@ -3015,6 +1894,767 @@
         appState = getDefaultAppState();
         renderAll();
       }
+    }
+
+    function openModalEl(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModalEl(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    function scrollToContributeSection(targetValue = 'general') {
+      const targetSel = document.getElementById('contrib-target');
+      if (targetSel) {
+        populateTargetSelects();
+        if (targetValue && Array.from(targetSel.options).some((o) => o.value === targetValue)) {
+          targetSel.value = targetValue;
+        } else {
+          targetSel.value = 'general';
+        }
+      }
+      const sec = document.getElementById('contribute-section');
+      if (sec) {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        sec.classList.add('target-highlight-ring');
+        setTimeout(() => sec.classList.remove('target-highlight-ring'), 2800);
+      }
+    }
+
+    function handleContribTargetChange() {
+      const val = document.getElementById('contrib-target')?.value || 'general';
+      if (val.startsWith('case:')) {
+        const cid = val.slice(5);
+        const card = document.getElementById(`case-card-${cid}`);
+        if (card) {
+          card.classList.add('target-highlight-ring');
+          setTimeout(() => card.classList.remove('target-highlight-ring'), 2200);
+        }
+      }
+    }
+
+    function copyPaymentDetail(text, label = 'البيانات') {
+      const val = String(text || '');
+      if (!val) return;
+      const done = () => showToast(`تم نسخ ${label} بنجاح.`, 'success');
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = val;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          done();
+          return;
+        }
+      } catch (e) {}
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).then(done).catch(done);
+      } else {
+        done();
+      }
+    }
+
+    function syncAdminUiVisibility() {
+      const lbl = document.getElementById('admin-toggle-label');
+      const addCaseBtn = document.getElementById('admin-add-case-btn');
+      const backupSec = document.getElementById('manual-backup-restore-section');
+      if (lbl) lbl.textContent = isAdminLoggedIn ? 'خروج الإدارة' : 'وضع الإدارة';
+      if (addCaseBtn) addCaseBtn.classList.toggle('hidden', !isAdminLoggedIn);
+      if (backupSec) backupSec.classList.toggle('hidden', !isAdminLoggedIn);
+      renderPendingPanel();
+      renderCases();
+      renderLedger();
+      if (isAdminLoggedIn) renderAutoRecoverySnapshotsList();
+    }
+
+    function handleAdminHeaderClick() {
+      if (isAdminLoggedIn) {
+        isAdminLoggedIn = false;
+        syncAdminUiVisibility();
+        showToast('تم تسجيل الخروج من وضع الإدارة.', 'info');
+        return;
+      }
+      const errEl = document.getElementById('admin-login-error');
+      if (errEl) errEl.classList.add('hidden');
+      openModalEl('admin-login-modal');
+      setTimeout(() => document.getElementById('admin-email-input')?.focus(), 50);
+    }
+
+    function closeAdminLoginModal() {
+      closeModalEl('admin-login-modal');
+    }
+
+    function handleAdminLoginSubmit(event) {
+      event.preventDefault();
+      const email = (document.getElementById('admin-email-input')?.value || '').trim().toLowerCase();
+      const pass = (document.getElementById('admin-pass-input')?.value || '').trim();
+      const errEl = document.getElementById('admin-login-error');
+      if (email === ADMIN_EMAIL && pass === ADMIN_PASS) {
+        isAdminLoggedIn = true;
+        if (errEl) errEl.classList.add('hidden');
+        closeAdminLoginModal();
+        document.getElementById('admin-login-form')?.reset();
+        syncAdminUiVisibility();
+        showToast('تم تفعيل وضع الإدارة بنجاح.', 'success');
+      } else if (errEl) {
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function jumpToPendingApprovalQueue() {
+      const panel = document.getElementById('admin-pending-panel');
+      if (!panel) return;
+      panel.classList.remove('hidden');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function castCaseVote(caseId, voteType) {
+      if (!Array.isArray(appState?.cases)) return;
+      const c = appState.cases.find((item) => String(item.id) === String(caseId));
+      if (!c || c.votingClosed === true) {
+        showToast('التصويت مغلق لهذه الحالة.', 'info');
+        return;
+      }
+      const votesMap = getDeviceVotesMap();
+      if (votesMap[caseId]) {
+        showToast('يسمح بالتصويت مرة واحدة فقط على الحالة (موافق أو غير موافق).', 'info');
+        return;
+      }
+      c.votes = c.votes || { approve: 0, reject: 0 };
+      if (voteType === 'approve') {
+        c.votes.approve = (Number(c.votes.approve) || 0) + 1;
+      }
+      votesMap[caseId] = voteType;
+      try {
+        localStorage.setItem(DEVICE_VOTE_KEY, JSON.stringify(votesMap));
+      } catch (e) {}
+      saveAndSync('تصويت على حالة');
+      showToast('تم تسجيل صوتك بنجاح.', 'success');
+    }
+
+    function openRejectVoteModal(caseId) {
+      pendingRejectCaseId = String(caseId);
+      const inp = document.getElementById('reject-reason-input');
+      if (inp) inp.value = '';
+      openModalEl('reject-vote-modal');
+    }
+
+    function closeRejectVoteModal() {
+      pendingRejectCaseId = null;
+      closeModalEl('reject-vote-modal');
+    }
+
+    function handleRejectVoteSubmit(event) {
+      event.preventDefault();
+      if (!pendingRejectCaseId) return;
+      const reason = (document.getElementById('reject-reason-input')?.value || '').trim();
+      if (!reason) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(pendingRejectCaseId));
+      if (!c) return;
+      const votesMap = getDeviceVotesMap();
+      if (votesMap[c.id]) {
+        closeRejectVoteModal();
+        showToast('يسمح بالتصويت مرة واحدة فقط على الحالة.', 'info');
+        return;
+      }
+      c.votes = c.votes || { approve: 0, reject: 0 };
+      c.votes.reject = (Number(c.votes.reject) || 0) + 1;
+      votesMap[c.id] = 'reject';
+      try {
+        localStorage.setItem(DEVICE_VOTE_KEY, JSON.stringify(votesMap));
+      } catch (e) {}
+      c.rejections = Array.isArray(c.rejections) ? c.rejections : [];
+      c.rejections.unshift({
+        id: `rej_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        reason,
+        date: formatNowDate()
+      });
+      closeRejectVoteModal();
+      saveAndSync('تسجيل سبب عدم الموافقة');
+      showToast('تم تسجيل التحفظ وسبب عدم الموافقة.', 'info');
+    }
+
+    function openEditRejectionModal(caseId, rejId) {
+      if (!isAdminLoggedIn) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(caseId));
+      const r = (c?.rejections || []).find((item) => String(item.id) === String(rejId));
+      if (!c || !r) return;
+      document.getElementById('edit-rej-case-id').value = c.id;
+      document.getElementById('edit-rej-item-id').value = r.id;
+      document.getElementById('edit-rej-input').value = r.reason || '';
+      openModalEl('edit-rejection-modal');
+    }
+
+    function closeEditRejectionModal() {
+      closeModalEl('edit-rejection-modal');
+    }
+
+    function handleEditRejectionSubmit(event) {
+      event.preventDefault();
+      if (!isAdminLoggedIn) return;
+      const cid = document.getElementById('edit-rej-case-id')?.value || '';
+      const rid = document.getElementById('edit-rej-item-id')?.value || '';
+      const text = (document.getElementById('edit-rej-input')?.value || '').trim();
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(cid));
+      const r = (c?.rejections || []).find((item) => String(item.id) === String(rid));
+      if (!c || !r || !text) return;
+      r.reason = text;
+      closeEditRejectionModal();
+      saveAndSync('تعديل سبب الرفض');
+      showToast('تم تحديث سبب الرفض.', 'success');
+    }
+
+    function deleteRejectionItem(caseId, rejId) {
+      if (!isAdminLoggedIn) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(caseId));
+      if (!c || !Array.isArray(c.rejections)) return;
+      c.rejections = c.rejections.filter((item) => String(item.id) !== String(rejId));
+      saveAndSync('حذف سبب الرفض');
+      showToast('تم حذف سبب الرفض.', 'info');
+    }
+
+    function openAddCaseModal() {
+      if (!isAdminLoggedIn) return;
+      editingCaseId = null;
+      document.getElementById('case-editor-title').textContent = 'إضافة حالة جديدة';
+      document.getElementById('editor-case-id').value = '';
+      document.getElementById('editor-case-name').value = '';
+      document.getElementById('editor-case-category').value = 'مرضى الأورام';
+      document.getElementById('editor-case-required').value = '';
+      document.getElementById('editor-case-desc').value = '';
+      openModalEl('case-editor-modal');
+    }
+
+    function openEditCaseModal(caseId) {
+      if (!isAdminLoggedIn) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(caseId));
+      if (!c) return;
+      editingCaseId = c.id;
+      document.getElementById('case-editor-title').textContent = 'تعديل الحالة';
+      document.getElementById('editor-case-id').value = c.id;
+      document.getElementById('editor-case-name').value = c.name || '';
+      document.getElementById('editor-case-category').value = c.category === 'دية' ? 'دية' : 'مرضى الأورام';
+      document.getElementById('editor-case-required').value = String(c.requiredAmount || 0);
+      document.getElementById('editor-case-desc').value = c.description || '';
+      openModalEl('case-editor-modal');
+    }
+
+    function closeCaseEditorModal() {
+      editingCaseId = null;
+      closeModalEl('case-editor-modal');
+    }
+
+    function handleCaseEditorSubmit(event) {
+      event.preventDefault();
+      if (!isAdminLoggedIn) return;
+      const name = (document.getElementById('editor-case-name')?.value || '').trim();
+      const category = document.getElementById('editor-case-category')?.value || 'مرضى الأورام';
+      const requiredAmount = Math.max(0, Number(document.getElementById('editor-case-required')?.value) || 0);
+      const description = (document.getElementById('editor-case-desc')?.value || '').trim();
+      if (!name || requiredAmount <= 0) {
+        showToast('يرجى إدخال عنوان الحالة ومبلغ مطلوب صحيح.', 'error');
+        return;
+      }
+      appState.cases = Array.isArray(appState.cases) ? appState.cases : [];
+      if (editingCaseId) {
+        const c = appState.cases.find((item) => String(item.id) === String(editingCaseId));
+        if (c) {
+          c.name = name;
+          c.category = category;
+          c.requiredAmount = requiredAmount;
+          c.description = description;
+        }
+        showToast('تم تحديث بيانات الحالة.', 'success');
+      } else {
+        appState.cases.unshift({
+          id: `case_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+          name,
+          category,
+          requiredAmount,
+          description,
+          votes: { approve: 0, reject: 0 },
+          rejections: []
+        });
+        showToast('تمت إضافة الحالة الجديدة بنجاح.', 'success');
+      }
+      closeCaseEditorModal();
+      saveAndSync('حفظ بيانات حالة');
+    }
+
+    function deleteCaseById(caseId) {
+      if (!isAdminLoggedIn) return;
+      appState.cases = (appState.cases || []).filter((item) => String(item.id) !== String(caseId));
+      saveAndSync('حذف حالة');
+      showToast('تم حذف الحالة.', 'info');
+    }
+
+    function getAvailableFundBalance() {
+      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
+      const totIn = approved.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const totOut = disbursements.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      return Math.max(0, totIn - totOut);
+    }
+
+    function openDisburseModal(caseId) {
+      if (!isAdminLoggedIn) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(caseId));
+      if (!c) return;
+      disburseTargetCaseId = c.id;
+
+      const avail = getAvailableFundBalance();
+      const reqAmt = Math.max(0, Number(c.requiredAmount) || 0);
+      const approved = Array.isArray(appState?.approvedContributions) ? appState.approvedContributions : [];
+      const disbursements = Array.isArray(appState?.disbursements) ? appState.disbursements : [];
+      const funded =
+        approved.filter((x) => x.targetType === 'case' && String(x.targetId) === String(c.id)).reduce((s, x) => s + (Number(x.amount) || 0), 0) +
+        disbursements.filter((d) => String(d.caseId) === String(c.id)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+      const rem = Math.max(0, reqAmt - funded);
+
+      const lbl = document.getElementById('disburse-case-label');
+      const balEl = document.getElementById('disburse-fund-balance');
+      const remEl = document.getElementById('disburse-case-remaining');
+      const zeroAlert = document.getElementById('disburse-zero-alert');
+      const submitBtn = document.getElementById('disburse-submit-btn');
+      const amtInput = document.getElementById('disburse-amount-input');
+      const noteInput = document.getElementById('disburse-note-input');
+
+      if (lbl) lbl.textContent = `الحالة: ${c.name} (${c.category})`;
+      if (balEl) {
+        balEl.textContent = formatCurrency(avail);
+        balEl.setAttribute('data-copy-value', String(avail));
+      }
+      if (remEl) {
+        remEl.textContent = formatCurrency(rem);
+        remEl.setAttribute('data-copy-value', String(rem));
+      }
+      if (amtInput) {
+        amtInput.value = rem > 0 && avail > 0 ? String(Math.min(rem, avail)) : '';
+      }
+      if (noteInput) noteInput.value = '';
+      if (zeroAlert) zeroAlert.classList.toggle('hidden', avail > 0);
+      if (submitBtn) submitBtn.disabled = avail <= 0;
+
+      openModalEl('disburse-modal');
+    }
+
+    function closeDisburseModal() {
+      disburseTargetCaseId = null;
+      closeModalEl('disburse-modal');
+    }
+
+    function copyDisburseFundBalance() {
+      const val = document.getElementById('disburse-fund-balance')?.getAttribute('data-copy-value') || '0';
+      copyPaymentDetail(val, 'رصيد الصندوق');
+    }
+
+    function copyDisburseRemainingValue() {
+      const val = document.getElementById('disburse-case-remaining')?.getAttribute('data-copy-value') || '0';
+      copyPaymentDetail(val, 'القيمة المطلوبة للحالة');
+    }
+
+    function handleDisburseSubmit(event) {
+      event.preventDefault();
+      if (!isAdminLoggedIn || !disburseTargetCaseId) return;
+      const c = (appState?.cases || []).find((item) => String(item.id) === String(disburseTargetCaseId));
+      if (!c) return;
+      const amt = Number(document.getElementById('disburse-amount-input')?.value || 0);
+      const note = (document.getElementById('disburse-note-input')?.value || '').trim();
+      const avail = getAvailableFundBalance();
+
+      if (!Number.isFinite(amt) || amt <= 0) {
+        showToast('يرجى إدخال قيمة صرف صحيحة أكبر من صفر.', 'error');
+        return;
+      }
+      if (avail <= 0 || amt > avail) {
+        showToast('لا يمكن صرف مبلغ يتجاوز رصيد الصندوق المتاح.', 'error');
+        return;
+      }
+
+      appState.disbursements = Array.isArray(appState.disbursements) ? appState.disbursements : [];
+      appState.disbursements.unshift({
+        id: `disb_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        caseId: c.id,
+        caseName: c.name,
+        category: c.category,
+        amount: amt,
+        note: note || `صرف مساعدة لحالة: ${c.name}`,
+        date: formatNowDate()
+      });
+
+      closeDisburseModal();
+      saveAndSync(`صرف مساعدة لحالة ${c.name}`);
+      showToast('تم تسجيل عملية الصرف بنجاح.', 'success');
+    }
+
+    function openAdminDisbursementEditModal(entryId) {
+      if (!isAdminLoggedIn) return;
+      const d = (appState?.disbursements || []).find((item) => String(item.id) === String(entryId));
+      if (!d) return;
+      document.getElementById('edit-disb-entry-id').value = d.id;
+      document.getElementById('edit-disb-amount').value = String(d.amount || 0);
+      document.getElementById('edit-disb-note').value = d.note || '';
+      openModalEl('admin-disbursement-edit-modal');
+    }
+
+    function closeAdminDisbursementEditModal() {
+      closeModalEl('admin-disbursement-edit-modal');
+    }
+
+    function handleAdminDisbursementEditSubmit(event) {
+      event.preventDefault();
+      if (!isAdminLoggedIn) return;
+      const id = document.getElementById('edit-disb-entry-id')?.value || '';
+      const amt = Math.max(0, Number(document.getElementById('edit-disb-amount')?.value) || 0);
+      const note = (document.getElementById('edit-disb-note')?.value || '').trim();
+      const d = (appState?.disbursements || []).find((item) => String(item.id) === String(id));
+      if (!d) return;
+      d.amount = amt;
+      d.note = note;
+      closeAdminDisbursementEditModal();
+      saveAndSync('تعديل قيد صرف');
+      showToast('تم تحديث قيد الصرف.', 'success');
+    }
+
+    function deleteDisbursementEntry(entryId) {
+      if (!isAdminLoggedIn) return;
+      appState.disbursements = (appState.disbursements || []).filter((item) => String(item.id) !== String(entryId));
+      saveAndSync('حذف قيد صرف');
+      showToast('تم حذف قيد الصرف.', 'info');
+    }
+
+    function openReceiptViewerByPendingId(pendingId) {
+      const p = (appState?.pendingContributions || []).find((item) => String(item.id) === String(pendingId));
+      if (!p || !p.receiptDataUrl) return;
+      const titleEl = document.getElementById('receipt-viewer-title');
+      const bodyEl = document.getElementById('receipt-viewer-body');
+      if (titleEl) titleEl.textContent = `إيصال المساهمة — ${p.name || 'متبرع'}`;
+      if (bodyEl) {
+        if (String(p.receiptDataUrl).startsWith('data:application/pdf')) {
+          bodyEl.innerHTML = `<p class="text-xs font-bold text-slate-700 mb-3">ملف PDF مرفق: ${escapeHtml(p.receiptFileName || 'receipt.pdf')}</p><a href="${p.receiptDataUrl}" download="${escapeHtml(p.receiptFileName || 'receipt.pdf')}" class="bg-emerald-700 text-white font-black text-xs px-4 py-2 rounded-xl">تحميل ملف الإيصال</a>`;
+        } else {
+          bodyEl.innerHTML = `<img src="${p.receiptDataUrl}" alt="صورة الإيصال" class="max-h-[60vh] w-auto object-contain rounded-xl" />`;
+        }
+      }
+      openModalEl('receipt-viewer-modal');
+    }
+
+    function closeReceiptViewerModal() {
+      closeModalEl('receipt-viewer-modal');
+    }
+
+    function toggleEditPaymentFields() {
+      const method = document.getElementById('edit-contrib-method')?.value || '';
+      const bankBox = document.getElementById('edit-contrib-bank-fields');
+      const mobileBox = document.getElementById('edit-contrib-mobile-fields');
+      if (bankBox) bankBox.classList.toggle('hidden', method !== 'المصرف (تحويل مصرفي)');
+      if (mobileBox) mobileBox.classList.toggle('hidden', method !== 'النقال (تحويل رصيد)');
+    }
+
+    function clearEditReceiptSelection() {
+      editReceiptDataUrl = '';
+      editReceiptFileName = '';
+      const inp = document.getElementById('edit-contrib-receipt');
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
+      const prev = document.getElementById('edit-contrib-receipt-preview');
+      const img = document.getElementById('edit-contrib-receipt-img');
+      if (inp) inp.value = '';
+      if (nameEl) nameEl.textContent = 'لم يتم اختيار أي ملف';
+      if (clearBtn) clearBtn.classList.add('hidden');
+      if (prev) prev.classList.add('hidden');
+      if (img) img.src = '';
+    }
+
+    function handleEditReceiptFileChange(input) {
+      const file = input?.files && input.files[0];
+      if (!file) return;
+      editReceiptFileName = file.name || 'receipt';
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
+      const prev = document.getElementById('edit-contrib-receipt-preview');
+      const img = document.getElementById('edit-contrib-receipt-img');
+      if (nameEl) nameEl.textContent = `الملف المحدد: ${editReceiptFileName}`;
+      if (clearBtn) clearBtn.classList.remove('hidden');
+      const reader = new FileReader();
+      reader.onload = () => {
+        editReceiptDataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (img && prev && file.type && file.type.startsWith('image/')) {
+          img.src = editReceiptDataUrl;
+          prev.classList.remove('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openEditContributionModal(contribId, scope = 'pending') {
+      if (!isAdminLoggedIn) {
+        handleAdminHeaderClick();
+        return;
+      }
+      populateTargetSelects();
+      const list = scope === 'approved' ? appState?.approvedContributions || [] : appState?.pendingContributions || [];
+      const item = list.find((x) => String(x.id) === String(contribId));
+      if (!item) return;
+
+      document.getElementById('edit-contrib-id').value = item.id;
+      document.getElementById('edit-contrib-scope').value = scope;
+      document.getElementById('edit-contrib-name').value = item.name || '';
+      document.getElementById('edit-contrib-branch').value = item.branch || 'الهمايلة';
+      document.getElementById('edit-contrib-amount').value = String(item.amount || 0);
+      const targetVal = item.targetType === 'case' && item.targetId ? `case:${item.targetId}` : 'general';
+      document.getElementById('edit-contrib-target').value = targetVal;
+      document.getElementById('edit-contrib-method').value = item.method || 'المصرف (تحويل مصرفي)';
+      document.getElementById('edit-contrib-note').value = item.note || '';
+      document.getElementById('edit-contrib-phone').value = item.phone || '';
+
+      editReceiptDataUrl = item.receiptDataUrl || '';
+      editReceiptFileName = item.receiptFileName || '';
+      const nameEl = document.getElementById('edit-contrib-receipt-name');
+      const clearBtn = document.getElementById('clear-edit-receipt-btn');
+      const prev = document.getElementById('edit-contrib-receipt-preview');
+      const img = document.getElementById('edit-contrib-receipt-img');
+
+      if (editReceiptDataUrl) {
+        if (nameEl) nameEl.textContent = editReceiptFileName || 'إيصال مرفق';
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        if (img && prev && !String(editReceiptDataUrl).startsWith('data:application/pdf')) {
+          img.src = editReceiptDataUrl;
+          prev.classList.remove('hidden');
+        }
+      } else {
+        clearEditReceiptSelection();
+      }
+
+      toggleEditPaymentFields();
+      openModalEl('edit-contribution-modal');
+    }
+
+    function closeEditContributionModal() {
+      closeModalEl('edit-contribution-modal');
+    }
+
+    function handleEditContributionSubmit(event) {
+      event.preventDefault();
+      if (!isAdminLoggedIn) return;
+      const id = document.getElementById('edit-contrib-id')?.value || '';
+      const scope = document.getElementById('edit-contrib-scope')?.value || 'pending';
+      const list = scope === 'approved' ? appState?.approvedContributions || [] : appState?.pendingContributions || [];
+      const item = list.find((x) => String(x.id) === String(id));
+      if (!item) return;
+
+      let editUsedMap = {};
+      try {
+        editUsedMap = JSON.parse(localStorage.getItem(DEVICE_EDIT_USED_KEY) || '{}') || {};
+      } catch (e) {}
+      if (editUsedMap[id]) {
+        showToast('تم استنفاد محاولة التعديل المسموحة (مرة واحدة فقط).', 'error');
+        return;
+      }
+
+      const name = (document.getElementById('edit-contrib-name')?.value || '').trim();
+      const branch = (document.getElementById('edit-contrib-branch')?.value || 'الهمايلة').trim();
+      const amount = Math.max(0, Number(document.getElementById('edit-contrib-amount')?.value) || 0);
+      const targetVal = document.getElementById('edit-contrib-target')?.value || 'general';
+      const method = document.getElementById('edit-contrib-method')?.value || 'المصرف (تحويل مصرفي)';
+      const note = (document.getElementById('edit-contrib-note')?.value || '').trim();
+      const phone = (document.getElementById('edit-contrib-phone')?.value || '').trim();
+
+      if (!name || amount <= 0) {
+        showToast('يرجى إدخال اسم ومبلغ صحيح.', 'error');
+        return;
+      }
+
+      const oldAmount = Number(item.amount) || 0;
+      const amountDiff = amount - oldAmount;
+
+      const tInfo = resolveTargetInfo(targetVal);
+      item.name = name;
+      item.branch = branch;
+      item.amount = amount;
+      item.targetType = tInfo.targetType;
+      item.targetId = tInfo.targetId;
+      item.targetLabel = tInfo.targetLabel;
+      item.method = method;
+      item.note = note;
+      item.phone = method === 'النقال (تحويل رصيد)' ? phone : '';
+      item.receiptDataUrl = method === 'المصرف (تحويل مصرفي)' ? editReceiptDataUrl : '';
+      item.receiptFileName = method === 'المصرف (تحويل مصرفي)' ? editReceiptFileName : '';
+
+      // عكس فرق الزيادة أو النقصان على الحالة المرتبطة إن وجدت
+      if (amountDiff !== 0 && item.targetType === 'case' && item.targetId) {
+        const linkedCase = (appState?.cases || []).find((c) => String(c.id) === String(item.targetId));
+        if (linkedCase) {
+          linkedCase.requiredAmount = Math.max(0, (Number(linkedCase.requiredAmount) || 0) - amountDiff);
+        }
+      }
+
+      editUsedMap[id] = true;
+      try {
+        localStorage.setItem(DEVICE_EDIT_USED_KEY, JSON.stringify(editUsedMap));
+      } catch (e) {}
+
+      closeEditContributionModal();
+      saveAndSync(`تعديل مساهمة ${name}`);
+      showToast('تم حفظ التعديل وإغلاق صلاحية التعديل لهذه المساهمة.', 'success');
+    }
+
+    function deletePendingContribution(pendingId) {
+      if (!isAdminLoggedIn) return;
+      appState.pendingContributions = (appState.pendingContributions || []).filter((x) => String(x.id) !== String(pendingId));
+      saveAndSync('حذف مساهمة معلقة');
+      showToast('تم حذف المساهمة المعلقة.', 'info');
+    }
+
+    function deleteApprovedContribution(contribId) {
+      if (!isAdminLoggedIn) return;
+      appState.approvedContributions = (appState.approvedContributions || []).filter((x) => String(x.id) !== String(contribId));
+      saveAndSync('حذف مساهمة معتمدة');
+      showToast('تم حذف المساهمة المعتمدة من السجل.', 'info');
+    }
+
+    function openFirebaseConfigModal() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || '{}');
+        const urlInp = document.getElementById('firebase-db-url-input');
+        const authInp = document.getElementById('firebase-auth-secret-input');
+        if (urlInp) urlInp.value = saved?.url || DEFAULT_FIREBASE_URL;
+        if (authInp) authInp.value = saved?.auth || '';
+      } catch (e) {}
+      openModalEl('firebase-config-modal');
+    }
+
+    function closeFirebaseConfigModal() {
+      closeModalEl('firebase-config-modal');
+    }
+
+    function handleFirebaseConfigSubmit(event) {
+      event.preventDefault();
+      const url = (document.getElementById('firebase-db-url-input')?.value || DEFAULT_FIREBASE_URL).trim();
+      const auth = (document.getElementById('firebase-auth-secret-input')?.value || '').trim();
+      try {
+        localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify({ url, auth }));
+      } catch (e) {}
+      closeFirebaseConfigModal();
+      startFirebasePolling();
+      pushStateToFirebase();
+      showToast('تم حفظ إعدادات Firebase وتحديث الاتصال.', 'success');
+    }
+
+    function disconnectFirebaseCloud() {
+      try {
+        localStorage.removeItem(FIREBASE_CFG_KEY);
+      } catch (e) {}
+      if (firebasePollTimer) clearInterval(firebasePollTimer);
+      closeFirebaseConfigModal();
+      showToast('تم فصل الربط السحابي.', 'info');
+    }
+
+    function renderAutoRecoverySnapshotsList() {
+      const box = document.getElementById('auto-recovery-snapshots-list');
+      if (!box) return;
+      let list = [];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(BACKUP_SNAPSHOTS_KEY) || '[]');
+        if (Array.isArray(parsed)) list = parsed;
+      } catch (e) {}
+
+      if (!list.length) {
+        box.innerHTML = `<p class="text-xs font-bold text-slate-500 text-center py-3">لا توجد نقاط استعادة محفوظة بعد.</p>`;
+        return;
+      }
+
+      box.innerHTML = list
+        .map(
+          (snap, idx) => `
+          <div class="bg-white border border-emerald-200/80 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
+            <div>
+              <p class="font-black text-slate-900">${escapeHtml(snap.label || 'لقطة تلقائية')} ${idx === 0 ? '<span class="text-emerald-700">(الأحدث)</span>' : ''}</p>
+              <p class="text-[11px] font-bold text-slate-500">${escapeHtml(snap.date || '')}</p>
+            </div>
+            <button type="button" onclick="restoreAutoSnapshotById('${escapeHtml(snap.id)}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[11px] px-3 py-1.5 rounded-lg transition cursor-pointer">استعادة</button>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    function restoreAutoSnapshotById(snapId) {
+      if (!isAdminLoggedIn) return;
+      try {
+        const list = JSON.parse(localStorage.getItem(BACKUP_SNAPSHOTS_KEY) || '[]');
+        const found = Array.isArray(list) ? list.find((s) => String(s.id) === String(snapId)) : null;
+        if (!found || !found.state) return;
+        appState = normalizeState(found.state);
+        saveAndSync('استعادة نقطة حفظ تلقائية');
+        showToast('تمت استعادة نقطة الحفظ بنجاح.', 'success');
+      } catch (e) {
+        showToast('تعذر استعادة نقطة الحفظ.', 'error');
+      }
+    }
+
+    function restoreLatestAutoSnapshot() {
+      if (!isAdminLoggedIn) return;
+      try {
+        const list = JSON.parse(localStorage.getItem(BACKUP_SNAPSHOTS_KEY) || '[]');
+        if (Array.isArray(list) && list[0] && list[0].id) {
+          restoreAutoSnapshotById(list[0].id);
+        } else {
+          showToast('لا توجد نقطة حفظ متاحة للاستعادة.', 'info');
+        }
+      } catch (e) {}
+    }
+
+    function exportManualBackupFile() {
+      try {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          state: appState
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sayaan-takaful-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('تم حفظ نسخة احتياطية إلى الجهاز.', 'success');
+      } catch (e) {
+        showToast('تعذر تصدير النسخة الاحتياطية.', 'error');
+      }
+    }
+
+    function handleManualBackupFileImport(input) {
+      const file = input?.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          const rawState = parsed?.state && typeof parsed.state === 'object' ? parsed.state : parsed;
+          appState = normalizeState(rawState);
+          saveAndSync('استعادة نسخة من ملف');
+          showToast('تمت استعادة البيانات من الملف بنجاح.', 'success');
+        } catch (e) {
+          showToast('ملف النسخة الاحتياطية غير صالح.', 'error');
+        }
+        input.value = '';
+      };
+      reader.readAsText(file);
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
