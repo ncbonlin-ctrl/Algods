@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -204,19 +204,12 @@
   <!-- لوحة تحكم المشرف (تظهر فقط عند تسجيل الدخول) -->
   <section id="admin-dashboard-panel" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
     <div class="bg-emeraldLuxury-950 text-white rounded-3xl p-4 sm:p-5 border border-goldLuxury-400/40 shadow-luxury flex flex-col items-center justify-center gap-4 text-center">
-      <div class="flex items-center justify-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-white/10 border border-goldLuxury-400/40 flex items-center justify-center text-goldLuxury-300 shrink-0">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-          </svg>
-        </div>
-        <div>
-          <span class="text-[11px] font-extrabold text-goldLuxury-300 block">لوحة تحكم المشرف</span>
-          <p class="text-xs sm:text-sm font-bold text-emeraldLuxury-50">إدارة العقارات والمزامنة المباشرة</p>
-        </div>
+      <div class="flex flex-col items-center justify-center gap-1.5 text-center">
+        <span id="office-name-display" class="text-base sm:text-lg font-black text-white block text-center">مكتب الطبي للعقارات</span>
+        <p id="office-slogan-display" class="text-xs sm:text-sm font-bold text-goldLuxury-300 text-center">سكينة السكن وأمانة الاختيار</p>
+        <span id="last-sync-badge" class="hidden mt-1 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/35 text-[11px] font-extrabold text-center">
+          مزامنة السحابة: نشطة
+        </span>
       </div>
 
       <div class="w-full flex flex-wrap items-center justify-center gap-2.5">
@@ -224,29 +217,17 @@
           id="firebase-status-btn"
           onclick="openFirebaseConfigModal()"
           title="إعدادات ربط قاعدة بيانات Firebase"
-          class="w-40 sm:w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+          class="w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
         >
           <span id="firebase-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
           <span id="firebase-status-text">ربط Firebase</span>
         </button>
 
         <button
-          id="open-add-modal-btn"
-          onclick="openPropertyFormModal()"
-          class="btn-shine w-40 sm:w-44 h-11 rounded-2xl bg-emeraldLuxury-700 hover:bg-emeraldLuxury-600 text-white text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
-        >
-          <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="4" />
-            <path d="M12 8v8M8 12h8" />
-          </svg>
-          <span>إضافة عقار</span>
-        </button>
-
-        <button
           id="firebase-sync-now-btn"
           onclick="syncAllPropertiesNow()"
           title="مزامنة جميع العروض والصور والتفاصيل ورقم الهاتف الآن"
-          class="w-40 sm:w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+          class="w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
         >
           <svg id="firebase-sync-icon" class="w-3.5 h-3.5 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10" />
@@ -259,19 +240,20 @@
         <button
           id="github-bridge-btn"
           onclick="openGitHubBridgeModal()"
-          title="إعدادات المزامنة المباشرة مع GitHub"
-          class="w-40 sm:w-44 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/40 text-xs font-extrabold transition cursor-pointer shadow-sm inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+          title="إعدادات جسر المزامنة المباشر مع GitHub"
+          class="w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
         >
-          <span class="w-2 h-2 rounded-full bg-white animate-pulse shrink-0"></span>
-          <span>مزامنة</span>
+          <svg class="w-3.5 h-3.5 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+          </svg>
+          <span>جسر GitHub</span>
         </button>
-      </div>
 
-      <div class="w-full pt-1 flex items-center justify-center">
         <button
-          id="admin-quick-add-property-btn"
+          id="open-add-modal-btn"
           onclick="openPropertyFormModal()"
-          class="btn-shine w-52 sm:w-60 h-12 rounded-2xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 border border-goldLuxury-500 text-sm font-black shadow-btn-gold transition cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap active:scale-95"
+          class="btn-shine w-44 h-11 rounded-2xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 border border-goldLuxury-500 text-xs font-black shadow-btn-gold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
         >
           <svg class="w-4 h-4 text-emeraldLuxury-950 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14M5 12h14" />
@@ -284,20 +266,29 @@
 
   <!-- القسم التعريفي المعماري الحديث -->
   <section id="top" class="luxury-pattern architectural-grid text-white relative overflow-hidden border-b border-goldLuxury-500/30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20 relative z-10">
-      <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 pb-6 mb-8 border-b border-goldLuxury-400/25">
-        <span id="office-name-display" class="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">
-          مكتب الطبي للعقارات
-        </span>
-        <div class="flex items-center gap-3">
-          <span id="last-sync-badge" class="hidden text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-emeraldLuxury-100 border border-white/15">
-            مزامنة السحابة: نشطة
-          </span>
-          <span id="office-slogan-display" class="text-sm sm:text-base lg:text-lg font-bold text-goldLuxury-300">
-            سكينة السكن وأمانة الاختيار
-          </span>
-        </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-9 sm:py-12 relative z-10 flex flex-col items-center justify-center text-center gap-3.5">
+      <div class="space-y-1">
+        <h1 class="text-3xl sm:text-5xl font-black tracking-tight text-white drop-shadow">
+          مكتب <span class="text-goldLuxury-300">الطبي</span> للعقارات
+        </h1>
+        <p class="text-base sm:text-xl font-extrabold text-goldLuxury-300/95 tracking-wide">
+          سكينة السكن وأمانة الاختيار
+        </p>
       </div>
+      <p class="max-w-2xl text-sm sm:text-base font-bold text-emeraldLuxury-50 leading-relaxed pt-1">
+        من لديه عقار يريد بيعه أو إيجاره أو استبداله يتواصل معنا على الواتساب، يبعث بيانات العقار وسوف نتواصل معه.
+      </p>
+      <a
+        href="https://wa.me/218914664430?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D9%85%D9%83%D8%AA%D8%A8%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%20%D9%84%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D8%A7%D8%AA%D8%8C%20%D9%84%D8%AF%D9%8A%20%D8%B9%D9%82%D8%A7%D8%B1%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%B9%D8%B1%D8%B6%D9%87%20%28%D8%A8%D9%8A%D8%B9%20%D8%A3%D9%88%20%D8%A5%D9%8A%D8%AC%D8%A7%D8%B1%20%D8%A3%D9%88%20%D8%A7%D8%B3%D8%AA%D8%A8%D8%AF%D8%A7%D9%84%29."
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-shine inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300/40 font-black text-sm sm:text-base shadow-lg transition active:scale-95"
+      >
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+        </svg>
+        <span dir="ltr">واتساب العروض: 0914664430</span>
+      </a>
     </div>
   </section>
 
@@ -576,6 +567,7 @@
             >
               <option value="بيع">للبيع</option>
               <option value="إيجار">للإيجار</option>
+              <option value="استبدال">للاستبدال</option>
             </select>
           </div>
         </div>
@@ -948,7 +940,7 @@ service cloud.firestore {
       {
         id: 'prop-tab-0001',
         code: 'TAB-0001',
-        title: 'منزل حديث بتشطيب راقٍ في الفرناج',
+        title: 'واحة الفرناج السكنية — منزل عصري بإطلالة هادئة',
         dealType: 'إيجار',
         category: 'منزل',
         location: 'الفرناج - طرابلس',
@@ -967,7 +959,7 @@ service cloud.firestore {
       {
         id: 'prop-tab-0002',
         code: 'TAB-0002',
-        title: 'فيلا فاخرة بحديقة خاصة ومسبح في عين زارة',
+        title: 'قصر عين زارة — فيلا فاخرة بحديقة ومسبح خاص',
         dealType: 'بيع',
         category: 'فيلا',
         location: 'عين زارة - طرابلس',
@@ -986,7 +978,7 @@ service cloud.firestore {
       {
         id: 'prop-tab-0003',
         code: 'TAB-0003',
-        title: 'شقة بإطلالة بحرية وخدمات متكاملة في قرقارش',
+        title: 'نسائم البحر في قرقارش — شقة مشرقة بإطلالة خلابة',
         dealType: 'إيجار',
         category: 'شقة',
         location: 'قرقارش - طرابلس',
@@ -1005,7 +997,7 @@ service cloud.firestore {
       {
         id: 'prop-tab-0004',
         code: 'TAB-0004',
-        title: 'أرض سكنية مميزة بموقع استراتيجي في جنزور',
+        title: 'أفق جنزور الذهبي — أرض سكنية بموقع واعد',
         dealType: 'بيع',
         category: 'أرض',
         location: 'جنزور - طرابلس',
@@ -1023,7 +1015,7 @@ service cloud.firestore {
       {
         id: 'prop-tab-0005',
         code: 'TAB-0005',
-        title: 'شقة للبيع في عمارات الطبي — الشقق المتوسطة — الدور السادس',
+        title: 'جوهرة عمارات الطبي — شقة بالدور السادس بمطبخ جديد',
         dealType: 'بيع',
         category: 'شقة',
         location: 'عمارات الطبي - الشقق المتوسطة - الدور السادس',
@@ -1143,37 +1135,130 @@ service cloud.firestore {
       return digits;
     }
 
+    // استخراج نص المساحة إن وُجد داخل العنوان أو الوصف لعرضه على الصورة الخضراء البديلة
+    function extractAreaLabel(item = {}) {
+      const combined = `${item.title || ''} ${item.description || ''}`;
+      const match = combined.match(/(\d+(?:[.,]\d+)?\s*(?:م²|م2|متر(?:\s*مربع)?|هكتار|دونم))/i);
+      return match ? match[1].trim() : 'غير محددة';
+    }
+
     // تطبيع بيانات العقار وضمان رقم التواصل الافتراضي
     function normalizeProperty(raw, idx = 0) {
       const item = raw && typeof raw === 'object' ? raw : {};
       const numPart = String(idx + 1).padStart(4, '0');
+      const titleText = String(item.title || 'عرض عقاري مميز').trim() || 'عرض عقاري مميز';
+      const categoryText = String(item.category || 'شقة').trim();
+      const locationText = String(item.location || 'طرابلس').trim();
+      const areaText = extractAreaLabel(item);
+      const fallbackUrl = buildTitlePlaceholderSvg(titleText, {
+        area: areaText
+      });
       const images = Array.isArray(item.images) && item.images.length > 0
         ? item.images.filter((u) => typeof u === 'string' && u.trim().length > 0).slice(0, 5)
-        : [`https://placehold.co/900x600/0c4436/efd085?text=TAB-${numPart}`];
+        : [fallbackUrl];
 
       return {
         id: String(item.id || `prop-tab-${numPart}-${Date.now()}`),
         code: String(item.code || `TAB-${numPart}`),
-        title: String(item.title || 'عرض عقاري'),
-        dealType: item.dealType === 'إيجار' ? 'إيجار' : 'بيع',
-        category: String(item.category || 'شقة'),
-        location: String(item.location || 'طرابلس'),
-        price: Number(item.price) > 0 ? Number(item.price) : 0,
-        currency: String(item.currency || 'د.ل'),
-        phone: String(item.phone || DEFAULT_CONTACT_PHONE).trim() || DEFAULT_CONTACT_PHONE,
-        ownerName: String(item.ownerName || '').trim(),
-        ownerPhone: String(item.ownerPhone || '').trim(),
-        description: String(item.description || ''),
-        images,
-        createdAt: item.createdAt || new Date().toISOString()
-      };
+        title: titleText,
+        dealType: item.dealType === 'إيجار' ? 'إيجار' : (item.dealType === 'استبدال' ? 'استبدال' : 'بيع'),
+      category: categoryText,
+      location: locationText,
+      price: Number(item.price) > 0 ? Number(item.price) : 0,
+      currency: String(item.currency || 'د.ل'),
+      phone: String(item.phone || DEFAULT_CONTACT_PHONE).trim() || DEFAULT_CONTACT_PHONE,
+      ownerName: String(item.ownerName || '').trim(),
+      ownerPhone: String(item.ownerPhone || '').trim(),
+      closedLabel: String(item.closedLabel || '').trim(),
+      description: String(item.description || ''),
+      images,
+      createdAt: item.createdAt || new Date().toISOString()
+    };
+  }
+
+    // تقسيم النص إلى أسطر متوازنة للرسم داخل SVG
+    function wrapSvgLines(text, maxChars = 24, maxLines = 2) {
+      const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length <= maxChars) {
+          current = candidate;
+        } else {
+          if (current) lines.push(current);
+          current = word;
+        }
+        if (lines.length === maxLines) break;
+      }
+      if (current && lines.length < maxLines) lines.push(current);
+      return lines;
     }
 
+    // اختصار العنوان مع إزالة أي ترقيم أو رموز فاصلة مكررة
+    function shortenPropertyTitle(titleText, maxLen = 42) {
+      const cleaned = String(titleText || 'عرض عقاري مميز')
+        .replace(/\bTAB-\d+\b/gi, '')
+        .replace(/عرض\s*رقم\s*\d+/gi, '')
+        .replace(/[—–|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || 'عرض عقاري مميز';
+      if (cleaned.length <= maxLen) return cleaned;
+      return `${cleaned.slice(0, maxLen).trim()}…`;
+    }
+
+    // إنشاء صورة خضراء افتراضية تعرض العنوان المختصر والمساحة فقط في المنتصف بدون ترقيم
+    function buildTitlePlaceholderSvg(titleText, meta = {}) {
+      const escXml = (s) => String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      const width = 900;
+      const height = 600;
+      const centerX = width / 2;
+
+      const shortTitle = shortenPropertyTitle(titleText, 40);
+      const titleLines = wrapSvgLines(shortTitle, 22, 2);
+      const areaText = String(meta.area || 'غير محددة').trim();
+      const areaLine = `المساحة: ${areaText}`;
+
+      const fontSize = 30;
+      const lineHeight = 44;
+      const blockGap = 18;
+      const totalLines = titleLines.length + 1;
+      const totalHeight = totalLines * lineHeight + blockGap;
+      const startY = (height - totalHeight) / 2 + fontSize * 0.85;
+
+      const titleTspans = titleLines
+        .map((line, i) => `<tspan x="${centerX}" y="${startY + i * lineHeight}">${escXml(line)}</tspan>`)
+        .join('');
+
+      const areaY = startY + titleLines.length * lineHeight + blockGap;
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <defs>
+          <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#06271f"/>
+            <stop offset="55%" stop-color="#0c4436"/>
+            <stop offset="100%" stop-color="#072e24"/>
+          </linearGradient>
+        </defs>
+        <rect width="${width}" height="${height}" fill="url(#bgGrad)"/>
+        <rect x="32" y="32" width="${width - 64}" height="${height - 64}" rx="28" fill="none" stroke="#ddb04d" stroke-opacity="0.6" stroke-width="2.5"/>
+        <text fill="#efd085" font-family="Cairo, Tajawal, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" direction="rtl">${titleTspans}</text>
+        <text x="${centerX}" y="${areaY}" fill="#f3faf7" font-family="Cairo, Tajawal, sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" direction="rtl">${escXml(areaLine)}</text>
+      </svg>`;
+
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    // قراءة العقارات من التخزين المحلي مع معالجة الأخطاء
     function loadLocalProperties() {
       try {
         const raw = safeGetItem(STORAGE_KEY);
         if (!raw) {
-          saveLocalProperties(INITIAL_PROPERTIES);
           return INITIAL_PROPERTIES.map((p, i) => normalizeProperty(p, i));
         }
         const parsed = JSON.parse(raw);
@@ -1329,15 +1414,54 @@ service cloud.firestore {
     }
 
     function resetFilters() {
-      currentFilter = 'all';
-      const searchInput = document.getElementById('search-input');
-      const catFilter = document.getElementById('category-filter');
-      if (searchInput) searchInput.value = '';
-      if (catFilter) catFilter.value = 'all';
-      setFilter('all');
+    currentFilter = 'all';
+    const searchInput = document.getElementById('search-input');
+    const catFilter = document.getElementById('category-filter');
+    if (searchInput) searchInput.value = '';
+    if (catFilter) catFilter.value = 'all';
+    setFilter('all');
+  }
+
+  // إرجاع نص الإتمام المناسب حسب نوع العرض أو الاستبدال
+  function getClosedStatusLabel(prop) {
+    if (prop?.dealType === 'استبدال') return 'تم الاستبدال';
+    if (prop?.dealType === 'إيجار') return 'تم الإيجار';
+    return 'تم البيع';
+  }
+
+  // تبديل وضع الإتمام (علامة X) للعقار في وضع الإدارة ومزامنته
+  async function togglePropertyClosedStatus(propId, event = null) {
+    if (event) event.stopPropagation();
+    if (!isAdminLoggedIn) {
+      showToast('هذه الميزة متاحة للمشرف فقط.', 'error');
+      return;
     }
 
-    function getFilteredProperties() {
+    const target = properties.find((p) => String(p.id) === String(propId));
+    if (!target) return;
+
+    const chosenLabel = getClosedStatusLabel(target);
+    const nextClosedLabel = target.closedLabel === chosenLabel ? '' : chosenLabel;
+    const updatedProp = normalizeProperty({ ...target, closedLabel: nextClosedLabel });
+
+    properties = properties.map((p) => (String(p.id) === String(propId) ? updatedProp : p));
+    saveLocalProperties(properties);
+    renderProperties();
+
+    const detailModal = document.getElementById('property-detail-modal');
+    if (detailModal && !detailModal.classList.contains('hidden')) {
+      openPropertyDetail(propId);
+    }
+
+    await syncPropertyToCloud(updatedProp, 'upsert');
+    if (nextClosedLabel) {
+      showToast(`تم تفعيل وضع الإغلاق (${nextClosedLabel}) على العقار ${updatedProp.code}.`, 'success');
+    } else {
+      showToast(`تم إلغاء وضع الإغلاق عن العقار ${updatedProp.code}.`, 'info');
+    }
+  }
+
+  function getFilteredProperties() {
       const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
       const category = document.getElementById('category-filter')?.value || 'all';
 
@@ -1372,51 +1496,102 @@ service cloud.firestore {
 
       emptyState?.classList.add('hidden');
       grid.innerHTML = filtered.map((prop) => {
+        const fallbackImg = buildTitlePlaceholderSvg(prop.title, {
+          area: extractAreaLabel(prop)
+        });
         const cover = prop.images && prop.images[0]
           ? prop.images[0]
-          : `https://placehold.co/900x600/0c4436/efd085?text=${encodeURIComponent(prop.code)}`;
-        const fallbackImg = `https://placehold.co/900x600/0c4436/efd085?text=${encodeURIComponent(prop.code)}`;
+          : fallbackImg;
         const isSale = prop.dealType === 'بيع';
-        const badgeClass = isSale
-          ? 'bg-goldLuxury-400 text-emeraldLuxury-950'
-          : 'bg-emeraldLuxury-800 text-white';
+      const badgeClass = isSale
+        ? 'bg-goldLuxury-400 text-emeraldLuxury-950'
+        : 'bg-emeraldLuxury-800 text-white';
+      const closedText = getClosedStatusLabel(prop);
+      const isExchangeDeal = prop.dealType === 'استبدال';
+      const isClosed = prop.closedLabel === closedText || Boolean(prop.closedLabel);
 
-        return `
-          <article
-            onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
-            class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col cursor-pointer group animate-fade-up"
-          >
-            <div class="relative h-52 sm:h-56 bg-emeraldLuxury-950 overflow-hidden">
-              <img
-                src="${escapeHtml(cover)}"
-                alt="${escapeHtml(prop.title)}"
-                onerror="this.onerror=null;this.src='${escapeHtml(fallbackImg)}';"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div class="absolute top-3 right-3 flex items-center gap-2">
-                <span class="px-3 py-1 rounded-xl text-xs font-black shadow ${badgeClass}">${escapeHtml(prop.dealType)}</span>
-                <span class="px-3 py-1 rounded-xl text-xs font-extrabold bg-emeraldLuxury-950/85 text-goldLuxury-300 border border-goldLuxury-400/40">${escapeHtml(prop.code)}</span>
-              </div>
-              <div class="absolute bottom-3 left-3 px-3 py-1 rounded-xl bg-white/95 text-emeraldLuxury-950 text-xs font-black shadow">
-                ${escapeHtml(prop.category)}
-              </div>
+      const closedOverlayHtml = isClosed
+        ? `
+          <div class="absolute inset-0 bg-emeraldLuxury-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 pointer-events-none select-none">
+            <span class="text-rose-500 text-7xl font-black leading-none drop-shadow-[0_4px_14px_rgba(0,0,0,0.85)]">✕</span>
+            <span class="mt-2 px-4 py-1 rounded-full bg-rose-600 text-white text-sm font-black shadow-lg border border-rose-300/60">
+              ${escapeHtml(prop.closedLabel || closedText)}
+            </span>
+          </div>
+        `
+        : '';
+
+      const ownerCardBadge = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
+        ? `
+          <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-right space-y-0.5">
+            <span class="text-[11px] font-black text-amber-800 block">بيانات المالك (للمشرف فقط)</span>
+            <p class="text-xs font-extrabold text-emeraldLuxury-950">
+              ${escapeHtml(prop.ownerName || 'غير مسجل')} ${prop.ownerPhone ? `<span dir="ltr" class="mr-1.5 text-amber-900 font-mono">(${escapeHtml(prop.ownerPhone)})</span>` : ''}
+            </p>
+          </div>
+        `
+        : '';
+
+      const adminStatusButtonsHtml = isAdminLoggedIn
+        ? `
+          <div onclick="event.stopPropagation()" class="pt-1 flex justify-center">
+            <button
+              type="button"
+              onclick="togglePropertyClosedStatus('${escapeHtml(prop.id)}', event)"
+              class="${isExchangeDeal ? 'w-full py-2.5 px-4 text-sm' : 'w-full py-2 px-3 text-xs'} rounded-xl font-black border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                isClosed
+                  ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                  : (isExchangeDeal
+                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200')
+              }"
+            >
+              <span class="${isExchangeDeal ? 'text-base' : 'text-sm'} font-black">✕</span>
+              <span>${escapeHtml(closedText)}</span>
+            </button>
+          </div>
+        `
+        : '';
+
+      return `
+        <article
+          onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
+          class="bg-white rounded-3xl border ${isClosed ? 'border-rose-300' : 'border-sandWarm-200'} shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col cursor-pointer group animate-fade-up"
+        >
+          <div class="relative h-52 sm:h-56 bg-emeraldLuxury-950 overflow-hidden">
+            <img
+              src="${escapeHtml(cover)}"
+              alt="${escapeHtml(prop.title)}"
+              onerror="this.onerror=null;this.src='${escapeHtml(fallbackImg)}';"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            ${closedOverlayHtml}
+            <div class="absolute top-3 right-3 flex items-center gap-2 z-20">
+              <span class="px-3 py-1 rounded-xl text-xs font-black shadow ${badgeClass}">${escapeHtml(prop.dealType)}</span>
+              <span class="px-3 py-1 rounded-xl text-xs font-extrabold bg-emeraldLuxury-950/85 text-goldLuxury-300 border border-goldLuxury-400/40">${escapeHtml(prop.code)}</span>
+            </div>
+            <div class="absolute bottom-3 left-3 px-3 py-1 rounded-xl bg-white/95 text-emeraldLuxury-950 text-xs font-black shadow z-20">
+              ${escapeHtml(prop.category)}
+            </div>
+          </div>
+
+          <div class="p-5 flex-1 flex flex-col justify-between gap-4">
+            <div class="space-y-2">
+              <h3 class="text-lg font-extrabold text-emeraldLuxury-950 line-clamp-1 group-hover:text-emeraldLuxury-700 transition">
+                ${escapeHtml(prop.title)}
+              </h3>
+              <p class="text-xs sm:text-sm text-gray-600 font-semibold flex items-center gap-1.5 line-clamp-1">
+                <svg class="w-4 h-4 text-goldLuxury-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span>${escapeHtml(prop.location)}</span>
+              </p>
+              ${ownerCardBadge}
+              ${adminStatusButtonsHtml}
             </div>
 
-            <div class="p-5 flex-1 flex flex-col justify-between gap-4">
-              <div class="space-y-2">
-                <h3 class="text-lg font-extrabold text-emeraldLuxury-950 line-clamp-1 group-hover:text-emeraldLuxury-700 transition">
-                  ${escapeHtml(prop.title)}
-                </h3>
-                <p class="text-xs sm:text-sm text-gray-600 font-semibold flex items-center gap-1.5 line-clamp-1">
-                  <svg class="w-4 h-4 text-goldLuxury-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span>${escapeHtml(prop.location)}</span>
-                </p>
-              </div>
-
-              <div class="pt-3 border-t border-sandWarm-200 flex items-center justify-between gap-2">
+            <div class="pt-3 border-t border-sandWarm-200 flex items-center justify-between gap-2">
                 <div>
                   <span class="text-[11px] text-gray-400 font-bold block">السعر</span>
                   <span class="text-lg sm:text-xl font-black text-emeraldLuxury-900">${formatPrice(prop.price, prop.currency)}</span>
@@ -1438,9 +1613,12 @@ service cloud.firestore {
       const content = document.getElementById('property-detail-content');
       if (!prop || !modal || !content) return;
 
+      const fallbackImg = buildTitlePlaceholderSvg(prop.title, {
+        area: extractAreaLabel(prop)
+      });
       detailGalleryImages = Array.isArray(prop.images) && prop.images.length > 0
         ? prop.images
-        : [`https://placehold.co/900x600/0c4436/efd085?text=${encodeURIComponent(prop.code)}`];
+        : [fallbackImg];
       detailGalleryIndex = 0;
 
       const { dateStr, timeStr } = formatDateParts(prop.createdAt);
@@ -1452,23 +1630,55 @@ service cloud.firestore {
 
       const ownerAdminBox = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
         ? `
-          <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-right space-y-1">
-            <span class="text-xs font-black text-amber-900 block">بيانات المالك (خاصة بالمشرف)</span>
-            <p class="text-sm font-extrabold text-emeraldLuxury-950">
-              ${escapeHtml(prop.ownerName || 'غير مسجل')} ${prop.ownerPhone ? `<span dir="ltr" class="mr-2 text-amber-900 font-mono">(${escapeHtml(prop.ownerPhone)})</span>` : ''}
-            </p>
-          </div>
-        `
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-right space-y-1">
+          <span class="text-xs font-black text-amber-900 block">بيانات المالك (خاصة بالمشرف)</span>
+          <p class="text-sm font-extrabold text-emeraldLuxury-950">
+            ${escapeHtml(prop.ownerName || 'غير مسجل')} ${prop.ownerPhone ? `<span dir="ltr" class="mr-2 text-amber-900 font-mono">(${escapeHtml(prop.ownerPhone)})</span>` : ''}
+          </p>
+        </div>
+      `
+        : '';
+
+      const closedText = getClosedStatusLabel(prop);
+      const isExchangeDeal = prop.dealType === 'استبدال';
+      const isClosed = prop.closedLabel === closedText || Boolean(prop.closedLabel);
+
+      const detailClosedOverlay = isClosed
+        ? `
+        <div class="absolute inset-0 bg-emeraldLuxury-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 pointer-events-none select-none">
+          <span class="text-rose-500 text-8xl font-black leading-none drop-shadow-[0_6px_18px_rgba(0,0,0,0.9)]">✕</span>
+          <span class="mt-2.5 px-5 py-1.5 rounded-full bg-rose-600 text-white text-base font-black shadow-lg border border-rose-300/60">
+            ${escapeHtml(prop.closedLabel || closedText)}
+          </span>
+        </div>
+      `
         : '';
 
       const adminActionsHtml = isAdminLoggedIn
         ? `
-          <div class="w-full flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onclick="editProperty('${escapeHtml(prop.id)}')"
-              class="w-44 sm:w-48 h-12 rounded-2xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-black text-sm shadow-btn-emerald transition cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
-            >
+        <div class="w-full flex flex-wrap items-center justify-center gap-2.5 pt-2">
+          <button
+            type="button"
+            onclick="togglePropertyClosedStatus('${escapeHtml(prop.id)}')"
+            class="${isExchangeDeal ? 'px-6 h-13 text-base' : 'px-5 h-11 text-xs sm:text-sm'} rounded-2xl font-black border transition cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap ${
+              isClosed
+                ? 'bg-rose-600 text-white border-rose-700 shadow'
+                : (isExchangeDeal
+                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300')
+            }"
+          >
+            <span class="${isExchangeDeal ? 'text-lg' : 'text-sm'} font-black">✕</span>
+            <span>${escapeHtml(closedText)}</span>
+          </button>
+        </div>
+
+        <div class="w-full flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onclick="editProperty('${escapeHtml(prop.id)}')"
+            class="w-44 sm:w-48 h-12 rounded-2xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-black text-sm shadow-btn-emerald transition cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          >
               <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -1514,14 +1724,15 @@ service cloud.firestore {
 
         <div class="p-5 sm:p-7 space-y-6 max-h-[82vh] overflow-y-auto">
           <div class="relative rounded-2xl overflow-hidden bg-emeraldLuxury-950 h-64 sm:h-80">
-            <img
-              id="detail-main-image"
-              src="${escapeHtml(detailGalleryImages[0])}"
-              alt="${escapeHtml(prop.title)}"
-              onerror="this.onerror=null;this.src='https://placehold.co/900x600/0c4436/efd085?text=${encodeURIComponent(prop.code)}';"
-              class="w-full h-full object-cover"
-            />
-            ${detailGalleryImages.length > 1 ? `
+          <img
+            id="detail-main-image"
+            src="${escapeHtml(detailGalleryImages[0])}"
+            alt="${escapeHtml(prop.title)}"
+            onerror="this.onerror=null;this.src='${escapeHtml(fallbackImg)}';"
+            class="w-full h-full object-cover"
+          />
+          ${detailClosedOverlay}
+          ${detailGalleryImages.length > 1 ? `
               <button
                 type="button"
                 onclick="stepDetailGallery(-1)"
@@ -1774,6 +1985,9 @@ service cloud.firestore {
       const nextIndex = properties.length + 1;
       const existing = editId ? properties.find((p) => String(p.id) === editId) : null;
       const code = existing?.code || `TAB-${String(nextIndex).padStart(4, '0')}`;
+      const fallbackImg = buildTitlePlaceholderSvg(title, {
+        area: extractAreaLabel({ title, description })
+      });
 
       const record = normalizeProperty({
         id: existing?.id || `prop-${Date.now()}`,
@@ -1786,11 +2000,12 @@ service cloud.firestore {
         currency,
         phone,
         ownerName,
-        ownerPhone,
-        description,
+      ownerPhone,
+      closedLabel: existing?.closedLabel || '',
+      description,
         images: uploadedImagesData.length > 0
           ? uploadedImagesData
-          : (existing?.images || [`https://placehold.co/900x600/0c4436/efd085?text=${encodeURIComponent(code)}`]),
+          : (existing?.images || [fallbackImg]),
         createdAt: existing?.createdAt || new Date().toISOString()
       }, nextIndex - 1);
 
