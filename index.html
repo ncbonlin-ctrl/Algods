@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1298,9 +1298,71 @@ service cloud.firestore {
         ownerName: String(raw.ownerName || '').trim(),
         ownerPhone: String(raw.ownerPhone || '').trim(),
         description: String(raw.description || '').trim(),
+        closedStamp: ['تم البيع', 'تم الإيجار', 'تم الاستبدال', ''].includes(raw.closedStamp)
+          ? String(raw.closedStamp || '')
+          : '',
         images,
         createdAt
       };
+    }
+
+    // تنسيق التاريخ والوقت العربي للإعلان العقاري
+    function formatPropertyDateTime(isoString) {
+      try {
+        const d = new Date(isoString || Date.now());
+        if (Number.isNaN(d.getTime())) return '';
+        const datePart = d.toLocaleDateString('ar-LY', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const timePart = d.toLocaleTimeString('ar-LY', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        return `${datePart} • ${timePart}`;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // الحصول على نص الختم المناسب حسب نوع العرض العقاري
+    function getClosedStampLabelForDeal(dealType) {
+      if (dealType === 'إيجار') return 'تم الإيجار';
+      if (dealType === 'استبدال') return 'تم الاستبدال';
+      return 'تم البيع';
+    }
+
+    // تبديل إشارة X وحالة الإتمام (تم البيع / تم الإيجار / تم الاستبدال) على إعلان عقاري من لوحة التحكم
+    async function togglePropertyClosedStamp(propId) {
+      const target = properties.find((p) => p.id === propId);
+      if (!target) return;
+
+      const expectedLabel = getClosedStampLabelForDeal(target.dealType);
+      const nextStamp = target.closedStamp === expectedLabel ? '' : expectedLabel;
+
+      const updatedProp = normalizeProperty({
+        ...target,
+        closedStamp: nextStamp
+      });
+
+      properties = saveLocalProperties(
+        properties.map((p) => (p.id === propId ? updatedProp : p))
+      );
+
+      await syncSinglePropertyToCloud(updatedProp);
+      renderProperties();
+
+      const modalOpen = !document.getElementById('property-detail-modal')?.classList.contains('hidden');
+      if (modalOpen) {
+        renderPropertyDetailModal(updatedProp);
+      }
+
+      if (nextStamp) {
+        showToast(`تم تفعيل إشارة ✕ (${nextStamp}) على العقار (${updatedProp.code}).`, 'success');
+      } else {
+        showToast(`تمت إزالة إشارة ✕ عن العقار (${updatedProp.code}).`, 'warning');
+      }
     }
 
     // توليد رقم ترقيم خاص تسلسلي جديد للعقار (TAB-XXXX)
@@ -1526,11 +1588,27 @@ service cloud.firestore {
 
       grid.innerHTML = filtered.map((prop) => {
         const mainImg = (Array.isArray(prop.images) && prop.images[0]) || generateFallbackPropertyImage(prop);
+        const formattedDateTime = formatPropertyDateTime(prop.createdAt);
+        const stampLabel = prop.closedStamp || '';
+        const stampActionLabel = getClosedStampLabelForDeal(prop.dealType);
+        const isStamped = Boolean(stampLabel);
+
         const dealBadgeStyle = prop.dealType === 'بيع'
           ? 'bg-goldLuxury-300 text-emeraldLuxury-950 border-goldLuxury-500'
           : prop.dealType === 'إيجار'
           ? 'bg-emeraldLuxury-800 text-white border-emeraldLuxury-600'
           : 'bg-amber-100 text-amber-900 border-amber-300';
+
+        const closedOverlayHtml = isStamped
+          ? `<div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 pointer-events-none p-3 text-center">
+               <div class="w-14 h-14 rounded-full bg-rose-600/95 text-white border-2 border-white shadow-2xl flex items-center justify-center text-3xl font-black leading-none mb-2">
+                 ✕
+               </div>
+               <span class="px-4 py-1.5 rounded-xl bg-rose-700 text-white border border-rose-200/70 text-sm sm:text-base font-black shadow-xl">
+                 ${escapeHtml(stampLabel)}
+               </span>
+             </div>`
+          : '';
 
         const ownerBoxHtml = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
           ? `<div class="mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">
@@ -1540,11 +1618,22 @@ service cloud.firestore {
           : '';
 
         const adminActionsHtml = isAdminLoggedIn
-          ? `<div class="mt-3 pt-3 border-t border-sandWarm-200 flex items-center justify-between gap-2">
+          ? `<div class="mt-3 pt-3 border-t border-sandWarm-200 flex flex-wrap items-center justify-between gap-2">
+               <button
+                 type="button"
+                 onclick="togglePropertyClosedStamp('${escapeHtml(prop.id)}')"
+                 class="flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition cursor-pointer border whitespace-nowrap ${
+                   isStamped
+                     ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 shadow-sm'
+                     : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
+                 }"
+               >
+                 ✕ ${escapeHtml(stampActionLabel)}
+               </button>
                <button
                  type="button"
                  onclick="openPropertyFormModal('${escapeHtml(prop.id)}')"
-                 class="flex-1 py-2 px-3 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold transition cursor-pointer"
+                 class="py-2 px-3 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold transition cursor-pointer"
                >
                  تعديل
                </button>
@@ -1568,7 +1657,8 @@ service cloud.firestore {
                   alt="${escapeHtml(prop.title)}"
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                ${closedOverlayHtml}
+                <div class="absolute top-3 right-3 z-20 flex items-center gap-1.5">
                   <span class="px-3 py-1 rounded-xl text-xs font-black border shadow-sm ${dealBadgeStyle}">
                     ${escapeHtml(prop.dealType)}
                   </span>
@@ -1583,6 +1673,13 @@ service cloud.firestore {
                   <span>${escapeHtml(prop.category)}</span>
                   <span class="truncate">${escapeHtml(prop.location)}</span>
                 </div>
+
+                ${formattedDateTime ? `
+                  <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center gap-1">
+                    <span>تاريخ الإضافة:</span>
+                    <span dir="ltr" class="text-emeraldLuxury-800 font-extrabold">${escapeHtml(formattedDateTime)}</span>
+                  </div>
+                ` : ''}
 
                 <h3
                   onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
@@ -1659,6 +1756,35 @@ service cloud.firestore {
         : [generateFallbackPropertyImage(prop)];
       const safeIdx = Math.min(activeGalleryIndex, imgs.length - 1);
       const currentImg = imgs[safeIdx];
+      const formattedDateTime = formatPropertyDateTime(prop.createdAt);
+      const stampLabel = prop.closedStamp || '';
+      const stampActionLabel = getClosedStampLabelForDeal(prop.dealType);
+      const isStamped = Boolean(stampLabel);
+
+      const detailClosedOverlayHtml = isStamped
+        ? `<div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 pointer-events-none p-4 text-center">
+             <div class="w-16 h-16 rounded-full bg-rose-600/95 text-white border-2 border-white shadow-2xl flex items-center justify-center text-4xl font-black leading-none mb-2">
+               ✕
+             </div>
+             <span class="px-5 py-2 rounded-2xl bg-rose-700 text-white border border-rose-200/70 text-base sm:text-lg font-black shadow-xl">
+               ${escapeHtml(stampLabel)}
+             </span>
+           </div>`
+        : '';
+
+      const detailAdminStampBtnHtml = isAdminLoggedIn
+        ? `<button
+             type="button"
+             onclick="togglePropertyClosedStamp('${escapeHtml(prop.id)}')"
+             class="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-black transition cursor-pointer border ${
+               isStamped
+                 ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700'
+                 : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
+             }"
+           >
+             <span>✕ ${escapeHtml(stampActionLabel)}</span>
+           </button>`
+        : '';
 
       const cleanPhone = String(prop.phone || DEFAULT_CONTACT_PHONE).replace(/\D+/g, '');
       const waPhone = cleanPhone.startsWith('218')
@@ -1713,12 +1839,13 @@ service cloud.firestore {
           <div>
             <div class="relative aspect-[16/9] rounded-2xl overflow-hidden bg-emeraldLuxury-950 border border-sandWarm-200">
               <img src="${escapeHtml(currentImg)}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover" />
+              ${detailClosedOverlayHtml}
               ${imgs.length > 1 ? `
                 <button
                   type="button"
                   onclick="changeDetailImage('${escapeHtml(prop.id)}', -1)"
                   aria-label="الصورة السابقة"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
                 >
                   ‹
                 </button>
@@ -1726,7 +1853,7 @@ service cloud.firestore {
                   type="button"
                   onclick="changeDetailImage('${escapeHtml(prop.id)}', 1)"
                   aria-label="الصورة التالية"
-                  class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
                 >
                   ›
                 </button>
@@ -1734,6 +1861,13 @@ service cloud.firestore {
             </div>
             ${thumbsHtml}
           </div>
+
+          ${formattedDateTime ? `
+            <div class="px-4 py-2.5 rounded-2xl bg-emeraldLuxury-50 border border-emeraldLuxury-100 text-xs font-bold text-emeraldLuxury-900 flex items-center justify-between gap-2">
+              <span>تاريخ ووقت إضافة الإعلان:</span>
+              <span dir="ltr" class="font-extrabold">${escapeHtml(formattedDateTime)}</span>
+            </div>
+          ` : ''}
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200">
@@ -1760,6 +1894,7 @@ service cloud.firestore {
           ${ownerDetailsHtml}
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2 border-t border-sandWarm-200">
+            ${detailAdminStampBtnHtml}
             <a
               href="tel:${escapeHtml(cleanPhone || DEFAULT_CONTACT_PHONE)}"
               class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-sm transition"
@@ -2004,6 +2139,7 @@ service cloud.firestore {
           ownerName,
           ownerPhone,
           description,
+          closedStamp: existing?.closedStamp || '',
           images: formImages,
           createdAt: existing?.createdAt || nowIso
         });
@@ -2028,6 +2164,7 @@ service cloud.firestore {
           ownerName,
           ownerPhone,
           description,
+          closedStamp: '',
           images: formImages,
           createdAt: nowIso
         });
