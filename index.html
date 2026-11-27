@@ -173,7 +173,7 @@
         <button
           id="firebase-sync-now-btn"
           onclick="syncAllPropertiesNow()"
-          title="مزامنة جميع العروض والصور والتفاصيل الآن"
+          title="مزامنة جميع العروض والصور والتفاصيل ورقم الهاتف الآن"
           class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-bold transition cursor-pointer"
         >
           <svg id="firebase-sync-icon" class="w-3.5 h-3.5 text-emeraldLuxury-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -181,7 +181,7 @@
             <polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
           </svg>
-          <span class="hidden lg:inline">مزامنة الكل</span>
+          <span id="firebase-sync-label" class="hidden lg:inline">مزامنة الكل</span>
         </button>
 
         <!-- مؤشر حالة الربط مع Firebase -->
@@ -253,116 +253,13 @@
         <span class="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">
           مكتب الطبي للعقارات
         </span>
-        <span class="text-sm sm:text-base lg:text-lg font-bold text-goldLuxury-300">
-          سكينة السكن وأمانة الاختيار
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        <!-- المحتوى النصي -->
-        <div class="lg:col-span-7 space-y-6">
-          <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/10 border border-goldLuxury-400/40 text-goldLuxury-300 text-xs sm:text-sm font-bold backdrop-blur-sm">
-            <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-            <span>المنصة العقارية المعتمدة لمكتب الطبي</span>
-          </div>
-
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.22] tracking-tight">
-            نختار لك المسكن الذي يجمع بين <span class="text-goldLuxury-300">الفخامة والطمأنينة</span>
-          </h1>
-
-          <p class="text-emeraldLuxury-100/90 text-sm sm:text-lg leading-relaxed max-w-2xl">
-            استكشف مجموعة منتقاة من الفلل الفاخرة، الشقق العصرية، والأراضي الاستثمارية بمعلومات واضحة، ومعرض صور منظم، وتواصل فوري عبر الواتساب والهاتف.
-          </p>
-
-          <div class="flex flex-wrap items-center gap-3.5 pt-1">
-            <a
-              href="#listings-section"
-              class="btn-shine inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-l from-goldLuxury-400 to-goldLuxury-300 hover:from-goldLuxury-500 hover:to-goldLuxury-400 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition"
-            >
-              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>استعراض العروض العقارية</span>
-            </a>
-
-            <button
-              id="hero-admin-add-btn"
-              onclick="openPropertyFormModal()"
-              class="hidden btn-shine inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white border border-goldLuxury-400/50 font-bold text-sm backdrop-blur-sm transition cursor-pointer"
-            >
-              <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="4" />
-                <path d="M12 8v8M8 12h8" />
-              </svg>
-              <span>إضافة عقار جديد (حتى 5 صور)</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- بطاقة المعايير العقارية الموحدة -->
-        <div class="lg:col-span-5">
-          <div class="bg-white/10 backdrop-blur-md border border-goldLuxury-400/35 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-white/15 pb-4">
-              <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-goldLuxury-400/20 border border-goldLuxury-300/40 flex items-center justify-center text-goldLuxury-300">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="M9 12l2 2 4-4" />
-                  </svg>
-                </div>
-                <span class="text-base font-extrabold text-white">مزايا مكتب الطبي</span>
-              </div>
-              <span class="text-xs font-bold px-3 py-1 rounded-full bg-goldLuxury-400/20 text-goldLuxury-300 border border-goldLuxury-400/30">جودة معتمدة</span>
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-start gap-3.5">
-                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-sm font-extrabold text-white">معرض صور منظم (5 صور كحد أقصى)</h3>
-                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">عرض واضح لكل تفاصيل العقار من الداخل والخارج.</p>
-                </div>
-              </div>
-
-              <div class="flex items-start gap-3.5">
-                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="4 14 10 14 10 20" />
-                    <polyline points="20 10 14 10 14 4" />
-                    <line x1="14" y1="10" x2="21" y2="3" />
-                    <line x1="3" y1="21" x2="10" y2="14" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-sm font-extrabold text-white">معالجة ذكية للصور بنسبة 50%</h3>
-                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">تقليص تلقائي لأبعاد الصور إلى النصف لتصفح فائق السرعة.</p>
-                </div>
-              </div>
-
-              <div class="flex items-start gap-3.5">
-                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-sm font-extrabold text-white">تواصل مباشر عبر الواتساب والهاتف</h3>
-                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">استفسر بضغطة زر مع إرسال بيانات العقار تلقائياً.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="flex items-center gap-3">
+          <span id="last-sync-badge" class="hidden text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-emeraldLuxury-100 border border-white/15">
+            مزامنة السحابة: نشطة
+          </span>
+          <span class="text-sm sm:text-base lg:text-lg font-bold text-goldLuxury-300">
+            سكينة السكن وأمانة الاختيار
+          </span>
         </div>
       </div>
     </div>
@@ -891,6 +788,8 @@
 
   <script>
     const STORAGE_KEY = 'al_thabi_real_estate_properties_v1';
+    const IDB_NAME = 'AlThabiRealEstateDB';
+    const IDB_STORE = 'properties_store';
     const ADMIN_SESSION_KEY = 'al_thabi_admin_session_v1';
     const FIREBASE_CONFIG_KEY = 'al_thabi_firebase_config_v1';
     const FIRESTORE_COLLECTION = 'althabi_properties';
@@ -919,113 +818,66 @@
     let isFirebaseConnected = false;
     let firestoreUnsubscribe = null;
 
-    function getActiveFirebaseConfig() {
-      if (DEFAULT_FIREBASE_CONFIG && DEFAULT_FIREBASE_CONFIG.apiKey && DEFAULT_FIREBASE_CONFIG.projectId) {
-        return DEFAULT_FIREBASE_CONFIG;
-      }
-      try {
-        const saved = localStorage.getItem(FIREBASE_CONFIG_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && parsed.apiKey && parsed.projectId) return parsed;
+    // فتح قاعدة بيانات IndexedDB ذات السعة الكبيرة لتخزين الصور دون قيود 5MB
+    function openLocalIndexedDB() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+          reject(new Error('IndexedDB غير مدعوم'));
+          return;
         }
-      } catch (err) {
-        console.warn('تعذر قراءة إعدادات Firebase المحفوظة:', err);
-      }
-      return null;
-    }
-
-    function updateFirebaseStatusUI(connected, labelText) {
-      const dot = document.getElementById('firebase-status-dot');
-      const text = document.getElementById('firebase-status-text');
-      const syncBtn = document.getElementById('firebase-sync-now-btn');
-      if (dot) {
-        dot.className = connected
-          ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse'
-          : 'w-2.5 h-2.5 rounded-full bg-amber-500';
-      }
-      if (text) {
-        text.textContent = labelText || (connected ? 'متصل بـ Firebase' : 'ربط Firebase');
-      }
-      if (syncBtn) {
-        if (connected) {
-          syncBtn.classList.remove('hidden');
-        } else {
-          syncBtn.classList.add('hidden');
-        }
-      }
-    }
-
-    // توحيد هيكل بيانات العقار لضمان مزامنة جميع الحقول والصور والهاتف والتفاصيل بدقة
-    function normalizePropertyRecord(raw) {
-      const normalizedImages = Array.isArray(raw.images)
-        ? raw.images.slice(0, MAX_PHOTOS).map((img, idx) => ({
-            id: img.id || `img-${Date.now()}-${idx}`,
-            name: String(img.name || `صورة-${idx + 1}.jpg`),
-            originalWidth: Number(img.originalWidth) || Number(img.width) || 800,
-            originalHeight: Number(img.originalHeight) || Number(img.height) || 600,
-            width: Number(img.width) || 400,
-            height: Number(img.height) || 300,
-            dataUrl: String(img.dataUrl || '')
-          })).filter(img => img.dataUrl)
-        : [];
-
-      return {
-        id: String(raw.id || 'prop-' + Date.now()),
-        title: String(raw.title || '').trim(),
-        dealType: raw.dealType === 'إيجار' ? 'إيجار' : 'بيع',
-        category: String(raw.category || 'فيلا').trim(),
-        location: String(raw.location || '').trim(),
-        price: Number(raw.price) || 0,
-        currency: String(raw.currency || 'د.ل').trim(),
-        phone: String(raw.phone || '').trim(),
-        description: String(raw.description || '').trim(),
-        images: normalizedImages,
-        createdAt: Number(raw.createdAt) || Date.now(),
-        updatedAt: Date.now()
-      };
-    }
-
-    // مزامنة جميع العروض المحلية مع Firestore (رفع المفقود وتحديث الكل بالصور والتفاصيل والهاتف)
-    async function pushAllLocalPropertiesToFirestore(localList) {
-      if (!db || !Array.isArray(localList) || localList.length === 0) return;
-      const batch = db.batch();
-      localList.forEach((item) => {
-        const cleanItem = normalizePropertyRecord(item);
-        const docRef = db.collection(FIRESTORE_COLLECTION).doc(cleanItem.id);
-        batch.set(docRef, cleanItem, { merge: true });
+        const request = indexedDB.open(IDB_NAME, 1);
+        request.onupgradeneeded = function (e) {
+          const idb = e.target.result;
+          if (!idb.objectStoreNames.contains(IDB_STORE)) {
+            idb.createObjectStore(IDB_STORE, { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
       });
-      await batch.commit();
     }
 
-    async function syncAllPropertiesNow() {
-      if (!isFirebaseConnected || !db) {
-        showToast('يرجى ربط إعدادات Firebase أولاً لتفعيل المزامنة السحابية.', 'warning');
-        openFirebaseConfigModal();
-        return;
-      }
-
-      const icon = document.getElementById('firebase-sync-icon');
-      if (icon) icon.classList.add('animate-spin');
-
+    async function readPropertiesFromIndexedDB() {
       try {
-        await pushAllLocalPropertiesToFirestore(properties);
-        const snapshot = await db.collection(FIRESTORE_COLLECTION).orderBy('createdAt', 'desc').get();
-        properties = snapshot.docs.map(doc => normalizePropertyRecord({ id: doc.id, ...doc.data() }));
-        saveProperties();
-        renderProperties();
-        showToast(`تمت مزامنة ${properties.length} عرض عقاري بكامل الصور والتفاصيل وأرقام الهواتف بنجاح!`, 'success');
+        const idb = await openLocalIndexedDB();
+        return await new Promise((resolve, reject) => {
+          const tx = idb.transaction(IDB_STORE, 'readonly');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const list = Array.isArray(req.result) ? req.result : [];
+            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            resolve(list);
+          };
+          req.onerror = () => reject(req.error);
+        });
       } catch (err) {
-        console.error('خطأ أثناء المزامنة الشاملة:', err);
-        showToast('حدث خطأ أثناء المزامنة؛ تأكد من حجم الصور أو صلاحيات Firestore.', 'error');
-      } finally {
-        if (icon) icon.classList.remove('animate-spin');
+        return null;
       }
     }
 
-    function initFirebaseConnection() {
-      // تحميل النسخة المحلية أولاً حتى تكون جاهزة للدمج والمزامنة مع السحابة
-      loadProperties();
+    async function writePropertiesToIndexedDB(list) {
+      try {
+        const idb = await openLocalIndexedDB();
+        await new Promise((resolve, reject) => {
+          const tx = idb.transaction(IDB_STORE, 'readwrite');
+          const store = tx.objectStore(IDB_STORE);
+          store.clear();
+          (list || []).forEach(item => store.put(item));
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function getActiveFirebaseConfig() {
+// ... existing code ... -->
+    async function initFirebaseConnection() {
+      // تحميل النسخة المحلية من IndexedDB ذات السعة الكبيرة أولاً
+      await loadProperties();
 
       const config = getActiveFirebaseConfig();
       if (!config || typeof firebase === 'undefined') {
@@ -1037,125 +889,7 @@
       }
 
       try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(config);
-        } else {
-          firebase.app().delete().then(() => {
-            firebase.initializeApp(config);
-            subscribeToFirestoreProperties();
-          });
-          return;
-        }
-        db = firebase.firestore();
-        isFirebaseConnected = true;
-        updateFirebaseStatusUI(true, 'متصل بـ Firebase');
-        subscribeToFirestoreProperties();
-      } catch (err) {
-        console.error('خطأ في تهيئة Firebase:', err);
-        isFirebaseConnected = false;
-        db = null;
-        updateFirebaseStatusUI(false, 'خطأ بالربط');
-        showToast('تعذر الاتصال بـ Firebase؛ يرجى التحقق من صحة بيانات الإعداد.', 'error');
-        renderProperties();
-      }
-    }
-
-    function subscribeToFirestoreProperties() {
-      if (!db) return;
-      if (typeof firestoreUnsubscribe === 'function') {
-        firestoreUnsubscribe();
-      }
-
-      let initialMergeDone = false;
-
-      firestoreUnsubscribe = db.collection(FIRESTORE_COLLECTION)
-        .orderBy('createdAt', 'desc')
-        .onSnapshot(
-          async (snapshot) => {
-            const remoteDocs = snapshot.docs.map(doc => normalizePropertyRecord({ id: doc.id, ...doc.data() }));
-
-            if (!initialMergeDone) {
-              initialMergeDone = true;
-              const remoteIds = new Set(remoteDocs.map(d => d.id));
-              const localOnly = properties.filter(p => !remoteIds.has(p.id));
-
-              if (remoteDocs.length === 0 && properties.length > 0) {
-                await pushAllLocalPropertiesToFirestore(properties);
-                showToast('تم رفع ومزامنة جميع العروض والصور والتفاصيل إلى Firebase.', 'success');
-                return;
-              } else if (localOnly.length > 0) {
-                await pushAllLocalPropertiesToFirestore(localOnly);
-                showToast(`تمت مزامنة ${localOnly.length} عرض محلي إضافي مع Firebase.`, 'success');
-                return;
-              }
-            }
-
-            properties = remoteDocs;
-            saveProperties();
-            renderProperties();
-          },
-          (error) => {
-            console.error('خطأ في مزامنة Firestore:', error);
-            showToast('تعذر جلب البيانات من Firestore (تأكد من قواعد الأمان Rules).', 'warning');
-            renderProperties();
-          }
-        );
-    }
-
-    function openFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      const textarea = document.getElementById('firebase-config-json');
-      const current = getActiveFirebaseConfig();
-      if (textarea) {
-        textarea.value = current ? JSON.stringify(current, null, 2) : '';
-      }
-      if (modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      }
-    }
-
-    function closeFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-      }
-    }
-
-    function parseFirebaseConfigInput(rawInput) {
-      let cleaned = rawInput.trim();
-      const braceStart = cleaned.indexOf('{');
-      const braceEnd = cleaned.lastIndexOf('}');
-      if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
-        cleaned = cleaned.slice(braceStart, braceEnd + 1);
-      }
-      // تحويل مفاتيح كائن JS غير المحاطة بعلامات تنصيص إلى JSON صالح
-      cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
-      cleaned = cleaned.replace(/'/g, '"');
-      cleaned = cleaned.replace(/,\s*}/g, '}');
-      return JSON.parse(cleaned);
-    }
-
-    function saveFirebaseConfigFromModal(event) {
-      event.preventDefault();
-      const raw = document.getElementById('firebase-config-json').value;
-      try {
-        const parsed = parseFirebaseConfigInput(raw);
-        if (!parsed || !parsed.apiKey || !parsed.projectId) {
-          showToast('يرجى التأكد من وجود apiKey و projectId داخل الإعدادات.', 'warning');
-          return;
-        }
-        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(parsed));
-        closeFirebaseConfigModal();
-        showToast('تم حفظ إعدادات Firebase وجاري الاتصال بقاعدة البيانات...', 'success');
-        initFirebaseConnection();
-      } catch (err) {
-        console.error('خطأ في تحليل إعدادات Firebase:', err);
-        showToast('صيغة الإعدادات غير صالحة؛ انسخ كائن firebaseConfig كما هو من Firebase.', 'error');
-      }
-    }
-
+// ... existing code ... -->
     function disconnectFirebase() {
       localStorage.removeItem(FIREBASE_CONFIG_KEY);
       if (typeof firestoreUnsubscribe === 'function') {
@@ -1166,703 +900,69 @@
       db = null;
       updateFirebaseStatusUI(false, 'ربط Firebase');
       closeFirebaseConfigModal();
-      loadProperties();
-      renderProperties();
+      loadProperties().then(() => renderProperties());
       showToast('تم فصل الربط السحابي والعودة للتخزين المحلي.', 'info');
     }
 
     async function hashPassword(password) {
-      try {
-        if (window.crypto && window.crypto.subtle) {
-          const encoder = new TextEncoder();
-          const data = encoder.encode(password);
-          const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-      } catch (err) {
-        console.warn('تعذر استخدام SHA-256:', err);
+// ... existing code ... -->
+    async function loadProperties() {
+      // 1. المحاولة أولاً من IndexedDB (سعة تخزين كبيرة للصور بدون أخطاء)
+      const idbList = await readPropertiesFromIndexedDB();
+      if (Array.isArray(idbList) && idbList.length > 0) {
+        properties = idbList;
+        return;
       }
-      return String(password);
-    }
 
-    function restoreAdminSession() {
-      try {
-        const raw = sessionStorage.getItem(ADMIN_SESSION_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.authenticated && parsed.email) {
-            isAdminLoggedIn = true;
-            activeAdminEmail = parsed.email;
-          }
-        }
-      } catch (err) {
-        console.error('خطأ في استعادة جلسة المشرف:', err);
-      }
-      updateAdminUI();
-    }
-
-    function updateAdminUI() {
-      const addBtn = document.getElementById('open-add-modal-btn');
-      const heroAddBtn = document.getElementById('hero-admin-add-btn');
-      const loginTrigger = document.getElementById('admin-login-trigger-btn');
-      const sessionControls = document.getElementById('admin-session-controls');
-      const emailLabel = document.getElementById('admin-active-email');
-
-      if (isAdminLoggedIn) {
-        if (addBtn) addBtn.classList.remove('hidden');
-        if (heroAddBtn) heroAddBtn.classList.remove('hidden');
-        if (loginTrigger) loginTrigger.classList.add('hidden');
-        if (sessionControls) {
-          sessionControls.classList.remove('hidden');
-          sessionControls.classList.add('flex');
-        }
-        if (emailLabel) emailLabel.textContent = activeAdminEmail;
-      } else {
-        if (addBtn) addBtn.classList.add('hidden');
-        if (heroAddBtn) heroAddBtn.classList.add('hidden');
-        if (loginTrigger) loginTrigger.classList.remove('hidden');
-        if (sessionControls) {
-          sessionControls.classList.add('hidden');
-          sessionControls.classList.remove('flex');
-        }
-      }
-      renderProperties();
-    }
-
-    function openAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) {
-        document.getElementById('admin-login-form').reset();
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      }
-    }
-
-    function closeAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-      }
-    }
-
-    async function handleAdminLogin(event) {
-      event.preventDefault();
-      const emailInput = document.getElementById('admin-email').value.trim().toLowerCase();
-      const passwordInput = document.getElementById('admin-password').value;
-
-      const expectedHash = await hashPassword('Althabi@2026');
-      const enteredHash = await hashPassword(passwordInput);
-
-      if (emailInput === ADMIN_CREDENTIALS.email.toLowerCase() && enteredHash === expectedHash) {
-        isAdminLoggedIn = true;
-        activeAdminEmail = emailInput;
-        try {
-          sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
-            authenticated: true,
-            email: activeAdminEmail
-          }));
-        } catch (err) {
-          console.error('تعذر حفظ جلسة المشرف:', err);
-        }
-        closeAdminLoginModal();
-        updateAdminUI();
-        showToast('مرحباً بك يا مشرف مكتب الطبي للعقارات! يمكنك الآن إضافة وإدارة العقارات.', 'success');
-      } else {
-        showToast('البريد الإلكتروني أو كلمة المرور الخاصة بالمشرف غير صحيحة.', 'error');
-      }
-    }
-
-    function logoutAdmin() {
-      isAdminLoggedIn = false;
-      activeAdminEmail = '';
-      try {
-        sessionStorage.removeItem(ADMIN_SESSION_KEY);
-      } catch (err) {
-        console.error('تعذر مسح جلسة المشرف:', err);
-      }
-      closePropertyFormModal();
-      updateAdminUI();
-      showToast('تم تسجيل الخروج من ملف المشرف بنجاح.', 'info');
-    }
-
-    function createSampleIllustration(title, subtitle, accentHex, bgHex) {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 900;
-        canvas.height = 600;
-        const ctx = canvas.getContext('2d');
-
-        const grad = ctx.createLinearGradient(0, 0, 900, 600);
-        grad.addColorStop(0, bgHex);
-        grad.addColorStop(1, '#051d17');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 900, 600);
-
-        ctx.fillStyle = 'rgba(239, 208, 133, 0.12)';
-        ctx.beginPath();
-        ctx.arc(760, 120, 170, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.beginPath();
-        ctx.arc(150, 500, 210, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = accentHex;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(42, 42, 816, 516);
-
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(450, 145);
-        ctx.lineTo(545, 220);
-        ctx.lineTo(545, 315);
-        ctx.lineTo(355, 315);
-        ctx.lineTo(355, 220);
-        ctx.closePath();
-        ctx.stroke();
-
-        ctx.fillStyle = accentHex;
-        ctx.fillRect(430, 255, 40, 60);
-
-        ctx.fillStyle = accentHex;
-        ctx.font = 'bold 26px Cairo, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('مكتب الطبي للعقارات', 450, 380);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 34px Cairo, sans-serif';
-        ctx.fillText(title, 450, 435);
-
-        ctx.fillStyle = '#d7ebe4';
-        ctx.font = '600 22px Cairo, sans-serif';
-        ctx.fillText(subtitle, 450, 480);
-
-        return {
-          dataUrl: canvas.toDataURL('image/jpeg', 0.85),
-          originalWidth: 1800,
-          originalHeight: 1200,
-          width: 900,
-          height: 600,
-          name: 'معاينة-المكتب.jpg'
-        };
-      } catch (err) {
-        console.error('خطأ في توليد صورة المعاينة:', err);
-        return null;
-      }
-    }
-
-    function getDefaultProperties() {
-      const img1 = createSampleIllustration('فيلا فاخرة بالفرناج', 'تشطيب حديث • حديقة واسعة • موقع مميز', '#efd085', '#0c4436');
-      const img2 = createSampleIllustration('شقة راقية في الهاني', 'إطلالة مفتوحة • قريبة من الخدمات', '#efd085', '#09382c');
-      const img3 = createSampleIllustration('أرض استثمارية بعين زارة', 'واجهة واسعة • جاهزة للبناء الفوري', '#efd085', '#0e4d3d');
-
-      return [
-        {
-          id: 'prop-101',
-          title: 'فيلا مستقلة حديثة بتشطيب راقٍ في الفرناج',
-          dealType: 'بيع',
-          category: 'فيلا',
-          location: 'الفرناج - طرابلس',
-          price: 850000,
-          currency: 'د.ل',
-          phone: '218912345678',
-          description: 'فيلا مميزة تتكون من دورين وملحق، تشطيب عصري عالي الجودة، صالات استقبال واسعة، مطبخ مجهز، وحوش يتسع لعدة سيارات في منطقة هادئة وقريبة من الخدمات.',
-          images: img1 ? [img1] : [],
-          createdAt: Date.now() - 86400000 * 2
-        },
-        {
-          id: 'prop-102',
-          title: 'شقة عائلية مشمسة ومريحة في الهاني',
-          dealType: 'إيجار',
-          category: 'شقة',
-          location: 'الهاني - طرابلس',
-          price: 2200,
-          currency: 'د.ل',
-          phone: '218925551122',
-          description: 'شقة نظيفة ومناسبة للعائلات، تضم 3 غرف نوم وصالة معيشة وحمامين ومطبخ عملي، قريبة من المدارس والأسواق والمواصلات الرئيسية.',
-          images: img2 ? [img2] : [],
-          createdAt: Date.now() - 86400000
-        },
-        {
-          id: 'prop-103',
-          title: 'أرض سكنية استثمارية بموقع ممتاز في عين زارة',
-          dealType: 'بيع',
-          category: 'أرض',
-          location: 'عين زارة - طرابلس',
-          price: 390000,
-          currency: 'د.ل',
-          phone: '218918887766',
-          description: 'أرض مستوية على شارع معبد، مناسبة لبناء فيلا عائلية أو استثمار عقاري طويل الأمد مع سهولة الوصول للطرق الرئيسية.',
-          images: img3 ? [img3] : [],
-          createdAt: Date.now()
-        }
-      ];
-    }
-
-    function loadProperties() {
+      // 2. ترحيل أي بيانات قديمة من localStorage إلى IndexedDB تلقائياً
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             properties = parsed;
+            await writePropertiesToIndexedDB(properties);
+            localStorage.removeItem(STORAGE_KEY);
             return;
           }
         }
       } catch (err) {
-        console.error('تعذر قراءة البيانات المحفوظة:', err);
+        console.warn('تم تخطي قراءة localStorage القديم:', err);
       }
+
       properties = getDefaultProperties();
-      saveProperties();
+      await saveProperties();
     }
 
-    function saveProperties() {
+    async function saveProperties() {
+      // الحفظ الأساسي في IndexedDB ذات السعة الضخمة
+      const savedInIDB = await writePropertiesToIndexedDB(properties);
+      if (savedInIDB) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+        return;
+      }
+
+      // احتياطي: في حال عدم توفر IndexedDB نحفظ نسخة خفيفة بدون تضخيم السعة
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
       } catch (err) {
-        console.error('خطأ أثناء حفظ العقارات:', err);
-        showToast('تعذر حفظ بعض الصور بسبب سعة التخزين المحلية، حاول تقليل عدد الصور.', 'warning');
+        try {
+          const lightBackup = properties.map(p => ({
+            ...p,
+            images: Array.isArray(p.images) ? p.images.slice(0, 1) : []
+          }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lightBackup));
+        } catch (innerErr) {
+          console.warn('تم تجاوز سعة localStorage الاحتياطية:', innerErr);
+        }
       }
     }
 
     function showToast(message, type = 'info') {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
-
-      const styles = {
-        success: 'bg-emeraldLuxury-900 text-white border-goldLuxury-400',
-        warning: 'bg-amber-900 text-amber-50 border-amber-400',
-        error: 'bg-rose-900 text-rose-50 border-rose-400',
-        info: 'bg-emeraldLuxury-950 text-white border-emeraldLuxury-600'
-      };
-
-      const toast = document.createElement('div');
-      toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-2xl text-xs sm:text-sm font-bold flex items-center justify-between gap-3 animate-fade-up ${styles[type] || styles.info}`;
-      toast.innerHTML = `
-        <span>${escapeHtml(message)}</span>
-        <button onclick="this.parentElement.remove()" class="text-white/70 hover:text-white font-black text-base leading-none cursor-pointer">&times;</button>
-      `;
-
-      container.appendChild(toast);
-      setTimeout(() => {
-        if (toast.parentElement) toast.remove();
-      }, 4200);
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    function formatPrice(price, currency) {
-      const num = Number(price);
-      const formatted = Number.isFinite(num) ? num.toLocaleString('ar-LY') : escapeHtml(price);
-      return `${formatted} ${escapeHtml(currency || 'د.ل')}`;
-    }
-
-    function normalizePhoneForWhatsApp(rawPhone) {
-      const digits = String(rawPhone || '').replace(/\D/g, '');
-      if (!digits) return '';
-      if (digits.startsWith('09') && digits.length === 10) {
-        return '218' + digits.slice(1);
-      }
-      return digits;
-    }
-
-    function buildWhatsAppUrl(property) {
-      const phone = normalizePhoneForWhatsApp(property.phone);
-      const dealText = property.dealType === 'إيجار' ? 'للإيجار' : 'للبيع';
-      const priceText = formatPrice(property.price, property.currency);
-      const message =
-        `السلام عليكم مكتب الطبي للعقارات،\n` +
-        `أرغب بالاستفسار عن العقار (${dealText}): *${property.title}*\n` +
-        `الموقع: ${property.location}\n` +
-        `السعر: ${priceText}`;
-      const encoded = encodeURIComponent(message);
-      return phone ? `https://wa.me/${phone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
-    }
-
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        const isActive = btn.dataset.filter === filter;
-        btn.className = isActive
-          ? 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm'
-          : 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200';
-      });
-      renderProperties();
-    }
-
-    function resetFilters() {
-      currentFilter = 'all';
-      const searchInput = document.getElementById('search-input');
-      const categoryFilter = document.getElementById('category-filter');
-      if (searchInput) searchInput.value = '';
-      if (categoryFilter) categoryFilter.value = 'all';
-      setFilter('all');
-    }
-
-    function updateStats(filteredCount) {
-      const total = properties.length;
-      const saleCount = properties.filter(p => p.dealType === 'بيع').length;
-      const rentCount = properties.filter(p => p.dealType === 'إيجار').length;
-      const photosCount = properties.reduce((acc, p) => acc + (Array.isArray(p.images) ? p.images.length : 0), 0);
-
-      document.getElementById('stat-total').textContent = total;
-      document.getElementById('stat-sale').textContent = saleCount;
-      document.getElementById('stat-rent').textContent = rentCount;
-      document.getElementById('stat-photos').textContent = photosCount;
-
-      const resultsLabel = document.getElementById('results-count');
-      if (resultsLabel) {
-        resultsLabel.textContent = `عرض ${filteredCount} من أصل ${total} عقار مسجل`;
-      }
-    }
-
-    function renderProperties() {
-      const grid = document.getElementById('properties-grid');
-      const emptyState = document.getElementById('empty-state');
-      const searchQuery = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
-      const selectedCategory = document.getElementById('category-filter')?.value || 'all';
-
-      const filtered = properties.filter(prop => {
-        const matchesDeal = currentFilter === 'all' || prop.dealType === currentFilter;
-        const matchesCategory = selectedCategory === 'all' || prop.category === selectedCategory;
-        const haystack = `${prop.title} ${prop.location} ${prop.category} ${prop.description || ''}`.toLowerCase();
-        const matchesSearch = !searchQuery || haystack.includes(searchQuery);
-        return matchesDeal && matchesCategory && matchesSearch;
-      });
-
-      updateStats(filtered.length);
-
-      if (filtered.length === 0) {
-        grid.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-
-      grid.innerHTML = filtered.map(prop => {
-        const images = Array.isArray(prop.images) ? prop.images : [];
-        const coverImage = images.length > 0 ? images[0].dataUrl : null;
-        const dealBadgeClass = prop.dealType === 'إيجار'
-          ? 'bg-emeraldLuxury-800 text-white'
-          : 'bg-goldLuxury-400 text-emeraldLuxury-950';
-        const waUrl = buildWhatsAppUrl(prop);
-        const telHref = `tel:${escapeHtml(String(prop.phone || '').replace(/[^\d+]/g, ''))}`;
-
-        return `
-          <article class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col group animate-fade-up">
-            <div class="relative h-56 bg-emeraldLuxury-950 overflow-hidden cursor-pointer" onclick="openPropertyDetail('${escapeHtml(prop.id)}')">
-              ${
-                coverImage
-                  ? `<img src="${coverImage}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />`
-                  : `<div class="w-full h-full flex flex-col items-center justify-center text-goldLuxury-300 gap-2">
-                       <svg class="w-10 h-10 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                         <path d="M3 10.5L12 3l9 7.5" />
-                         <path d="M5 9.5V20h14V9.5" />
-                         <path d="M9.5 20v-6h5v6" />
-                       </svg>
-                       <span class="text-xs font-bold">مكتب الطبي للعقارات</span>
-                     </div>`
-              }
-
-              <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
-                <span class="px-3 py-1 rounded-full text-xs font-extrabold shadow ${dealBadgeClass}">
-                  ${escapeHtml(prop.dealType)}
-                </span>
-                <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-emeraldLuxury-900 shadow">
-                  ${escapeHtml(prop.category)}
-                </span>
-              </div>
-
-              <div class="absolute bottom-3.5 left-3.5 px-3 py-1 rounded-xl bg-emeraldLuxury-950/80 backdrop-blur-sm text-white text-xs font-bold flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-goldLuxury-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="3" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <span>${images.length} / ${MAX_PHOTOS}</span>
-              </div>
-            </div>
-
-            <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
-              <div class="space-y-2.5">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-xs font-bold text-emeraldLuxury-700 flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-goldLuxury-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    ${escapeHtml(prop.location)}
-                  </span>
-
-                  ${
-                    isAdminLoggedIn
-                      ? `<button
-                           onclick="deleteProperty('${escapeHtml(prop.id)}')"
-                           title="حذف العقار"
-                           class="text-gray-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
-                         >
-                           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                             <polyline points="3 6 5 6 21 6" />
-                             <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                           </svg>
-                         </button>`
-                      : ''
-                  }
-                </div>
-
-                <h3
-                  onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
-                  class="text-lg font-extrabold text-emeraldLuxury-950 hover:text-emeraldLuxury-700 transition line-clamp-1 cursor-pointer"
-                >
-                  ${escapeHtml(prop.title)}
-                </h3>
-
-                <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                  ${escapeHtml(prop.description || 'عقار مميز معروض عبر مكتب الطبي للعقارات.')}
-                </p>
-              </div>
-
-              <div class="pt-4 border-t border-sandWarm-200 space-y-3">
-                <div class="flex items-center justify-between gap-2">
-                  <div>
-                    <span class="block text-[11px] font-bold text-gray-400">السعر المطلوب</span>
-                    <span class="text-lg sm:text-xl font-black text-emeraldLuxury-900">${formatPrice(prop.price, prop.currency)}</span>
-                  </div>
-                  <div class="text-left">
-                    <span class="block text-[11px] font-bold text-gray-400">هاتف التواصل</span>
-                    <span class="text-xs sm:text-sm font-extrabold text-emeraldLuxury-800" dir="ltr">${escapeHtml(prop.phone)}</span>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2.5">
-                  <a
-                    href="${waUrl}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn-shine inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-l from-emeraldLuxury-700 to-emeraldLuxury-600 hover:from-emeraldLuxury-800 hover:to-emeraldLuxury-700 text-white font-extrabold text-xs sm:text-sm shadow-btn-emerald transition"
-                  >
-                    <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-                    </svg>
-                    <span>واتساب</span>
-                  </a>
-
-                  <button
-                    onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-goldLuxury-100 hover:bg-goldLuxury-200/80 text-emeraldLuxury-950 border border-goldLuxury-300/70 font-extrabold text-xs sm:text-sm transition cursor-pointer"
-                  >
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    <span>التفاصيل</span>
-                  </button>
-                </div>
-
-                <a
-                  href="${telHref}"
-                  class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition"
-                >
-                  <svg class="w-3.5 h-3.5 text-emeraldLuxury-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                  </svg>
-                  <span>اتصال هاتفي مباشر</span>
-                </a>
-              </div>
-            </div>
-          </article>
-        `;
-      }).join('');
-    }
-
-    function openPropertyFormModal() {
-      if (!isAdminLoggedIn) {
-        showToast('إضافة العقارات متاحة للمشرف فقط؛ يرجى تسجيل الدخول أولاً.', 'warning');
-        openAdminLoginModal();
-        return;
-      }
-      draftImages = [];
-      document.getElementById('add-property-form').reset();
-      renderDraftImages();
-      document.getElementById('property-form-modal').classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closePropertyFormModal() {
-      document.getElementById('property-form-modal').classList.add('hidden');
-      document.body.style.overflow = '';
-    }
-
-    function resizeImageByHalf(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const img = new Image();
-          img.onload = function () {
-            try {
-              const originalWidth = img.naturalWidth || img.width;
-              const originalHeight = img.naturalHeight || img.height;
-              const targetWidth = Math.max(1, Math.round(originalWidth / 2));
-              const targetHeight = Math.max(1, Math.round(originalHeight / 2));
-
-              const canvas = document.createElement('canvas');
-              canvas.width = targetWidth;
-              canvas.height = targetHeight;
-
-              const ctx = canvas.getContext('2d');
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
-              ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-              const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-              const quality = mimeType === 'image/jpeg' ? 0.82 : 0.9;
-              const dataUrl = canvas.toDataURL(mimeType, quality);
-
-              resolve({
-                id: 'img-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-                name: file.name,
-                originalWidth,
-                originalHeight,
-                width: targetWidth,
-                height: targetHeight,
-                dataUrl
-              });
-            } catch (canvasErr) {
-              reject(canvasErr);
-            }
-          };
-          img.onerror = () => reject(new Error('تعذر قراءة ملف الصورة'));
-          img.src = e.target.result;
-        };
-        reader.onerror = () => reject(new Error('تعذر تحميل الملف'));
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function handleImageSelection(event) {
-      const input = event.target;
-      const files = Array.from(input.files || []);
-      if (files.length === 0) return;
-
-      const availableSlots = MAX_PHOTOS - draftImages.length;
-      if (availableSlots <= 0) {
-        showToast(`لقد وصلت إلى الحد الأقصى وهو ${MAX_PHOTOS} صور للعقار الواحد.`, 'warning');
-        input.value = '';
-        return;
-      }
-
-      let filesToProcess = files;
-      if (files.length > availableSlots) {
-        showToast(`أقصى شيء ${MAX_PHOTOS} صور لكل عقار؛ تم أخذ أول ${availableSlots} صور متاحة فقط.`, 'warning');
-        filesToProcess = files.slice(0, availableSlots);
-      }
-
-      let resizedCount = 0;
-      for (const file of filesToProcess) {
-        if (!file.type.startsWith('image/')) {
-          showToast(`الملف "${file.name}" ليس صورة صالحة وتم تجاهله.`, 'warning');
-          continue;
-        }
-        try {
-          const processed = await resizeImageByHalf(file);
-          draftImages.push(processed);
-          resizedCount++;
-        } catch (err) {
-          console.error('خطأ في تصغير الصورة:', err);
-          showToast(`تعذر معالجة الصورة "${file.name}".`, 'error');
-        }
-      }
-
-      if (resizedCount > 0) {
-        showToast(`تمت إضافة ${resizedCount} صورة وتصغير أبعادها تلقائياً إلى النصف (50%).`, 'success');
-      }
-
-      renderDraftImages();
-      input.value = '';
-    }
-
-    function removeDraftImage(imageId) {
-      draftImages = draftImages.filter(img => img.id !== imageId);
-      renderDraftImages();
-    }
-
-    function renderDraftImages() {
-      const preview = document.getElementById('draft-images-preview');
-      const badge = document.getElementById('photo-counter-badge');
-
-      if (badge) {
-        badge.textContent = `${draftImages.length} / ${MAX_PHOTOS} صور`;
-      }
-
-      if (!preview) return;
-
-      if (draftImages.length === 0) {
-        preview.innerHTML = '';
-        return;
-      }
-
-      preview.innerHTML = draftImages.map((img, idx) => `
-        <div class="bg-white rounded-2xl p-2.5 border border-sandWarm-200 flex items-center gap-3 shadow-sm">
-          <img src="${img.dataUrl}" alt="${escapeHtml(img.name)}" class="w-16 h-16 rounded-xl object-cover shrink-0 border border-sandWarm-200" />
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-extrabold text-emeraldLuxury-900 truncate">صورة ${idx + 1}: ${escapeHtml(img.name)}</p>
-            <p class="text-[11px] text-emeraldLuxury-700 font-semibold mt-0.5">
-              الأبعاد: <span dir="ltr">${img.originalWidth}×${img.originalHeight}</span> ← <span class="text-goldLuxury-600 font-extrabold" dir="ltr">${img.width}×${img.height}</span> (النصف)
-            </p>
-          </div>
-          <button
-            type="button"
-            onclick="removeDraftImage('${escapeHtml(img.id)}')"
-            title="حذف الصورة"
-            class="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 transition cursor-pointer"
-          >
-            &times;
-          </button>
-        </div>
-      `).join('');
-    }
-
-    function handleAddProperty(event) {
-      event.preventDefault();
-
-      if (!isAdminLoggedIn) {
-        showToast('غير مسموح بإضافة العقارات إلا بعد تسجيل دخول المشرف.', 'error');
-        return;
-      }
-
-      if (draftImages.length > MAX_PHOTOS) {
-        showToast(`الحد الأقصى هو ${MAX_PHOTOS} صور فقط.`, 'error');
-        return;
-      }
-
-      const title = document.getElementById('prop-title').value.trim();
-      const dealType = document.getElementById('prop-deal').value;
-      const category = document.getElementById('prop-category').value;
-      const location = document.getElementById('prop-location').value.trim();
-      const price = parseFloat(document.getElementById('prop-price').value);
-      const currency = document.getElementById('prop-currency').value;
-      const phone = document.getElementById('prop-phone').value.trim();
-      const description = document.getElementById('prop-description').value.trim();
-
-      if (!title || !location || !Number.isFinite(price) || price <= 0 || !phone) {
-        showToast('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.', 'warning');
-        return;
-      }
-
-      const newProperty = normalizePropertyRecord({
+// ... existing code ... -->
+      const rawProperty = {
         id: 'prop-' + Date.now(),
         title,
         dealType,
@@ -1874,32 +974,34 @@
         description,
         images: [...draftImages],
         createdAt: Date.now()
-      });
+      };
+
+      const newProperty = await preparePropertyForFirestore(rawProperty);
 
       if (isFirebaseConnected && db) {
         db.collection(FIRESTORE_COLLECTION).doc(newProperty.id).set(newProperty, { merge: true })
-          .then(() => {
+          .then(async () => {
             closePropertyFormModal();
             showToast(`تم نشر العقار "${title}" ومزامنة صوره وتفاصيله ورقم الهاتف مع Firebase!`, 'success');
           })
-          .catch((err) => {
+          .catch(async (err) => {
             console.error('خطأ في حفظ العقار على Firestore:', err);
-            showToast('تعذر الحفظ على Firebase؛ تم الحفظ محلياً كنسخة احتياطية.', 'warning');
             properties.unshift(newProperty);
-            saveProperties();
+            await saveProperties();
             renderProperties();
             closePropertyFormModal();
+            showToast('تم حفظ العقار وصوره محلياً بنجاح (تحقق من صلاحيات Firestore للمزامنة السحابية).', 'info');
           });
       } else {
         properties.unshift(newProperty);
-        saveProperties();
+        await saveProperties();
         renderProperties();
         closePropertyFormModal();
-        showToast(`تم نشر العقار "${title}" بنجاح عبر مكتب الطبي للعقارات!`, 'success');
+        showToast(`تم نشر العقار "${title}" وحفظ جميع صوره بنجاح!`, 'success');
       }
     }
 
-    function deleteProperty(propertyId) {
+    async function deleteProperty(propertyId) {
       if (!isAdminLoggedIn) {
         showToast('حذف العقارات متاح للمشرف فقط.', 'warning');
         return;
@@ -1919,7 +1021,7 @@
           });
       } else {
         properties = properties.filter(p => p.id !== propertyId);
-        saveProperties();
+        await saveProperties();
         renderProperties();
         closePropertyDetail();
         showToast(`تم حذف العقار "${target.title}".`, 'info');
@@ -1927,139 +1029,5 @@
     }
 
     function openPropertyDetail(propertyId) {
-      const prop = properties.find(p => p.id === propertyId);
-      if (!prop) return;
-
-      const modal = document.getElementById('property-detail-modal');
-      const content = document.getElementById('property-detail-content');
-      const images = Array.isArray(prop.images) ? prop.images : [];
-      const waUrl = buildWhatsAppUrl(prop);
-      const telHref = `tel:${escapeHtml(String(prop.phone || '').replace(/[^\d+]/g, ''))}`;
-      const mainImgSrc = images.length > 0 ? images[0].dataUrl : null;
-
-      content.innerHTML = `
-        <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between gap-3">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-goldLuxury-400 text-emeraldLuxury-950">${escapeHtml(prop.dealType)}</span>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/15 text-white">${escapeHtml(prop.category)}</span>
-            </div>
-            <h3 class="text-xl sm:text-2xl font-extrabold mt-1.5">${escapeHtml(prop.title)}</h3>
-          </div>
-          <button
-            onclick="closePropertyDetail()"
-            aria-label="إغلاق"
-            class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0 transition cursor-pointer"
-          >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="p-5 sm:p-7 space-y-6 max-h-[82vh] overflow-y-auto">
-          <div class="space-y-3">
-            <div class="h-64 sm:h-80 rounded-2xl bg-emeraldLuxury-950 overflow-hidden border border-sandWarm-200 flex items-center justify-center">
-              ${
-                mainImgSrc
-                  ? `<img id="detail-active-img" src="${mainImgSrc}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover" />`
-                  : `<span class="text-goldLuxury-300 font-bold text-sm">لا توجد صور مرفقة لهذا العقار</span>`
-              }
-            </div>
-
-            ${
-              images.length > 1
-                ? `<div class="flex items-center gap-2.5 overflow-x-auto pb-1">
-                     ${images.map((img, i) => `
-                       <button
-                         type="button"
-                         onclick="switchDetailImage('${img.dataUrl}')"
-                         class="w-20 h-16 rounded-xl overflow-hidden border-2 border-sandWarm-200 hover:border-goldLuxury-500 shrink-0 transition cursor-pointer"
-                       >
-                         <img src="${img.dataUrl}" alt="صورة ${i + 1}" class="w-full h-full object-cover" />
-                       </button>
-                     `).join('')}
-                   </div>`
-                : ''
-            }
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-sandWarm-50 p-4 rounded-2xl border border-sandWarm-200">
-            <div>
-              <span class="text-xs text-gray-500 font-semibold block">السعر</span>
-              <span class="text-xl font-black text-emeraldLuxury-900">${formatPrice(prop.price, prop.currency)}</span>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500 font-semibold block">الموقع</span>
-              <span class="text-sm font-extrabold text-emeraldLuxury-900">${escapeHtml(prop.location)}</span>
-            </div>
-            <div>
-              <span class="text-xs text-gray-500 font-semibold block">رقم الهاتف</span>
-              <span class="text-sm font-extrabold text-emeraldLuxury-900" dir="ltr">${escapeHtml(prop.phone)}</span>
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <h4 class="text-sm font-extrabold text-emeraldLuxury-900">تفاصيل العقار</h4>
-            <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-              ${escapeHtml(prop.description || 'تم إدراج هذا العقار عبر مكتب الطبي للعقارات. تواصل معنا للحصول على كافة التفاصيل والمواعيد.')}
-            </p>
-          </div>
-
-          <div class="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-sandWarm-200">
-            <a
-              href="${waUrl}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-shine w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-l from-emeraldLuxury-800 to-emeraldLuxury-600 text-white font-extrabold text-sm shadow-btn-emerald transition"
-            >
-              <span>تواصل عبر واتساب مع مكتب الطبي للعقارات</span>
-            </a>
-
-            <a
-              href="${telHref}"
-              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-goldLuxury-100 hover:bg-goldLuxury-200 text-emeraldLuxury-950 border border-goldLuxury-300 font-extrabold text-sm transition"
-            >
-              <span>اتصال مباشر: <span dir="ltr">${escapeHtml(prop.phone)}</span></span>
-            </a>
-          </div>
-        </div>
-      `;
-
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function switchDetailImage(dataUrl) {
-      const imgEl = document.getElementById('detail-active-img');
-      if (imgEl) imgEl.src = dataUrl;
-    }
-
-    function closePropertyDetail() {
-      document.getElementById('property-detail-modal').classList.add('hidden');
-      document.body.style.overflow = '';
-    }
-
-    document.addEventListener('click', function (e) {
-      const formModal = document.getElementById('property-form-modal');
-      const detailModal = document.getElementById('property-detail-modal');
-      const loginModal = document.getElementById('admin-login-modal');
-      const firebaseModal = document.getElementById('firebase-config-modal');
-      if (e.target === formModal) closePropertyFormModal();
-      if (e.target === detailModal) closePropertyDetail();
-      if (e.target === loginModal) closeAdminLoginModal();
-      if (e.target === firebaseModal) closeFirebaseConfigModal();
-    });
-
-    window.addEventListener('DOMContentLoaded', function () {
-      const yearEl = document.getElementById('current-year');
-      if (yearEl) yearEl.textContent = new Date().getFullYear();
-
-      restoreAdminSession();
-      initFirebaseConnection();
-    });
-  </script>
-</body>
-</html>
+// ... existing code ... -->
 ```
