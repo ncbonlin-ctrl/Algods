@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -910,6 +910,7 @@
   <script>
     // مفاتيح التخزين المحلي ومزامنة التبويبات
     const STORAGE_KEY = 'althabi_real_estate_listings_v1';
+    const DELETED_IDS_KEY = 'althabi_deleted_property_ids_v1';
     const SITE_SETTINGS_STORAGE_KEY = 'althabi_site_settings_v1';
     const ADMIN_SESSION_KEY = 'althabi_admin_session_v1';
     const FIREBASE_CONFIG_KEY = 'althabi_firebase_config_v1';
@@ -1151,6 +1152,7 @@ service cloud.firestore {
 
     // الحالة العامة للتطبيق
     let properties = [];
+    let deletedPropertyIds = new Set();
     let currentFilter = 'all';
     let currentSortMode = 'newest';
     let formImages = [];
@@ -1439,92 +1441,143 @@ service cloud.firestore {
 
       renderProperties();
     }
-    // إعادة ضبط البحث والفلاتر
-    function resetFilters() {
-      currentFilter = 'all';
-      const searchInput = document.getElementById('search-input');
-      const categoryFilter = document.getElementById('category-filter');
-      if (searchInput) searchInput.value = '';
-      if (categoryFilter) categoryFilter.value = 'all';
-      setSortMode('newest');
-      setFilter('all');
+
+    // إدارة قائمة المعرفات والرموز المحذوفة لمنع عودة الإعلانات المحذوفة عند المزامنة أو الدمج
+    function loadDeletedPropertyIds() {
+      try {
+        const raw = localStorage.getItem(DELETED_IDS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) return new Set();
+        return new Set(arr.map((x) => String(x || '').trim().toLowerCase()).filter(Boolean));
+      } catch (e) {
+        return new Set();
+      }
     }
 
-    // تحميل إعدادات الموقع وتفضيلات الجسر المحلي
+    function saveDeletedPropertyIds(setObj) {
+      try {
+        const arr = Array.from(setObj || []);
+        localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(arr));
+      } catch (e) {}
+    }
+
+    function markPropertyAsDeleted(prop) {
+      if (!prop) return;
+      if (prop.id) deletedPropertyIds.add(String(prop.id).trim().toLowerCase());
+      if (prop.code) deletedPropertyIds.add(String(prop.code).trim().toLowerCase());
+      saveDeletedPropertyIds(deletedPropertyIds);
+    }
+
+    function unmarkPropertyAsDeleted(prop) {
+      if (!prop) return;
+      if (prop.id) deletedPropertyIds.delete(String(prop.id).trim().toLowerCase());
+      if (prop.code) deletedPropertyIds.delete(String(prop.code).trim().toLowerCase());
+      saveDeletedPropertyIds(deletedPropertyIds);
+    }
+
+    function isPropertyMarkedDeleted(prop) {
+      if (!prop) return false;
+      const idKey = String(prop.id || '').trim().toLowerCase();
+      const codeKey = String(prop.code || '').trim().toLowerCase();
+      return (idKey && deletedPropertyIds.has(idKey)) || (codeKey && deletedPropertyIds.has(codeKey));
+    }
+
+    // تحميل وحفظ إعدادات المكتب
     function loadSiteSettings() {
       try {
         const raw = localStorage.getItem(SITE_SETTINGS_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return {
-            officeName: parsed.officeName || 'مكتب الطبي للعقارات',
-            slogan: parsed.slogan || 'سكينة السكن وأمانة الاختيار'
-          };
-        }
-      } catch (e) {}
-      return {
-        officeName: 'مكتب الطبي للعقارات',
-        slogan: 'سكينة السكن وأمانة الاختيار'
-      };
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+          officeName: parsed.officeName || 'مكتب الطبي للعقارات',
+          slogan: parsed.slogan || 'سكينة السكن وأمانة الاختيار'
+        };
+      } catch (e) {
+        return {
+          officeName: 'مكتب الطبي للعقارات',
+          slogan: 'سكينة السكن وأمانة الاختيار'
+        };
+      }
     }
 
+    // تحميل إعدادات جسر GitHub
     function loadGitHubBridgeConfig() {
       try {
         const raw = localStorage.getItem(GITHUB_BRIDGE_KEY);
-        if (raw) return { ...DEFAULT_GITHUB_BRIDGE, ...JSON.parse(raw) };
-      } catch (e) {}
-      return { ...DEFAULT_GITHUB_BRIDGE };
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+          repo: parsed.repo || DEFAULT_GITHUB_BRIDGE.repo,
+          path: parsed.path || DEFAULT_GITHUB_BRIDGE.path,
+          pageUrl: parsed.pageUrl || DEFAULT_GITHUB_BRIDGE.pageUrl,
+          token: parsed.token || '',
+          autoSyncOnStartup: Boolean(parsed.autoSyncOnStartup)
+        };
+      } catch (e) {
+        return { ...DEFAULT_GITHUB_BRIDGE };
+      }
     }
 
-    // تحميل العقارات محلياً ودمج العقارات الافتراضية المضافة
+    // تحميل العقارات المحلية مع تصفية المحذوفة ودمج الأولية غير المحذوفة
     function loadLocalProperties() {
+      let list = [];
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const normalized = parsed.map((item, idx) => normalizeProperty(item, idx));
-            INITIAL_PROPERTIES.forEach((initProp, idx) => {
-              const exists = normalized.some((p) => p.id === initProp.id || p.code === initProp.code);
-              if (!exists) {
-                normalized.push(normalizeProperty(initProp, normalized.length + idx));
-              }
-            });
-            return sortPropertiesNewestFirst(normalized);
+          if (Array.isArray(parsed)) {
+            list = parsed.map((item, idx) => normalizeProperty(item, idx));
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        list = [];
+      }
 
-      return sortPropertiesNewestFirst(
-        INITIAL_PROPERTIES.map((item, idx) => normalizeProperty(item, idx))
-      );
+      if (!list.length) {
+        list = INITIAL_PROPERTIES.map((item, idx) => normalizeProperty(item, idx));
+      } else {
+        const existingKeys = new Set(
+          list.flatMap((p) => [String(p.id || '').toLowerCase(), String(p.code || '').toLowerCase()]).filter(Boolean)
+        );
+        INITIAL_PROPERTIES.forEach((initItem, idx) => {
+          const norm = normalizeProperty(initItem, idx);
+          if (isPropertyMarkedDeleted(norm)) return;
+          const idKey = String(norm.id || '').toLowerCase();
+          const codeKey = String(norm.code || '').toLowerCase();
+          if (!existingKeys.has(idKey) && !existingKeys.has(codeKey)) {
+            list.push(norm);
+          }
+        });
+      }
+
+      const filtered = list.filter((p) => !isPropertyMarkedDeleted(p));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
     }
 
     // حفظ العقارات محلياً وبث التحديث للتبويبات المفتوحة
-    function saveLocalProperties(list) {
-      const sorted = sortPropertiesNewestFirst(
-        (Array.isArray(list) ? list : []).map((item, idx) => normalizeProperty(item, idx))
-      );
+    function saveLocalProperties(nextList) {
+      const cleaned = (Array.isArray(nextList) ? nextList : [])
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((p) => !isPropertyMarkedDeleted(p));
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
       } catch (e) {}
-
-      if (!isRemoteUpdating && syncChannel) {
-        try {
-          syncChannel.postMessage({ type: 'properties_updated', properties: sorted });
-        } catch (e) {}
-      }
-      return sorted;
+      try {
+        if (syncChannel && !isRemoteUpdating) {
+          syncChannel.postMessage({ type: 'properties-updated', timestamp: Date.now() });
+        }
+      } catch (e) {}
+      return cleaned;
     }
 
-    // تحديث بطاقات الإحصائيات
-    function updateStats(list) {
+    // تحديث الإحصائيات العلوية
+    function updateStats(list = properties) {
       const totalEl = document.getElementById('stat-total');
       const saleEl = document.getElementById('stat-sale');
       const rentEl = document.getElementById('stat-rent');
       const photosEl = document.getElementById('stat-photos');
 
-      const total = list.length;
       const saleCount = list.filter((p) => p.dealType === 'بيع').length;
       const rentCount = list.filter((p) => p.dealType === 'إيجار').length;
       const photosCount = list.reduce((sum, p) => {
@@ -1532,53 +1585,74 @@ service cloud.firestore {
         return sum + realImgs;
       }, 0);
 
-      if (totalEl) totalEl.textContent = formatNumber(total);
+      if (totalEl) totalEl.textContent = formatNumber(list.length);
       if (saleEl) saleEl.textContent = formatNumber(saleCount);
       if (rentEl) rentEl.textContent = formatNumber(rentCount);
       if (photosEl) photosEl.textContent = formatNumber(photosCount);
     }
 
-    // تغيير فلتر نوع العرض (الكل / للبيع / للإيجار)
-    function setFilter(filterVal) {
-      currentFilter = filterVal || 'all';
-      const baseFilterClasses = 'filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer whitespace-nowrap';
-      const defaultFilterClasses = `${baseFilterClasses} bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm`;
-      const activeFilterClasses = `${baseFilterClasses} bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 text-emeraldLuxury-950 border border-goldLuxury-600 shadow-btn-gold ring-2 ring-goldLuxury-300`;
+    // ضبط الفلتر وتحديث لون الزر المختار
+    function setFilter(filterValue) {
+      currentFilter = filterValue || 'all';
+      const baseClasses = 'filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer whitespace-nowrap';
+      const defaultClasses = `${baseClasses} bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm`;
+      const activeClasses = `${baseClasses} bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 text-emeraldLuxury-950 border border-goldLuxury-600 shadow-btn-gold ring-2 ring-goldLuxury-300`;
 
       document.querySelectorAll('.filter-btn').forEach((btn) => {
-        const isSelected = btn.getAttribute('data-filter') === currentFilter;
-        btn.className = isSelected ? activeFilterClasses : defaultFilterClasses;
+        const btnFilter = btn.getAttribute('data-filter');
+        btn.className = btnFilter === currentFilter ? activeClasses : defaultClasses;
       });
 
       renderProperties();
     }
 
-    // رسم شبكة البطاقات العقارية
+    // إعادة ضبط البحث والفلاتر والترتيب
+    function resetFilters() {
+      currentFilter = 'all';
+      currentSortMode = 'newest';
+      const searchInput = document.getElementById('search-input');
+      const categorySelect = document.getElementById('category-filter');
+      if (searchInput) searchInput.value = '';
+      if (categorySelect) categorySelect.value = 'all';
+      setFilter('all');
+      setSortMode('newest');
+    }
+
+    // عرض بطاقات العقارات المفلترة والمرتبة
     function renderProperties() {
       const grid = document.getElementById('properties-grid');
       const emptyState = document.getElementById('empty-state');
       const resultsCount = document.getElementById('results-count');
       if (!grid) return;
 
-      updateStats(properties);
-
-      const searchTerm = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+      const searchTerm = String(document.getElementById('search-input')?.value || '').trim().toLowerCase();
       const categoryVal = document.getElementById('category-filter')?.value || 'all';
 
-      const orderedAll = applySelectedSort(properties);
-      const filtered = orderedAll.filter((prop) => {
-        const matchDeal = currentFilter === 'all' || prop.dealType === currentFilter;
-        const matchCategory = categoryVal === 'all' || prop.category === categoryVal;
-        const haystack = `${prop.code} ${prop.title} ${prop.location} ${prop.category} ${prop.dealType} ${prop.description}`.toLowerCase();
-        const matchSearch = !searchTerm || haystack.includes(searchTerm);
-        return matchDeal && matchCategory && matchSearch;
-      });
+      let filtered = properties.filter((p) => !isPropertyMarkedDeleted(p));
 
-      if (resultsCount) {
-        resultsCount.textContent = `عرض ${formatNumber(filtered.length)} من أصل ${formatNumber(orderedAll.length)} عقار`;
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter((p) => p.dealType === currentFilter);
       }
 
-      if (filtered.length === 0) {
+      if (categoryVal !== 'all') {
+        filtered = filtered.filter((p) => p.category === categoryVal);
+      }
+
+      if (searchTerm) {
+        filtered = filtered.filter((p) => {
+          const hay = `${p.code} ${p.title} ${p.location} ${p.category} ${p.dealType} ${p.description}`.toLowerCase();
+          return hay.includes(searchTerm);
+        });
+      }
+
+      const sorted = applySelectedSort(filtered);
+      updateStats(properties);
+
+      if (resultsCount) {
+        resultsCount.textContent = `عرض ${formatNumber(sorted.length)} من أصل ${formatNumber(properties.length)} عقار`;
+      }
+
+      if (!sorted.length) {
         grid.innerHTML = '';
         if (emptyState) emptyState.classList.remove('hidden');
         return;
@@ -1586,377 +1660,306 @@ service cloud.firestore {
 
       if (emptyState) emptyState.classList.add('hidden');
 
-      grid.innerHTML = filtered.map((prop) => {
-        const mainImg = (Array.isArray(prop.images) && prop.images[0]) || generateFallbackPropertyImage(prop);
-        const formattedDateTime = formatPropertyDateTime(prop.createdAt);
-        const stampLabel = prop.closedStamp || '';
-        const stampActionLabel = getClosedStampLabelForDeal(prop.dealType);
-        const isStamped = Boolean(stampLabel);
+      grid.innerHTML = sorted
+        .map((prop) => {
+          const coverImg = (Array.isArray(prop.images) && prop.images[0]) ? prop.images[0] : generateFallbackPropertyImage(prop);
+          const dateTimeText = formatPropertyDateTime(prop.createdAt);
+          const stampText = prop.closedStamp || '';
+          const expectedStamp = getClosedStampLabelForDeal(prop.dealType);
+          const isStamped = Boolean(stampText);
 
-        const dealBadgeStyle = prop.dealType === 'بيع'
-          ? 'bg-goldLuxury-300 text-emeraldLuxury-950 border-goldLuxury-500'
-          : prop.dealType === 'إيجار'
-          ? 'bg-emeraldLuxury-800 text-white border-emeraldLuxury-600'
-          : 'bg-amber-100 text-amber-900 border-amber-300';
-
-        const closedOverlayHtml = isStamped
-          ? `<div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 pointer-events-none p-3 text-center">
-               <div class="w-14 h-14 rounded-full bg-rose-600/95 text-white border-2 border-white shadow-2xl flex items-center justify-center text-3xl font-black leading-none mb-2">
-                 ✕
-               </div>
-               <span class="px-4 py-1.5 rounded-xl bg-rose-700 text-white border border-rose-200/70 text-sm sm:text-base font-black shadow-xl">
-                 ${escapeHtml(stampLabel)}
-               </span>
-             </div>`
-          : '';
-
-        const ownerBoxHtml = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
-          ? `<div class="mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">
-               <span class="font-bold">المالك: ${escapeHtml(prop.ownerName || 'غير مسجل')}</span>
-               <span class="font-mono font-bold" dir="ltr">${escapeHtml(prop.ownerPhone || '')}</span>
-             </div>`
-          : '';
-
-        const adminActionsHtml = isAdminLoggedIn
-          ? `<div class="mt-3 pt-3 border-t border-sandWarm-200 flex flex-wrap items-center justify-between gap-2">
-               <button
-                 type="button"
-                 onclick="togglePropertyClosedStamp('${escapeHtml(prop.id)}')"
-                 class="flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition cursor-pointer border whitespace-nowrap ${
-                   isStamped
-                     ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 shadow-sm'
-                     : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
-                 }"
-               >
-                 ✕ ${escapeHtml(stampActionLabel)}
-               </button>
-               <button
-                 type="button"
-                 onclick="openPropertyFormModal('${escapeHtml(prop.id)}')"
-                 class="py-2 px-3 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold transition cursor-pointer"
-               >
-                 تعديل
-               </button>
-               <button
-                 type="button"
-                 onclick="deleteProperty('${escapeHtml(prop.id)}')"
-                 aria-label="إتمام وحذف العقار"
-                 class="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black transition cursor-pointer"
-               >
-                 ✕
-               </button>
-             </div>`
-          : '';
-
-        return `
-          <article class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col justify-between group">
-            <div>
-              <div class="relative aspect-[16/10] bg-emeraldLuxury-950 overflow-hidden cursor-pointer" onclick="openPropertyDetail('${escapeHtml(prop.id)}')">
-                <img
-                  src="${escapeHtml(mainImg)}"
-                  alt="${escapeHtml(prop.title)}"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                ${closedOverlayHtml}
-                <div class="absolute top-3 right-3 z-20 flex items-center gap-1.5">
-                  <span class="px-3 py-1 rounded-xl text-xs font-black border shadow-sm ${dealBadgeStyle}">
-                    ${escapeHtml(prop.dealType)}
-                  </span>
-                  <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-emeraldLuxury-950/85 text-goldLuxury-300 border border-goldLuxury-400/40">
-                    ${escapeHtml(prop.code)}
-                  </span>
-                </div>
-              </div>
-
-              <div class="p-5">
-                <div class="flex items-center justify-between gap-2 text-xs font-bold text-emeraldLuxury-700 mb-1.5">
-                  <span>${escapeHtml(prop.category)}</span>
-                  <span class="truncate">${escapeHtml(prop.location)}</span>
-                </div>
-
-                ${formattedDateTime ? `
-                  <div class="text-[11px] font-bold text-gray-500 mb-2 flex items-center gap-1">
-                    <span>تاريخ الإضافة:</span>
-                    <span dir="ltr" class="text-emeraldLuxury-800 font-extrabold">${escapeHtml(formattedDateTime)}</span>
-                  </div>
-                ` : ''}
-
-                <h3
-                  onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
-                  class="text-lg font-black text-emeraldLuxury-950 hover:text-emeraldLuxury-700 transition cursor-pointer line-clamp-2"
-                >
-                  ${escapeHtml(prop.title)}
-                </h3>
-
-                <p class="text-xs text-gray-600 mt-2 line-clamp-2 leading-relaxed">
-                  ${escapeHtml(prop.description)}
-                </p>
-
-                ${ownerBoxHtml}
-              </div>
-            </div>
-
-            <div class="px-5 pb-5 pt-2">
-              <div class="flex items-center justify-between gap-3 pt-3 border-t border-sandWarm-200">
-                <div>
-                  <span class="text-[11px] font-bold text-gray-400 block">السعر</span>
-                  <span class="text-lg font-black text-emeraldLuxury-900">
-                    ${formatNumber(prop.price)} <span class="text-xs font-extrabold text-goldLuxury-600">${escapeHtml(prop.currency)}</span>
-                  </span>
-                </div>
-
+          const adminActionsHtml = isAdminLoggedIn
+            ? `
+              <div class="pt-3 mt-3 border-t border-sandWarm-200 flex flex-wrap items-center justify-between gap-2">
                 <button
                   type="button"
-                  onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
-                  class="btn-shine px-4 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white text-xs font-extrabold shadow-btn-emerald transition cursor-pointer"
+                  onclick="event.stopPropagation(); togglePropertyClosedStamp('${escapeHtml(prop.id)}')"
+                  class="px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer border ${
+                    isStamped
+                      ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-700'
+                      : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                  }"
                 >
-                  التفاصيل والتواصل
+                  ✕ ${escapeHtml(expectedStamp)}
                 </button>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onclick="event.stopPropagation(); openEditPropertyModal('${escapeHtml(prop.id)}')"
+                    class="px-3 py-1.5 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold transition cursor-pointer"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    type="button"
+                    onclick="event.stopPropagation(); deleteProperty('${escapeHtml(prop.id)}')"
+                    class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-extrabold transition cursor-pointer"
+                  >
+                    حذف
+                  </button>
+                </div>
               </div>
-              ${adminActionsHtml}
-            </div>
-          </article>
-        `;
-      }).join('');
+            `
+            : '';
+
+          const stampOverlayHtml = isStamped
+            ? `
+              <div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 pointer-events-none select-none">
+                <div class="w-16 h-16 rounded-full bg-rose-600/95 text-white flex items-center justify-center text-4xl font-black shadow-2xl border-2 border-white">
+                  ✕
+                </div>
+                <span class="mt-2 px-4 py-1 rounded-full bg-rose-600 text-white text-sm font-black shadow-lg border border-white/80">
+                  ${escapeHtml(stampText)}
+                </span>
+              </div>
+            `
+            : '';
+
+          return `
+            <article
+              onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
+              class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col cursor-pointer group animate-fade-up"
+            >
+              <div class="relative h-52 bg-emeraldLuxury-950 overflow-hidden">
+                <img
+                  src="${escapeHtml(coverImg)}"
+                  alt="${escapeHtml(prop.title)}"
+                  onerror="this.onerror=null; this.src='${generateFallbackPropertyImage(prop)}';"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                ${stampOverlayHtml}
+                <div class="absolute top-3 right-3 z-20 flex flex-col items-start gap-1.5">
+                  <span class="px-3 py-1 rounded-full text-xs font-black bg-emeraldLuxury-900/90 text-goldLuxury-300 border border-goldLuxury-400/40 backdrop-blur-sm">
+                    ${escapeHtml(prop.dealType)}
+                  </span>
+                  <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-emeraldLuxury-900 shadow-sm">
+                    ${escapeHtml(prop.category)}
+                  </span>
+                </div>
+                <div class="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-lg bg-black/65 text-goldLuxury-300 text-[11px] font-mono font-bold backdrop-blur-sm">
+                  ${escapeHtml(prop.code)}
+                </div>
+              </div>
+
+              <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
+                <div class="space-y-2">
+                  <h3 class="text-base sm:text-lg font-extrabold text-emeraldLuxury-950 group-hover:text-emeraldLuxury-700 transition line-clamp-2">
+                    ${escapeHtml(prop.title)}
+                  </h3>
+                  <p class="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                    <span>📍</span>
+                    <span>${escapeHtml(prop.location)}</span>
+                  </p>
+                  ${
+                    dateTimeText
+                      ? `<p class="text-[11px] text-emeraldLuxury-700 font-bold">🕒 ${escapeHtml(dateTimeText)}</p>`
+                      : ''
+                  }
+                </div>
+
+                <div>
+                  <div class="pt-3 border-t border-sandWarm-200 flex items-center justify-between gap-2">
+                    <div class="text-lg sm:text-xl font-black text-emeraldLuxury-900">
+                      ${formatNumber(prop.price)} <span class="text-xs font-bold text-goldLuxury-600">${escapeHtml(prop.currency)}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-emeraldLuxury-800 group-hover:translate-x-[-4px] transition-transform">
+                      التفاصيل ←
+                    </span>
+                  </div>
+                  ${adminActionsHtml}
+                </div>
+              </div>
+            </article>
+          `;
+        })
+        .join('');
     }
 
-    // نافذة تفاصيل العقار ومعرض الصور
+    // فتح نافذة تفاصيل العقار
     function openPropertyDetail(propId) {
       const prop = properties.find((p) => p.id === propId);
       if (!prop) return;
       activeGalleryIndex = 0;
       renderPropertyDetailModal(prop);
-      document.getElementById('property-detail-modal')?.classList.remove('hidden');
-    }
-
-    function changeDetailImage(propId, step) {
-      const prop = properties.find((p) => p.id === propId);
-      if (!prop || !Array.isArray(prop.images) || prop.images.length === 0) return;
-      activeGalleryIndex = (activeGalleryIndex + step + prop.images.length) % prop.images.length;
-      renderPropertyDetailModal(prop);
-    }
-
-    function selectDetailImage(propId, index) {
-      const prop = properties.find((p) => p.id === propId);
-      if (!prop || !Array.isArray(prop.images) || !prop.images[index]) return;
-      activeGalleryIndex = index;
-      renderPropertyDetailModal(prop);
+      const modal = document.getElementById('property-detail-modal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closePropertyDetailModal() {
-      document.getElementById('property-detail-modal')?.classList.add('hidden');
+      const modal = document.getElementById('property-detail-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function selectGalleryImage(propId, idx) {
+      const prop = properties.find((p) => p.id === propId);
+      if (!prop) return;
+      activeGalleryIndex = idx;
+      renderPropertyDetailModal(prop);
     }
 
     function renderPropertyDetailModal(prop) {
       const container = document.getElementById('property-detail-content');
-      if (!container) return;
+      if (!container || !prop) return;
 
-      const imgs = Array.isArray(prop.images) && prop.images.length > 0
-        ? prop.images
-        : [generateFallbackPropertyImage(prop)];
-      const safeIdx = Math.min(activeGalleryIndex, imgs.length - 1);
+      const imgs = Array.isArray(prop.images) && prop.images.length > 0 ? prop.images : [generateFallbackPropertyImage(prop)];
+      const safeIdx = Math.min(Math.max(activeGalleryIndex, 0), imgs.length - 1);
       const currentImg = imgs[safeIdx];
-      const formattedDateTime = formatPropertyDateTime(prop.createdAt);
-      const stampLabel = prop.closedStamp || '';
-      const stampActionLabel = getClosedStampLabelForDeal(prop.dealType);
-      const isStamped = Boolean(stampLabel);
-
-      const detailClosedOverlayHtml = isStamped
-        ? `<div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 pointer-events-none p-4 text-center">
-             <div class="w-16 h-16 rounded-full bg-rose-600/95 text-white border-2 border-white shadow-2xl flex items-center justify-center text-4xl font-black leading-none mb-2">
-               ✕
-             </div>
-             <span class="px-5 py-2 rounded-2xl bg-rose-700 text-white border border-rose-200/70 text-base sm:text-lg font-black shadow-xl">
-               ${escapeHtml(stampLabel)}
-             </span>
-           </div>`
-        : '';
-
-      const detailAdminStampBtnHtml = isAdminLoggedIn
-        ? `<button
-             type="button"
-             onclick="togglePropertyClosedStamp('${escapeHtml(prop.id)}')"
-             class="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-black transition cursor-pointer border ${
-               isStamped
-                 ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700'
-                 : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
-             }"
-           >
-             <span>✕ ${escapeHtml(stampActionLabel)}</span>
-           </button>`
-        : '';
-
+      const dateTimeText = formatPropertyDateTime(prop.createdAt);
       const cleanPhone = String(prop.phone || DEFAULT_CONTACT_PHONE).replace(/\D+/g, '');
       const waPhone = cleanPhone.startsWith('218')
         ? cleanPhone
         : cleanPhone.startsWith('0')
         ? '218' + cleanPhone.slice(1)
-        : '218' + cleanPhone;
-      const waMsg = encodeURIComponent(`مرحباً مكتب الطبي للعقارات، أستفسر بخصوص العرض (${prop.code}): ${prop.title}`);
+        : '218914664430';
 
-      const thumbsHtml = imgs.length > 1
-        ? `<div class="flex items-center justify-center gap-2 mt-3 flex-wrap">
-             ${imgs.map((src, i) => `
-               <button
-                 type="button"
-                 onclick="selectDetailImage('${escapeHtml(prop.id)}', ${i})"
-                 class="w-16 h-12 rounded-xl overflow-hidden border-2 transition cursor-pointer ${i === safeIdx ? 'border-goldLuxury-500 scale-105' : 'border-transparent opacity-70 hover:opacity-100'}"
-               >
-                 <img src="${escapeHtml(src)}" alt="صورة ${i + 1}" class="w-full h-full object-cover" />
-               </button>
-             `).join('')}
-           </div>`
+      const ownerInfoHtml = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
+        ? `
+          <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-xs text-amber-950 space-y-1">
+            <div class="font-black">بيانات صاحب العقار (خاصة بالمشرف):</div>
+            ${prop.ownerName ? `<div>الاسم: <span class="font-bold">${escapeHtml(prop.ownerName)}</span></div>` : ''}
+            ${prop.ownerPhone ? `<div>الهاتف: <span class="font-mono font-bold" dir="ltr">${escapeHtml(prop.ownerPhone)}</span></div>` : ''}
+          </div>
+        `
         : '';
 
-      const ownerDetailsHtml = isAdminLoggedIn && (prop.ownerName || prop.ownerPhone)
-        ? `<div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-1 text-xs text-amber-950">
-             <div class="font-black">بيانات المالك (خاصة بالمشرف):</div>
-             <div>الاسم: <span class="font-bold">${escapeHtml(prop.ownerName || 'غير مسجل')}</span></div>
-             <div>الهاتف: <span class="font-mono font-bold" dir="ltr">${escapeHtml(prop.ownerPhone || 'غير مسجل')}</span></div>
-           </div>`
+      const thumbsHtml = imgs.length > 1
+        ? `
+          <div class="flex items-center gap-2 overflow-x-auto pt-2">
+            ${imgs
+              .map(
+                (src, i) => `
+                  <button
+                    type="button"
+                    onclick="selectGalleryImage('${escapeHtml(prop.id)}', ${i})"
+                    class="w-16 h-14 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition ${
+                      i === safeIdx ? 'border-goldLuxury-500 scale-105' : 'border-transparent opacity-70 hover:opacity-100'
+                    }"
+                  >
+                    <img src="${escapeHtml(src)}" alt="صورة ${i + 1}" class="w-full h-full object-cover" />
+                  </button>
+                `
+              )
+              .join('')}
+          </div>
+        `
+        : '';
+
+      const stampBadgeHtml = prop.closedStamp
+        ? `
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-xs font-black shadow">
+            <span>✕</span>
+            <span>${escapeHtml(prop.closedStamp)}</span>
+          </div>
+        `
         : '';
 
       container.innerHTML = `
-        <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between gap-3">
-          <div>
-            <span class="text-xs font-bold text-goldLuxury-300">${escapeHtml(prop.code)} • ${escapeHtml(prop.category)} (${escapeHtml(prop.dealType)})</span>
-            <h3 class="text-lg sm:text-xl font-black mt-0.5">${escapeHtml(prop.title)}</h3>
+        <div class="luxury-pattern px-6 py-4 text-white flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-lg bg-white/10 text-goldLuxury-300 text-xs font-mono font-bold">${escapeHtml(prop.code)}</span>
+            <span class="text-xs font-bold text-emeraldLuxury-100">${escapeHtml(prop.category)} • ${escapeHtml(prop.dealType)}</span>
           </div>
           <button
-            type="button"
             onclick="closePropertyDetailModal()"
             aria-label="إغلاق التفاصيل"
-            class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer shrink-0"
+            class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
           >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            ✕
           </button>
         </div>
 
-        <div class="p-5 sm:p-7 space-y-5 max-h-[82vh] overflow-y-auto">
-          <div>
-            <div class="relative aspect-[16/9] rounded-2xl overflow-hidden bg-emeraldLuxury-950 border border-sandWarm-200">
-              <img src="${escapeHtml(currentImg)}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover" />
-              ${detailClosedOverlayHtml}
-              ${imgs.length > 1 ? `
-                <button
-                  type="button"
-                  onclick="changeDetailImage('${escapeHtml(prop.id)}', -1)"
-                  aria-label="الصورة السابقة"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onclick="changeDetailImage('${escapeHtml(prop.id)}', 1)"
-                  aria-label="الصورة التالية"
-                  class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-emeraldLuxury-950/75 hover:bg-emeraldLuxury-950 text-white flex items-center justify-center transition cursor-pointer"
-                >
-                  ›
-                </button>
-              ` : ''}
+        <div class="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[82vh] overflow-y-auto">
+          <div class="space-y-2">
+            <div class="relative h-64 sm:h-72 rounded-2xl overflow-hidden bg-emeraldLuxury-950 border border-sandWarm-200">
+              <img
+                src="${escapeHtml(currentImg)}"
+                alt="${escapeHtml(prop.title)}"
+                onerror="this.onerror=null; this.src='${generateFallbackPropertyImage(prop)}';"
+                class="w-full h-full object-cover"
+              />
             </div>
             ${thumbsHtml}
           </div>
 
-          ${formattedDateTime ? `
-            <div class="px-4 py-2.5 rounded-2xl bg-emeraldLuxury-50 border border-emeraldLuxury-100 text-xs font-bold text-emeraldLuxury-900 flex items-center justify-between gap-2">
-              <span>تاريخ ووقت إضافة الإعلان:</span>
-              <span dir="ltr" class="font-extrabold">${escapeHtml(formattedDateTime)}</span>
+          <div class="space-y-4">
+            <div class="flex flex-wrap items-center gap-2">
+              ${stampBadgeHtml}
+              ${dateTimeText ? `<span class="text-xs font-bold text-gray-500">🕒 ${escapeHtml(dateTimeText)}</span>` : ''}
             </div>
-          ` : ''}
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200">
-              <span class="text-xs font-bold text-gray-500 block">السعر</span>
-              <span class="text-xl font-black text-emeraldLuxury-900 mt-0.5 block">
-                ${formatNumber(prop.price)} <span class="text-sm text-goldLuxury-600">${escapeHtml(prop.currency)}</span>
-              </span>
+            <h3 class="text-xl sm:text-2xl font-black text-emeraldLuxury-950">${escapeHtml(prop.title)}</h3>
+            <p class="text-sm font-bold text-emeraldLuxury-800">📍 ${escapeHtml(prop.location)}</p>
+
+            <div class="text-2xl font-black text-emeraldLuxury-900 bg-sandWarm-50 px-4 py-3 rounded-2xl border border-sandWarm-200">
+              ${formatNumber(prop.price)} <span class="text-sm font-bold text-goldLuxury-600">${escapeHtml(prop.currency)}</span>
             </div>
-            <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200">
-              <span class="text-xs font-bold text-gray-500 block">الموقع</span>
-              <span class="text-sm font-extrabold text-emeraldLuxury-900 mt-1 block">${escapeHtml(prop.location)}</span>
+
+            ${
+              prop.description
+                ? `<p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">${escapeHtml(prop.description)}</p>`
+                : ''
+            }
+
+            ${ownerInfoHtml}
+
+            <div class="pt-3 flex flex-wrap items-center gap-3">
+              <a
+                href="https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحباً مكتب الطبي للعقارات، أستفسر عن العقار (${prop.code}): ${prop.title}`)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow transition"
+              >
+                <span>تواصل واتساب: ${escapeHtml(prop.phone || DEFAULT_CONTACT_PHONE)}</span>
+              </a>
+              <a
+                href="tel:${escapeHtml(prop.phone || DEFAULT_CONTACT_PHONE)}"
+                class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emeraldLuxury-900 hover:bg-emeraldLuxury-950 text-goldLuxury-300 font-bold text-sm transition"
+              >
+                <span>اتصال</span>
+              </a>
             </div>
-            <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200">
-              <span class="text-xs font-bold text-gray-500 block">هاتف التواصل</span>
-              <span class="text-sm font-black text-emeraldLuxury-900 mt-1 block" dir="ltr">${escapeHtml(prop.phone || DEFAULT_CONTACT_PHONE)}</span>
-            </div>
-          </div>
-
-          <div class="p-4 rounded-2xl bg-white border border-sandWarm-200 space-y-1.5">
-            <h4 class="text-sm font-black text-emeraldLuxury-900">تفاصيل ومواصفات العقار</h4>
-            <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">${escapeHtml(prop.description)}</p>
-          </div>
-
-          ${ownerDetailsHtml}
-
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2 border-t border-sandWarm-200">
-            ${detailAdminStampBtnHtml}
-            <a
-              href="tel:${escapeHtml(cleanPhone || DEFAULT_CONTACT_PHONE)}"
-              class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-sm transition"
-            >
-              <span>اتصال مباشر: ${escapeHtml(prop.phone || DEFAULT_CONTACT_PHONE)}</span>
-            </a>
-            <a
-              href="https://wa.me/${escapeHtml(waPhone)}?text=${waMsg}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-shine inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg transition"
-            >
-              <span>تواصل عبر واتساب</span>
-            </a>
           </div>
         </div>
       `;
     }
 
-    // إدارة جلسة المشرف وتسجيل الدخول
+    // واجهة جلسة المشرف ودخول وخروج المشرف
     function applyAdminSessionUI(loggedIn, email = '') {
       isAdminLoggedIn = Boolean(loggedIn);
-      adminUserEmail = email || '';
+      adminUserEmail = loggedIn ? (email || 'admin@althabi.ly') : '';
 
-      const loginTriggerBtn = document.getElementById('admin-login-trigger-btn');
-      const sessionControls = document.getElementById('admin-session-controls');
-      const activeEmailEl = document.getElementById('admin-active-email');
-      const dashboardPanel = document.getElementById('admin-dashboard-panel');
+      const loginBtn = document.getElementById('admin-login-trigger-btn');
+      const sessionBox = document.getElementById('admin-session-controls');
+      const emailSpan = document.getElementById('admin-active-email');
+      const dashboard = document.getElementById('admin-dashboard-panel');
 
-      if (isAdminLoggedIn) {
-        if (loginTriggerBtn) loginTriggerBtn.classList.add('hidden');
-        if (sessionControls) {
-          sessionControls.classList.remove('hidden');
-          sessionControls.classList.add('flex');
-        }
-        if (activeEmailEl && adminUserEmail) activeEmailEl.textContent = adminUserEmail;
-        if (dashboardPanel) dashboardPanel.classList.remove('hidden');
-      } else {
-        if (loginTriggerBtn) loginTriggerBtn.classList.remove('hidden');
-        if (sessionControls) {
-          sessionControls.classList.add('hidden');
-          sessionControls.classList.remove('flex');
-        }
-        if (dashboardPanel) dashboardPanel.classList.add('hidden');
+      if (loginBtn) loginBtn.classList.toggle('hidden', isAdminLoggedIn);
+      if (sessionBox) {
+        sessionBox.classList.toggle('hidden', !isAdminLoggedIn);
+        sessionBox.classList.toggle('flex', isAdminLoggedIn);
       }
+      if (emailSpan) emailSpan.textContent = adminUserEmail;
+      if (dashboard) dashboard.classList.toggle('hidden', !isAdminLoggedIn);
 
       renderProperties();
     }
 
     function openAdminLoginModal() {
-      document.getElementById('admin-login-form')?.reset();
-      document.getElementById('admin-login-modal')?.classList.remove('hidden');
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeAdminLoginModal() {
-      document.getElementById('admin-login-modal')?.classList.add('hidden');
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     async function handleAdminLogin(event) {
       event.preventDefault();
-      const email = (document.getElementById('admin-email')?.value || '').trim();
-      const password = (document.getElementById('admin-password')?.value || '').trim();
+      const emailInput = document.getElementById('admin-email');
+      const passInput = document.getElementById('admin-password');
+      const email = String(emailInput?.value || '').trim();
+      const password = String(passInput?.value || '').trim();
 
       if (!email || !password) {
         showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور.', 'error');
@@ -1964,69 +1967,71 @@ service cloud.firestore {
       }
 
       try {
-        if (auth && auth.signInWithEmailAndPassword) {
+        if (auth) {
           await auth.signInWithEmailAndPassword(email, password);
         }
       } catch (e) {}
 
       try {
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ email, loggedInAt: Date.now() }));
+        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ email, loggedAt: Date.now() }));
       } catch (e) {}
 
-      closeAdminLoginModal();
       applyAdminSessionUI(true, email);
-      showToast('تم تسجيل الدخول إلى وضع الإدارة بنجاح.', 'success');
+      closeAdminLoginModal();
+      showToast('تم تسجيل الدخول إلى لوحة تحكم المشرف.', 'success');
     }
 
     async function logoutAdmin() {
       try {
-        if (auth && auth.signOut) {
+        if (auth && auth.currentUser) {
           await auth.signOut();
         }
       } catch (e) {}
-
       try {
         localStorage.removeItem(ADMIN_SESSION_KEY);
       } catch (e) {}
-
       applyAdminSessionUI(false, '');
-      showToast('تم تسجيل الخروج من وضع الإدارة.', 'success');
+      showToast('تم تسجيل الخروج.', 'success');
     }
 
-    // نافذة إضافة وتعديل العقارات
+    // إضافة وتعديل وحذف العقارات
     function openPropertyFormModal(editId = null) {
       const modal = document.getElementById('property-form-modal');
       const titleEl = document.getElementById('property-form-modal-title');
-      const editIdInput = document.getElementById('prop-edit-id');
+      const form = document.getElementById('add-property-form');
+      if (form) form.reset();
 
-      document.getElementById('add-property-form')?.reset();
+      document.getElementById('prop-edit-id').value = '';
       document.getElementById('prop-phone').value = DEFAULT_CONTACT_PHONE;
       formImages = [];
 
       if (editId) {
-        const target = properties.find((p) => p.id === editId);
-        if (target) {
-          if (titleEl) titleEl.textContent = `تعديل العقار (${target.code})`;
-          if (editIdInput) editIdInput.value = target.id;
-          document.getElementById('prop-title').value = target.title || '';
-          document.getElementById('prop-deal').value = target.dealType || 'بيع';
-          document.getElementById('prop-category').value = target.category || 'شقة';
-          document.getElementById('prop-location').value = target.location || '';
-          document.getElementById('prop-price').value = target.price || '';
-          document.getElementById('prop-currency').value = target.currency || 'د.ل';
-          document.getElementById('prop-phone').value = target.phone || DEFAULT_CONTACT_PHONE;
-          document.getElementById('prop-owner-name').value = target.ownerName || '';
-          document.getElementById('prop-owner-phone').value = target.ownerPhone || '';
-          document.getElementById('prop-description').value = target.description || '';
-          formImages = Array.isArray(target.images) ? target.images.filter(isRealPropertyImage).slice(0, 5) : [];
+        const prop = properties.find((p) => p.id === editId);
+        if (prop) {
+          if (titleEl) titleEl.textContent = `تعديل العقار (${prop.code})`;
+          document.getElementById('prop-edit-id').value = prop.id;
+          document.getElementById('prop-title').value = prop.title || '';
+          document.getElementById('prop-deal').value = prop.dealType || 'بيع';
+          document.getElementById('prop-category').value = prop.category || 'شقة';
+          document.getElementById('prop-location').value = prop.location || '';
+          document.getElementById('prop-price').value = prop.price || '';
+          document.getElementById('prop-currency').value = prop.currency || 'د.ل';
+          document.getElementById('prop-phone').value = prop.phone || DEFAULT_CONTACT_PHONE;
+          document.getElementById('prop-owner-name').value = prop.ownerName || '';
+          document.getElementById('prop-owner-phone').value = prop.ownerPhone || '';
+          document.getElementById('prop-description').value = prop.description || '';
+          formImages = Array.isArray(prop.images) ? prop.images.filter(isRealPropertyImage).slice(0, 5) : [];
         }
       } else {
         if (titleEl) titleEl.textContent = 'إضافة عرض عقاري جديد';
-        if (editIdInput) editIdInput.value = '';
       }
 
-      renderImagePreviewList();
+      renderFormImagePreviews();
       if (modal) modal.classList.remove('hidden');
+    }
+
+    function openEditPropertyModal(propId) {
+      openPropertyFormModal(propId);
     }
 
     function closePropertyFormModal() {
@@ -2035,244 +2040,263 @@ service cloud.firestore {
       formImages = [];
     }
 
-    // رفع الصور وتقليص أبعادها إلى 50% تلقائياً (بحد أقصى 5 صور)
-    function handleImageUpload(event) {
-      const files = Array.from(event.target.files || []);
-      if (!files.length) return;
+    function renderFormImagePreviews() {
+      const list = document.getElementById('image-preview-list');
+      const counter = document.getElementById('photo-counter');
+      if (counter) counter.textContent = `${formImages.length} / 5 صور`;
+      if (!list) return;
 
-      const remainingSlots = 5 - formImages.length;
-      if (remainingSlots <= 0) {
-        showToast('الحد الأقصى هو 5 صور لكل عقار.', 'warning');
-        event.target.value = '';
-        return;
-      }
-
-      const selectedFiles = files.slice(0, remainingSlots);
-      selectedFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.max(1, Math.round(img.width * 0.5));
-            canvas.height = Math.max(1, Math.round(img.height * 0.5));
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              const compressed = canvas.toDataURL('image/jpeg', 0.82);
-              if (formImages.length < 5) {
-                formImages.push(compressed);
-                renderImagePreviewList();
-              }
-            }
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-
-      event.target.value = '';
+      list.innerHTML = formImages
+        .map(
+          (src, idx) => `
+            <div class="relative h-20 rounded-xl overflow-hidden border border-sandWarm-200 bg-white">
+              <img src="${escapeHtml(src)}" alt="معاينة ${idx + 1}" class="w-full h-full object-cover" />
+              <button
+                type="button"
+                onclick="removeFormImage(${idx})"
+                class="absolute top-1 left-1 w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-black flex items-center justify-center shadow cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          `
+        )
+        .join('');
     }
 
     function removeFormImage(index) {
       formImages.splice(index, 1);
-      renderImagePreviewList();
+      renderFormImagePreviews();
     }
 
-    function renderImagePreviewList() {
-      const listEl = document.getElementById('image-preview-list');
-      const counterEl = document.getElementById('photo-counter');
-      if (counterEl) counterEl.textContent = `${formImages.length} / 5 صور`;
-      if (!listEl) return;
-
-      listEl.innerHTML = formImages.map((src, idx) => `
-        <div class="relative aspect-[4/3] rounded-xl overflow-hidden border border-sandWarm-200 bg-white shadow-sm">
-          <img src="${escapeHtml(src)}" alt="معاينة ${idx + 1}" class="w-full h-full object-cover" />
-          <button
-            type="button"
-            onclick="removeFormImage(${idx})"
-            aria-label="حذف الصورة"
-            class="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-black flex items-center justify-center shadow cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      `).join('');
+    function compressImageToHalf(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const targetW = Math.max(1, Math.round(img.width * 0.5));
+            const targetH = Math.max(1, Math.round(img.height * 0.5));
+            const canvas = document.createElement('canvas');
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, targetW, targetH);
+              resolve(canvas.toDataURL('image/jpeg', 0.78));
+            } else {
+              resolve(String(e.target?.result || ''));
+            }
+          };
+          img.onerror = () => resolve('');
+          img.src = String(e.target?.result || '');
+        };
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
     }
 
-    // حفظ العقار (إضافة جديدة أو تعديل) وتصديره في مقدمة العروض
+    async function handleImageUpload(event) {
+      const files = Array.from(event.target?.files || []);
+      if (!files.length) return;
+      const availableSlots = Math.max(0, 5 - formImages.length);
+      const selected = files.slice(0, availableSlots);
+      for (const file of selected) {
+        const compressed = await compressImageToHalf(file);
+        if (isRealPropertyImage(compressed) && formImages.length < 5) {
+          formImages.push(compressed);
+        }
+      }
+      renderFormImagePreviews();
+      event.target.value = '';
+    }
+
     async function handleSaveProperty(event) {
       event.preventDefault();
-
-      const editId = (document.getElementById('prop-edit-id')?.value || '').trim();
-      const title = (document.getElementById('prop-title')?.value || '').trim();
-      const dealType = (document.getElementById('prop-deal')?.value || 'بيع').trim();
-      const category = (document.getElementById('prop-category')?.value || 'شقة').trim();
-      const location = (document.getElementById('prop-location')?.value || '').trim();
+      const editId = String(document.getElementById('prop-edit-id')?.value || '').trim();
+      const title = String(document.getElementById('prop-title')?.value || '').trim();
+      const dealType = String(document.getElementById('prop-deal')?.value || 'بيع').trim();
+      const category = String(document.getElementById('prop-category')?.value || 'شقة').trim();
+      const location = String(document.getElementById('prop-location')?.value || '').trim();
       const price = Number(document.getElementById('prop-price')?.value || 0);
-      const currency = (document.getElementById('prop-currency')?.value || 'د.ل').trim();
-      const phone = (document.getElementById('prop-phone')?.value || DEFAULT_CONTACT_PHONE).trim();
-      const ownerName = (document.getElementById('prop-owner-name')?.value || '').trim();
-      const ownerPhone = (document.getElementById('prop-owner-phone')?.value || '').trim();
-      const description = (document.getElementById('prop-description')?.value || '').trim();
+      const currency = String(document.getElementById('prop-currency')?.value || 'د.ل').trim();
+      const phone = String(document.getElementById('prop-phone')?.value || DEFAULT_CONTACT_PHONE).trim();
+      const ownerName = String(document.getElementById('prop-owner-name')?.value || '').trim();
+      const ownerPhone = String(document.getElementById('prop-owner-phone')?.value || '').trim();
+      const description = String(document.getElementById('prop-description')?.value || '').trim();
 
       if (!title || !location || price <= 0) {
-        showToast('يرجى إدخال عنوان العقار والمنطقة وسعر صحيح.', 'error');
+        showToast('يرجى تعبئة العنوان والموقع والسعر بشكل صحيح.', 'error');
         return;
       }
 
-      const nowIso = new Date(Date.now() + 5000).toISOString();
+      const existingProp = editId ? properties.find((p) => p.id === editId) : null;
+      const propId = existingProp ? existingProp.id : `prop-${Date.now()}`;
+      const code = existingProp ? existingProp.code : generateNextPropertyCode(properties);
+      const createdAt = existingProp ? existingProp.createdAt : new Date().toISOString();
+      const closedStamp = existingProp ? existingProp.closedStamp : '';
 
-      if (editId) {
-        const existing = properties.find((p) => p.id === editId);
-        const updatedProp = normalizeProperty({
-          ...(existing || {}),
-          id: editId,
-          code: existing?.code || generateNextPropertyCode(properties),
-          title,
-          dealType,
-          category,
-          location,
-          price,
-          currency,
-          phone,
-          ownerName,
-          ownerPhone,
-          description,
-          closedStamp: existing?.closedStamp || '',
-          images: formImages,
-          createdAt: existing?.createdAt || nowIso
-        });
+      const savedProp = normalizeProperty({
+        id: propId,
+        code,
+        title,
+        dealType,
+        category,
+        location,
+        price,
+        currency,
+        phone,
+        ownerName,
+        ownerPhone,
+        description,
+        closedStamp,
+        images: formImages,
+        createdAt
+      });
 
-        properties = saveLocalProperties(
-          properties.map((p) => (p.id === editId ? updatedProp : p))
-        );
-        await syncSinglePropertyToCloud(updatedProp);
-        showToast(`تم تحديث العقار (${updatedProp.code}) بنجاح.`, 'success');
-      } else {
-        const newCode = generateNextPropertyCode(properties);
-        const newProp = normalizeProperty({
-          id: `prop-${Date.now()}`,
-          code: newCode,
-          title,
-          dealType,
-          category,
-          location,
-          price,
-          currency,
-          phone,
-          ownerName,
-          ownerPhone,
-          description,
-          closedStamp: '',
-          images: formImages,
-          createdAt: nowIso
-        });
+      unmarkPropertyAsDeleted(savedProp);
 
-        properties = saveLocalProperties([newProp, ...properties]);
-        await syncSinglePropertyToCloud(newProp);
-        showToast(`تمت إضافة العقار (${newProp.code}) وتصدره الواجهة بنجاح.`, 'success');
-      }
+      const nextList = existingProp
+        ? properties.map((p) => (p.id === propId ? savedProp : p))
+        : [savedProp, ...properties];
 
-      closePropertyFormModal();
+      properties = saveLocalProperties(nextList);
+      await syncSinglePropertyToCloud(savedProp);
       renderProperties();
+      closePropertyFormModal();
+      showToast(existingProp ? `تم تحديث العقار (${code}).` : `تمت إضافة العقار (${code}) بنجاح.`, 'success');
     }
 
-    // حذف عقار
     async function deleteProperty(propId) {
       const target = properties.find((p) => p.id === propId);
       if (!target) return;
 
+      markPropertyAsDeleted(target);
       properties = saveLocalProperties(properties.filter((p) => p.id !== propId));
-      await deletePropertyFromCloud(target.id);
+      await deletePropertyFromCloud(target);
       renderProperties();
-      showToast(`تم حذف العقار (${target.code}).`, 'success');
+      closePropertyDetailModal();
+      showToast(`تم حذف العقار (${target.code}) ومزامنة الحذف.`, 'success');
     }
 
-    // مزامنة Firebase و GitHub
-    function updateSyncBadge(active = true) {
-      const badge = document.getElementById('last-sync-badge');
+    // المزامنة السحابية مع Firestore
+    function updateSyncBadge(connected, label = '') {
       const dot = document.getElementById('firebase-status-dot');
-      const statusText = document.getElementById('firebase-status-text');
+      const text = document.getElementById('firebase-status-text');
+      const badge = document.getElementById('last-sync-badge');
 
       if (dot) {
-        dot.className = active
+        dot.className = connected
           ? 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0'
-          : 'w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0';
+          : 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
       }
-      if (statusText) {
-        statusText.textContent = active ? 'متصل بـ Firebase' : 'ربط Firebase';
+      if (text) {
+        text.textContent = label || (connected ? 'متصل بـ Firebase' : 'وضع محلي نشط');
       }
-
-      if (!badge) return;
-      if (active) {
+      if (badge) {
         badge.classList.remove('hidden');
         badge.classList.add('inline-flex');
-      } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('inline-flex');
       }
+    }
+
+    function getActiveFirebaseConfig() {
+      try {
+        const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.projectId && parsed.apiKey) return parsed;
+        }
+      } catch (e) {}
+      return DEFAULT_FIREBASE_CONFIG;
     }
 
     function initFirebase() {
       try {
-        if (window.__fbLoadFailed || !window.firebase) {
-          updateSyncBadge(true);
+        if (window.__fbLoadFailed || typeof firebase === 'undefined') {
+          updateSyncBadge(false, 'وضع محلي نشط');
+          renderProperties();
           return;
         }
-        let cfg = { ...DEFAULT_FIREBASE_CONFIG };
-        const savedCfg = localStorage.getItem(FIREBASE_CONFIG_KEY);
-        if (savedCfg) {
-          cfg = { ...cfg, ...JSON.parse(savedCfg) };
-        }
-
+        const cfg = getActiveFirebaseConfig();
         if (!firebase.apps.length) {
           firebase.initializeApp(cfg);
         }
         db = firebase.firestore();
-        auth = firebase.auth();
-        updateSyncBadge(true);
+        auth = firebase.auth ? firebase.auth() : null;
+        updateSyncBadge(true, 'متصل بـ Firebase');
+        subscribeToCloudProperties();
+      } catch (e) {
+        updateSyncBadge(false, 'وضع محلي نشط');
+        renderProperties();
+      }
+    }
 
+    function subscribeToCloudProperties() {
+      if (!db) return;
+      try {
         if (firebaseUnsubscribe) firebaseUnsubscribe();
-        firebaseUnsubscribe = db.collection(REAL_ESTATE_COLLECTION).onSnapshot((snapshot) => {
-          if (!snapshot || snapshot.empty) return;
-          const remoteList = [];
-          snapshot.forEach((doc) => {
-            const data = doc.data() || {};
-            remoteList.push(normalizeProperty({ id: doc.id, ...data }));
-          });
-          if (remoteList.length > 0) {
+        firebaseUnsubscribe = db.collection(REAL_ESTATE_COLLECTION).onSnapshot(
+          (snapshot) => {
             isRemoteUpdating = true;
-            const merged = [...remoteList];
-            properties.forEach((localItem) => {
-              if (!merged.some((r) => r.id === localItem.id || r.code === localItem.code)) {
-                merged.push(localItem);
+            deletedPropertyIds = loadDeletedPropertyIds();
+            const cloudMap = new Map();
+            snapshot.forEach((doc) => {
+              const data = doc.data() || {};
+              const norm = normalizeProperty({ id: doc.id, ...data });
+              if (!isPropertyMarkedDeleted(norm)) {
+                cloudMap.set(norm.id, norm);
               }
             });
-            properties = saveLocalProperties(merged);
+
+            if (cloudMap.size > 0) {
+              const mergedMap = new Map(cloudMap);
+              properties.forEach((localProp) => {
+                if (!isPropertyMarkedDeleted(localProp) && !mergedMap.has(localProp.id)) {
+                  mergedMap.set(localProp.id, localProp);
+                }
+              });
+              properties = saveLocalProperties(Array.from(mergedMap.values()));
+            } else {
+              properties = loadLocalProperties();
+            }
+
             renderProperties();
+            updateSyncBadge(true, 'متصل بـ Firebase');
             isRemoteUpdating = false;
+          },
+          () => {
+            isRemoteUpdating = false;
+            renderProperties();
           }
-        }, () => {
-          updateSyncBadge(true);
-        });
+        );
       } catch (e) {
-        updateSyncBadge(true);
+        isRemoteUpdating = false;
       }
     }
 
     async function syncSinglePropertyToCloud(prop) {
-      updateSyncBadge(true);
-      if (!db || !prop || !prop.id) return;
+      if (!db || !prop || isPropertyMarkedDeleted(prop)) return;
       try {
-        await db.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id)).set(prop, { merge: true });
+        const payload = { ...prop };
+        delete payload.id;
+        await db.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id)).set(payload, { merge: true });
       } catch (e) {}
     }
 
-    async function deletePropertyFromCloud(propId) {
-      if (!db || !propId) return;
+    async function deletePropertyFromCloud(propOrId) {
+      const propId = typeof propOrId === 'string' ? propOrId : propOrId?.id;
+      const propCode = typeof propOrId === 'object' ? propOrId?.code : '';
+      if (!db || (!propId && !propCode)) return;
       try {
-        await db.collection(REAL_ESTATE_COLLECTION).doc(String(propId)).delete();
+        if (propId) {
+          await db.collection(REAL_ESTATE_COLLECTION).doc(String(propId)).delete();
+        }
+        if (propCode) {
+          const snap = await db.collection(REAL_ESTATE_COLLECTION).where('code', '==', String(propCode)).get();
+          for (const doc of snap.docs) {
+            await doc.ref.delete();
+          }
+        }
       } catch (e) {}
     }
 
@@ -2282,146 +2306,204 @@ service cloud.firestore {
       const icon = document.getElementById('firebase-sync-icon');
       if (icon) icon.classList.add('animate-spin');
 
-      properties = saveLocalProperties(properties);
-      if (db) {
-        try {
+      try {
+        deletedPropertyIds = loadDeletedPropertyIds();
+        properties = loadLocalProperties();
+        if (db) {
           for (const prop of properties) {
-            await db.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id)).set(prop, { merge: true });
+            await syncSinglePropertyToCloud(prop);
           }
-        } catch (e) {}
+        }
+        renderProperties();
+        showToast('تمت مزامنة جميع العقارات والبيانات.', 'success');
+      } finally {
+        isSyncingAll = false;
+        if (icon) icon.classList.remove('animate-spin');
       }
-
-      renderProperties();
-      updateSyncBadge(true);
-      if (icon) icon.classList.remove('animate-spin');
-      isSyncingAll = false;
-      showToast('تمت مزامنة جميع العروض العقارية بنجاح.', 'success');
     }
 
+    // نافذة إعدادات Firebase
     function openFirebaseConfigModal() {
       const textarea = document.getElementById('firebase-config-json');
       if (textarea) {
-        let currentCfg = { ...DEFAULT_FIREBASE_CONFIG };
-        try {
-          const saved = localStorage.getItem(FIREBASE_CONFIG_KEY);
-          if (saved) currentCfg = { ...currentCfg, ...JSON.parse(saved) };
-        } catch (e) {}
-        textarea.value = JSON.stringify(currentCfg, null, 2);
+        textarea.value = JSON.stringify(getActiveFirebaseConfig(), null, 2);
       }
-      document.getElementById('firebase-config-modal')?.classList.remove('hidden');
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeFirebaseConfigModal() {
-      document.getElementById('firebase-config-modal')?.classList.add('hidden');
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function saveFirebaseConfigFromModal(event) {
       event.preventDefault();
-      const raw = (document.getElementById('firebase-config-json')?.value || '').trim();
+      const rawText = String(document.getElementById('firebase-config-json')?.value || '').trim();
       try {
-        const parsed = JSON.parse(raw);
+        const jsonLike = rawText
+          .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/'/g, '"');
+        const parsed = JSON.parse(jsonLike);
+        if (!parsed.projectId || !parsed.apiKey) {
+          showToast('يرجى التأكد من وجود projectId و apiKey.', 'error');
+          return;
+        }
         localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(parsed));
         closeFirebaseConfigModal();
         initFirebase();
-        showToast('تم حفظ إعدادات Firebase وتفعيل المزامنة.', 'success');
+        showToast('تم حفظ إعدادات Firebase وتحديث الاتصال.', 'success');
       } catch (e) {
-        showToast('صيغة JSON غير صحيحة، يرجى التحقق من البيانات.', 'error');
+        showToast('صيغة الإعدادات غير صحيحة.', 'error');
       }
     }
 
     function disconnectFirebase() {
       try {
         localStorage.removeItem(FIREBASE_CONFIG_KEY);
+        if (firebaseUnsubscribe) {
+          firebaseUnsubscribe();
+          firebaseUnsubscribe = null;
+        }
+        db = null;
+        updateSyncBadge(false, 'وضع محلي نشط');
+        closeFirebaseConfigModal();
+        showToast('تم فصل الربط السحابي والعمل محلياً.', 'warning');
       } catch (e) {}
-      closeFirebaseConfigModal();
-      showToast('تم فصل إعدادات Firebase المخصصة.', 'warning');
     }
 
+    // نافذة جسر GitHub وتنظيف المجموعات القديمة
     function openGitHubBridgeModal() {
+      githubBridgeConfig = loadGitHubBridgeConfig();
       const repoInput = document.getElementById('gh-repo-name');
       const pathInput = document.getElementById('gh-file-path');
       const tokenInput = document.getElementById('gh-pat-token');
       const statusNote = document.getElementById('gh-bridge-status-note');
 
-      if (repoInput) repoInput.value = githubBridgeConfig.repo || DEFAULT_GITHUB_BRIDGE.repo;
-      if (pathInput) pathInput.value = githubBridgeConfig.path || DEFAULT_GITHUB_BRIDGE.path;
+      if (repoInput) repoInput.value = githubBridgeConfig.repo || '';
+      if (pathInput) pathInput.value = githubBridgeConfig.path || 'index.html';
       if (tokenInput) tokenInput.value = githubBridgeConfig.token || '';
       if (statusNote) {
         statusNote.textContent = githubBridgeConfig.token
-          ? 'رمز الوصول محفوظ وجاهز للدفع المباشر إلى GitHub.'
+          ? 'رمز الوصول محفوظ وجاهز للدفع المباشر إلى المستودع.'
           : 'بانتظار حفظ رمز الوصول (Token) لتفعيل الدفع التلقائي المباشر إلى المستودع.';
       }
-      document.getElementById('github-bridge-modal')?.classList.remove('hidden');
+
+      const modal = document.getElementById('github-bridge-modal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeGitHubBridgeModal() {
-      document.getElementById('github-bridge-modal')?.classList.add('hidden');
+      const modal = document.getElementById('github-bridge-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function saveGitHubTokenConfig(event) {
       event.preventDefault();
-      const repo = (document.getElementById('gh-repo-name')?.value || '').trim() || DEFAULT_GITHUB_BRIDGE.repo;
-      const path = (document.getElementById('gh-file-path')?.value || '').trim() || DEFAULT_GITHUB_BRIDGE.path;
-      const token = (document.getElementById('gh-pat-token')?.value || '').trim();
+      const repo = String(document.getElementById('gh-repo-name')?.value || '').trim();
+      const path = String(document.getElementById('gh-file-path')?.value || 'index.html').trim();
+      const token = String(document.getElementById('gh-pat-token')?.value || '').trim();
 
-      githubBridgeConfig = { ...githubBridgeConfig, repo, path, token };
+      githubBridgeConfig = {
+        ...githubBridgeConfig,
+        repo: repo || DEFAULT_GITHUB_BRIDGE.repo,
+        path: path || 'index.html',
+        token
+      };
+
       try {
         localStorage.setItem(GITHUB_BRIDGE_KEY, JSON.stringify(githubBridgeConfig));
       } catch (e) {}
 
-      const statusNote = document.getElementById('gh-bridge-status-note');
-      if (statusNote) {
-        statusNote.textContent = token
-          ? 'تم حفظ رمز الوصول والمستودع بنجاح.'
-          : 'تم حفظ بيانات المستودع بدون رمز وصول.';
-      }
-      showToast('تم حفظ إعدادات جسر GitHub.', 'success');
+      showToast('تم حفظ بيانات جسر GitHub.', 'success');
+      openGitHubBridgeModal();
     }
 
     async function pushDirectToGitHubRepo(showFeedback = true) {
-      if (!githubBridgeConfig.token) {
+      const cfg = loadGitHubBridgeConfig();
+      if (!cfg.token || !cfg.repo) {
         if (showFeedback) {
-          showToast('يرجى إدخال وحفظ رمز الوصول (GitHub Token) أولاً.', 'warning');
+          showToast('يرجى إدخال اسم المستودع ورمز الوصول (Token) أولاً.', 'warning');
         }
         return;
       }
-      if (showFeedback) {
-        showToast('تم تجهيز التحديث للمزامنة مع GitHub.', 'success');
+
+      try {
+        const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}`;
+        const getResp = await fetch(apiUrl, {
+          headers: {
+            Authorization: `Bearer ${cfg.token}`,
+            Accept: 'application/vnd.github+json'
+          }
+        });
+        if (!getResp.ok) throw new Error('تعذر قراءة ملف المستودع من GitHub');
+        const fileData = await getResp.json();
+        const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+
+        const putResp = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${cfg.token}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'تحديث منصة مكتب الطبي للعقارات',
+            content: base64Content,
+            sha: fileData.sha
+          })
+        });
+
+        if (!putResp.ok) throw new Error('تعذر رفع التحديث إلى GitHub');
+        if (showFeedback) {
+          showToast('تم دفع التحديث بنجاح إلى مستودع GitHub.', 'success');
+        }
+      } catch (e) {
+        if (showFeedback) {
+          showToast('تعذر الدفع المباشر إلى GitHub، تحقق من الصلاحيات.', 'error');
+        }
       }
     }
 
     async function purgeTakafulAndIsolateRealEstate() {
       const legacyCollections = ['takaful', 'sayaan', 'donations', 'votes', 'disbursements', 'sirf-dgv'];
+      let deletedDocs = 0;
+
       if (db) {
         for (const colName of legacyCollections) {
           try {
             const snap = await db.collection(colName).get();
             for (const doc of snap.docs) {
               await doc.ref.delete();
+              deletedDocs += 1;
             }
           } catch (e) {}
         }
       }
-      showToast('تم تنظيف المجموعات القديمة والإبقاء على مزامنة العقارات.', 'success');
+
+      showToast(`تمت عملية التنظيف (${deletedDocs} مستند قديم) مع إبقاء مزامنة العقارات نشطة.`, 'success');
     }
 
-    // تهيئة التطبيق عند تحميل الصفحة
+    // تهيئة التطبيق بالكامل
     function initApp() {
       const yearEl = document.getElementById('current-year');
       if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
+      siteSettings = loadSiteSettings();
       const officeNameEl = document.getElementById('office-name-display');
-      const officeSloganEl = document.getElementById('office-slogan-display');
-      if (officeNameEl && siteSettings.officeName) officeNameEl.textContent = siteSettings.officeName;
-      if (officeSloganEl && siteSettings.slogan) officeSloganEl.textContent = siteSettings.slogan;
+      const sloganEl = document.getElementById('office-slogan-display');
+      if (officeNameEl) officeNameEl.textContent = siteSettings.officeName;
+      if (sloganEl) sloganEl.textContent = siteSettings.slogan;
 
       try {
         if ('BroadcastChannel' in window) {
           syncChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
           syncChannel.onmessage = (event) => {
-            if (event.data && event.data.type === 'properties_updated' && Array.isArray(event.data.properties)) {
+            if (event.data && event.data.type === 'properties-updated') {
               isRemoteUpdating = true;
-              properties = sortPropertiesNewestFirst(event.data.properties.map((p, i) => normalizeProperty(p, i)));
+              deletedPropertyIds = loadDeletedPropertyIds();
+              properties = loadLocalProperties();
               renderProperties();
               isRemoteUpdating = false;
             }
@@ -2429,21 +2511,30 @@ service cloud.firestore {
         }
       } catch (e) {}
 
+      window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_KEY || event.key === DELETED_IDS_KEY) {
+          isRemoteUpdating = true;
+          deletedPropertyIds = loadDeletedPropertyIds();
+          properties = loadLocalProperties();
+          renderProperties();
+          isRemoteUpdating = false;
+        }
+      });
+
       try {
         const savedSession = localStorage.getItem(ADMIN_SESSION_KEY);
         if (savedSession) {
-          const parsed = JSON.parse(savedSession);
-          if (parsed && parsed.email) {
-            applyAdminSessionUI(true, parsed.email);
+          const parsedSession = JSON.parse(savedSession);
+          if (parsedSession && parsedSession.email) {
+            applyAdminSessionUI(true, parsedSession.email);
           }
         }
       } catch (e) {}
 
+      deletedPropertyIds = loadDeletedPropertyIds();
       properties = loadLocalProperties();
-      saveLocalProperties(properties);
-      updateSyncBadge(true);
-      setFilter(currentFilter);
-      setSortMode(currentSortMode);
+      setFilter('all');
+      setSortMode('newest');
       initFirebase();
     }
 
