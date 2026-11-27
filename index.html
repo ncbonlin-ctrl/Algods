@@ -1,90 +1,13 @@
+```html
 <!DOCTYPE html>
-<html lang="ar" dir="rtl"><head><script>(function(){
-function slug(s){
-  try{return s.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu,'').replace(/\s+/g,'-');}
-  catch(e){return s.trim().toLowerCase().replace(/[^a-z0-9\s_-]/g,'').replace(/\s+/g,'-');}
-}
-function findHashTarget(hash){
-  if(!hash||hash==='#')return null;
-  var raw=hash.charAt(0)==='#'?hash.slice(1):hash;
-  var dec=raw;
-  try{dec=decodeURIComponent(raw);}catch(e){}
-  var el=document.getElementById(raw)||document.getElementById(dec);
-  if(el)return el;
-  try{
-    if(typeof CSS!=='undefined'&&CSS.escape){
-      el=document.querySelector('[name="'+CSS.escape(raw)+'"]')||
-         document.querySelector('[name="'+CSS.escape(dec)+'"]');
-    }else{
-      var named=document.getElementsByName(raw);
-      if(named&&named.length>0)return named[0];
-    }
-  }catch(e){}
-  if(el)return el;
-  var targetSlug=slug(dec);
-  if(targetSlug){
-    var headings=document.querySelectorAll('h1,h2,h3,h4,h5,h6');
-    for(var i=0;i<headings.length;i++){
-      if(slug(headings[i].textContent||'')===targetSlug)return headings[i];
-    }
-  }
-  return null;
-}
-function getInPageHash(a,href){
-  if(href.charAt(0)==='#')return href;
-  try{
-    var u=new URL(href,window.location.href);
-    if(u.hash&&u.origin===window.location.origin&&u.pathname===window.location.pathname){
-      return u.hash;
-    }
-  }catch(e){}
-  return null;
-}
-function findAnchor(target){
-  var el=target instanceof Element?target:(target&&target.parentElement?target.parentElement:null);
-  return el&&typeof el.closest==='function'?el.closest('a'):null;
-}
-function configureAnchor(a){
-  var href=a.getAttribute('href');
-  if(!href||href.trim().toLowerCase().indexOf('javascript:')===0||a.hasAttribute('download'))return;
-  if(getInPageHash(a,href)!==null)return;
-  var t=a.getAttribute('target');
-  if(!t||t.toLowerCase()!=='_blank'){a.setAttribute('target','_blank');}
-  if(!a.getAttribute('rel')){a.setAttribute('rel','noopener noreferrer');}
-}
-function configureAllAnchors(){
-  var anchors=document.querySelectorAll('a[href]');
-  for(var i=0;i<anchors.length;i++){configureAnchor(anchors[i]);}
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',configureAllAnchors,{once:true});
-}else{
-  configureAllAnchors();
-}
-document.addEventListener('click',function(event){
-  var a=findAnchor(event.target);
-  if(a)configureAnchor(a);
-},{capture:true});
-document.addEventListener('click',function(event){
-  if(event.defaultPrevented)return;
-  var a=findAnchor(event.target);
-  if(!a)return;
-  var href=a.getAttribute('href');
-  if(!href||href.trim().toLowerCase().indexOf('javascript:')===0||a.hasAttribute('download'))return;
-  var hash=getInPageHash(a,href);
-  if(hash===null)return;
-  event.preventDefault();
-  if(hash==='#'){window.scrollTo({top:0,behavior:'smooth'});return;}
-  var targetEl=findHashTarget(hash);
-  if(targetEl){targetEl.scrollIntoView({behavior:'smooth',block:'start'});}
-});
-})();</script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>مكتب الطبي للعقارات | سكن يليق بروحك</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&amp;family=Tajawal:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     // إعداد الهوية البصرية والخطوط في Tailwind CSS
@@ -221,7 +144,7 @@ document.addEventListener('click',function(event){
       background: #c29132;
     }
   </style>
-<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.pointer-events-auto{pointer-events:auto}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.left-1\/2{left:50%}.top-0{top:0px}.top-24{top:6rem}.right-3\.5{right:0.875rem}.top-1\/2{top:50%}.right-3{right:0.75rem}.top-3{top:0.75rem}.left-4{left:1rem}.top-4{top:1rem}.z-40{z-index:40}.z-\[70\]{z-index:70}.z-10{z-index:10}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.my-auto{margin-top:auto;margin-bottom:auto}.mb-1\.5{margin-bottom:0.375rem}.mb-8{margin-bottom:2rem}.mt-0\.5{margin-top:0.125rem}.mt-16{margin-top:4rem}.mt-2{margin-top:0.5rem}.mb-1{margin-bottom:0.25rem}.mt-1\.5{margin-top:0.375rem}.mt-2\.5{margin-top:0.625rem}.mb-2{margin-bottom:0.5rem}.mt-1{margin-top:0.25rem}.mt-3{margin-top:0.75rem}.line-clamp-1{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1}.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-1\.5{height:0.375rem}.h-12{height:3rem}.h-2{height:0.5rem}.h-2\.5{height:0.625rem}.h-20{height:5rem}.h-3\.5{height:0.875rem}.h-4{height:1rem}.h-6{height:1.5rem}.h-10{height:2.5rem}.h-16{height:4rem}.h-5{height:1.25rem}.h-8{height:2rem}.h-9{height:2.25rem}.h-52{height:13rem}.h-full{height:100%}.h-64{height:16rem}.max-h-\[82vh\]{max-height:82vh}.min-h-screen{min-height:100vh}.w-1\.5{width:0.375rem}.w-12{width:3rem}.w-2{width:0.5rem}.w-2\.5{width:0.625rem}.w-3\.5{width:0.875rem}.w-4{width:1rem}.w-6{width:1.5rem}.w-full{width:100%}.w-10{width:2.5rem}.w-16{width:4rem}.w-5{width:1.25rem}.w-8{width:2rem}.w-9{width:2.25rem}.max-w-7xl{max-width:80rem}.max-w-md{max-width:28rem}.max-w-3xl{max-width:48rem}.max-w-4xl{max-width:56rem}.max-w-lg{max-width:32rem}.max-w-xl{max-width:36rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\/2{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite}@keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}.cursor-pointer{cursor:pointer}.resize-none{resize:none}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.items-stretch{align-items:stretch}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-2\.5{gap:0.625rem}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.25rem * var(--tw-space-y-reverse))}.space-y-8 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2rem * var(--tw-space-y-reverse))}.space-y-1\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.375rem * var(--tw-space-y-reverse))}.space-y-2\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.625rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.625rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whitespace-pre-line{white-space:pre-line}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.rounded-3xl{border-radius:1.5rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-goldLuxury-400\/70{border-color:rgb(221 176 77 / 0.7)}.border-goldLuxury-500{--tw-border-opacity:1;border-color:rgb(194 145 50 / var(--tw-border-opacity, 1))}.border-goldLuxury-500\/40{border-color:rgb(194 145 50 / 0.4)}.border-rose-200{--tw-border-opacity:1;border-color:rgb(254 205 211 / var(--tw-border-opacity, 1))}.border-sandWarm-200{--tw-border-opacity:1;border-color:rgb(231 223 208 / var(--tw-border-opacity, 1))}.border-sandWarm-200\/90{border-color:rgb(231 223 208 / 0.9)}.border-amber-300{--tw-border-opacity:1;border-color:rgb(252 211 77 / var(--tw-border-opacity, 1))}.border-emeraldLuxury-100{--tw-border-opacity:1;border-color:rgb(226 242 237 / var(--tw-border-opacity, 1))}.border-goldLuxury-400\/25{border-color:rgb(221 176 77 / 0.25)}.border-goldLuxury-400\/40{border-color:rgb(221 176 77 / 0.4)}.border-goldLuxury-500\/25{border-color:rgb(194 145 50 / 0.25)}.border-goldLuxury-500\/30{border-color:rgb(194 145 50 / 0.3)}.border-white\/15{border-color:rgb(255 255 255 / 0.15)}.border-emeraldLuxury-700\/35{border-color:rgb(18 92 73 / 0.35)}.border-sandWarm-100{--tw-border-opacity:1;border-color:rgb(244 239 230 / var(--tw-border-opacity, 1))}.border-goldLuxury-300{--tw-border-opacity:1;border-color:rgb(239 208 133 / var(--tw-border-opacity, 1))}.border-amber-200{--tw-border-opacity:1;border-color:rgb(253 230 138 / var(--tw-border-opacity, 1))}.border-goldLuxury-400\/60{border-color:rgb(221 176 77 / 0.6)}.border-emerald-400\/30{border-color:rgb(52 211 153 / 0.3)}.border-emeraldLuxury-600{--tw-border-opacity:1;border-color:rgb(25 117 93 / var(--tw-border-opacity, 1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11 / var(--tw-bg-opacity, 1))}.bg-emerald-400{--tw-bg-opacity:1;background-color:rgb(52 211 153 / var(--tw-bg-opacity, 1))}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.bg-emeraldLuxury-50{--tw-bg-opacity:1;background-color:rgb(243 250 247 / var(--tw-bg-opacity, 1))}.bg-emeraldLuxury-800{--tw-bg-opacity:1;background-color:rgb(12 68 54 / var(--tw-bg-opacity, 1))}.bg-emeraldLuxury-900{--tw-bg-opacity:1;background-color:rgb(7 46 36 / var(--tw-bg-opacity, 1))}.bg-rose-50{--tw-bg-opacity:1;background-color:rgb(255 241 242 / var(--tw-bg-opacity, 1))}.bg-sandWarm-100{--tw-bg-opacity:1;background-color:rgb(244 239 230 / var(--tw-bg-opacity, 1))}.bg-white\/95{background-color:rgb(255 255 255 / 0.95)}.bg-amber-50\/70{background-color:rgb(255 251 235 / 0.7)}.bg-emeraldLuxury-950{--tw-bg-opacity:1;background-color:rgb(4 29 23 / var(--tw-bg-opacity, 1))}.bg-emeraldLuxury-950\/70{background-color:rgb(4 29 23 / 0.7)}.bg-emeraldLuxury-950\/75{background-color:rgb(4 29 23 / 0.75)}.bg-goldLuxury-50{--tw-bg-opacity:1;background-color:rgb(254 250 240 / var(--tw-bg-opacity, 1))}.bg-sandWarm-50{--tw-bg-opacity:1;background-color:rgb(251 249 245 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/10{background-color:rgb(255 255 255 / 0.1)}.bg-goldLuxury-500{--tw-bg-opacity:1;background-color:rgb(194 145 50 / var(--tw-bg-opacity, 1))}.bg-rose-100{--tw-bg-opacity:1;background-color:rgb(255 228 230 / var(--tw-bg-opacity, 1))}.bg-rose-50\/90{background-color:rgb(255 241 242 / 0.9)}.bg-rose-700{--tw-bg-opacity:1;background-color:rgb(190 18 60 / var(--tw-bg-opacity, 1))}.bg-goldLuxury-400{--tw-bg-opacity:1;background-color:rgb(221 176 77 / var(--tw-bg-opacity, 1))}.bg-black\/50{background-color:rgb(0 0 0 / 0.5)}.bg-goldLuxury-100{--tw-bg-opacity:1;background-color:rgb(252 244 225 / var(--tw-bg-opacity, 1))}.bg-amber-50{--tw-bg-opacity:1;background-color:rgb(255 251 235 / var(--tw-bg-opacity, 1))}.bg-emerald-500\/20{background-color:rgb(16 185 129 / 0.2)}.bg-gradient-to-l{background-image:linear-gradient(to left, var(--tw-gradient-stops))}.from-goldLuxury-400{--tw-gradient-from:#ddb04d var(--tw-gradient-from-position);--tw-gradient-to:rgb(221 176 77 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-goldLuxury-500{--tw-gradient-from:#c29132 var(--tw-gradient-from-position);--tw-gradient-to:rgb(194 145 50 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.via-goldLuxury-300{--tw-gradient-to:rgb(239 208 133 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), #efd085 var(--tw-gradient-via-position), var(--tw-gradient-to)}.to-goldLuxury-400{--tw-gradient-to:#ddb04d var(--tw-gradient-to-position)}.object-cover{object-fit:cover}.p-12{padding:3rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.p-3\.5{padding:0.875rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-3\.5{padding-left:0.875rem;padding-right:0.875rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-5{padding-top:1.25rem;padding-bottom:1.25rem}.py-8{padding-top:2rem;padding-bottom:2rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.pb-12{padding-bottom:3rem}.pb-4{padding-bottom:1rem}.pb-6{padding-bottom:1.5rem}.pl-4{padding-left:1rem}.pr-10{padding-right:2.5rem}.pt-6{padding-top:1.5rem}.pt-1{padding-top:0.25rem}.pt-2{padding-top:0.5rem}.pb-5{padding-bottom:1.25rem}.pt-3{padding-top:0.75rem}.text-left{text-align:left}.text-center{text-align:center}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-\[11px\]{font-size:11px}.text-xs{font-size:0.75rem;line-height:1rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.text-emeraldLuxury-700{--tw-text-opacity:1;color:rgb(18 92 73 / var(--tw-text-opacity, 1))}.text-emeraldLuxury-900{--tw-text-opacity:1;color:rgb(7 46 36 / var(--tw-text-opacity, 1))}.text-emeraldLuxury-950{--tw-text-opacity:1;color:rgb(4 29 23 / var(--tw-text-opacity, 1))}.text-goldLuxury-300{--tw-text-opacity:1;color:rgb(239 208 133 / var(--tw-text-opacity, 1))}.text-rose-700{--tw-text-opacity:1;color:rgb(190 18 60 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-amber-800{--tw-text-opacity:1;color:rgb(146 64 14 / var(--tw-text-opacity, 1))}.text-emeraldLuxury-100{--tw-text-opacity:1;color:rgb(226 242 237 / var(--tw-text-opacity, 1))}.text-emeraldLuxury-100\/40{color:rgb(226 242 237 / 0.4)}.text-emeraldLuxury-100\/75{color:rgb(226 242 237 / 0.75)}.text-emeraldLuxury-800{--tw-text-opacity:1;color:rgb(12 68 54 / var(--tw-text-opacity, 1))}.text-goldLuxury-600{--tw-text-opacity:1;color:rgb(154 111 32 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-rose-800{--tw-text-opacity:1;color:rgb(159 18 57 / var(--tw-text-opacity, 1))}.text-rose-900{--tw-text-opacity:1;color:rgb(136 19 55 / var(--tw-text-opacity, 1))}.text-amber-900{--tw-text-opacity:1;color:rgb(120 53 15 / var(--tw-text-opacity, 1))}.text-emerald-200{--tw-text-opacity:1;color:rgb(167 243 208 / var(--tw-text-opacity, 1))}.text-emeraldLuxury-50{--tw-text-opacity:1;color:rgb(243 250 247 / var(--tw-text-opacity, 1))}.shadow-btn-emerald{--tw-shadow:0 8px 20px -4px rgba(12, 68, 54, 0.32);--tw-shadow-colored:0 8px 20px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-btn-gold{--tw-shadow:0 8px 20px -4px rgba(194, 145, 50, 0.42);--tw-shadow-colored:0 8px 20px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-luxury{--tw-shadow:0 14px 36px -10px rgba(7, 46, 36, 0.10), 0 4px 14px -4px rgba(194, 145, 50, 0.12);--tw-shadow-colored:0 14px 36px -10px var(--tw-shadow-color), 0 4px 14px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.duration-500{transition-duration:500ms}.selection\:bg-goldLuxury-300 *::selection{--tw-bg-opacity:1;background-color:rgb(239 208 133 / var(--tw-bg-opacity, 1))}.selection\:text-emeraldLuxury-950 *::selection{--tw-text-opacity:1;color:rgb(4 29 23 / var(--tw-text-opacity, 1))}.selection\:bg-goldLuxury-300::selection{--tw-bg-opacity:1;background-color:rgb(239 208 133 / var(--tw-bg-opacity, 1))}.selection\:text-emeraldLuxury-950::selection{--tw-text-opacity:1;color:rgb(4 29 23 / var(--tw-text-opacity, 1))}.hover\:border-goldLuxury-500:hover{--tw-border-opacity:1;border-color:rgb(194 145 50 / var(--tw-border-opacity, 1))}.hover\:bg-emeraldLuxury-100:hover{--tw-bg-opacity:1;background-color:rgb(226 242 237 / var(--tw-bg-opacity, 1))}.hover\:bg-emeraldLuxury-900:hover{--tw-bg-opacity:1;background-color:rgb(7 46 36 / var(--tw-bg-opacity, 1))}.hover\:bg-emeraldLuxury-950:hover{--tw-bg-opacity:1;background-color:rgb(4 29 23 / var(--tw-bg-opacity, 1))}.hover\:bg-rose-100:hover{--tw-bg-opacity:1;background-color:rgb(255 228 230 / var(--tw-bg-opacity, 1))}.hover\:bg-sandWarm-200:hover{--tw-bg-opacity:1;background-color:rgb(231 223 208 / var(--tw-bg-opacity, 1))}.hover\:bg-white\/20:hover{background-color:rgb(255 255 255 / 0.2)}.hover\:bg-goldLuxury-600:hover{--tw-bg-opacity:1;background-color:rgb(154 111 32 / var(--tw-bg-opacity, 1))}.hover\:bg-rose-800:hover{--tw-bg-opacity:1;background-color:rgb(159 18 57 / var(--tw-bg-opacity, 1))}.hover\:bg-black\/70:hover{background-color:rgb(0 0 0 / 0.7)}.hover\:bg-emerald-700:hover{--tw-bg-opacity:1;background-color:rgb(4 120 87 / var(--tw-bg-opacity, 1))}.hover\:bg-amber-100:hover{--tw-bg-opacity:1;background-color:rgb(254 243 199 / var(--tw-bg-opacity, 1))}.hover\:from-goldLuxury-600:hover{--tw-gradient-from:#9a6f20 var(--tw-gradient-from-position);--tw-gradient-to:rgb(154 111 32 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.hover\:to-goldLuxury-500:hover{--tw-gradient-to:#c29132 var(--tw-gradient-to-position)}.hover\:shadow-luxury-hover:hover{--tw-shadow:0 24px 50px -12px rgba(7, 46, 36, 0.18), 0 8px 20px -6px rgba(194, 145, 50, 0.22);--tw-shadow-colored:0 24px 50px -12px var(--tw-shadow-color), 0 8px 20px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.focus\:border-amber-600:focus{--tw-border-opacity:1;border-color:rgb(217 119 6 / var(--tw-border-opacity, 1))}.focus\:border-emeraldLuxury-600:focus{--tw-border-opacity:1;border-color:rgb(25 117 93 / var(--tw-border-opacity, 1))}.focus\:bg-white:focus{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.group:hover .group-hover\:scale-105{--tw-scale-x:1.05;--tw-scale-y:1.05;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.group:hover .group-hover\:scale-110{--tw-scale-x:1.1;--tw-scale-y:1.1;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.group:hover .group-hover\:bg-emeraldLuxury-800{--tw-bg-opacity:1;background-color:rgb(12 68 54 / var(--tw-bg-opacity, 1))}.group:hover .group-hover\:text-emeraldLuxury-700{--tw-text-opacity:1;color:rgb(18 92 73 / var(--tw-text-opacity, 1))}.group:hover .group-hover\:text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}@media (min-width: 640px){.sm\:col-span-2{grid-column:span 2 / span 2}.sm\:inline{display:inline}.sm\:h-80{height:20rem}.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.sm\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.sm\:grid-cols-5{grid-template-columns:repeat(5, minmax(0, 1fr))}.sm\:flex-row{flex-direction:row}.sm\:items-end{align-items:flex-end}.sm\:items-center{align-items:center}.sm\:gap-2\.5{gap:0.625rem}.sm\:gap-4{gap:1rem}.sm\:gap-7{gap:1.75rem}.sm\:p-5{padding:1.25rem}.sm\:p-6{padding:1.5rem}.sm\:p-7{padding:1.75rem}.sm\:p-8{padding:2rem}.sm\:px-4{padding-left:1rem;padding-right:1rem}.sm\:px-5{padding-left:1.25rem;padding-right:1.25rem}.sm\:px-6{padding-left:1.5rem;padding-right:1.5rem}.sm\:py-12{padding-top:3rem;padding-bottom:3rem}.sm\:pb-16{padding-bottom:4rem}.sm\:pt-8{padding-top:2rem}.sm\:text-left{text-align:left}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xs{font-size:0.75rem;line-height:1rem}.sm\:text-2xl{font-size:1.5rem;line-height:2rem}.sm\:text-3xl{font-size:1.875rem;line-height:2.25rem}.sm\:text-base{font-size:1rem;line-height:1.5rem}}@media (min-width: 768px){.md\:inline{display:inline}.md\:inline-flex{display:inline-flex}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}}@media (min-width: 1024px){.lg\:inline{display:inline}.lg\:max-w-xl{max-width:36rem}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.lg\:flex-row{flex-direction:row}.lg\:items-center{align-items:center}.lg\:justify-between{justify-content:space-between}.lg\:px-8{padding-left:2rem;padding-right:2rem}.lg\:pb-20{padding-bottom:5rem}.lg\:pt-10{padding-top:2.5rem}.lg\:text-3xl{font-size:1.875rem;line-height:2.25rem}.lg\:text-lg{font-size:1.125rem;line-height:1.75rem}}@media (min-width: 1280px){.xl\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}}</style></head>
+</head>
 <body class="min-h-screen flex flex-col selection:bg-goldLuxury-300 selection:text-emeraldLuxury-950">
 
   <!-- حاوية الإشعارات العائمة -->
@@ -234,62 +157,88 @@ document.addEventListener('click',function(event){
       <a href="#top" aria-label="الرئيسية" class="flex items-center group shrink-0">
         <div class="w-12 h-12 rounded-2xl luxury-pattern border border-goldLuxury-400/70 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
           <svg class="w-6 h-6 text-goldLuxury-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 10.5L12 3l9 7.5"></path>
-            <path d="M5 9.5V20h14V9.5"></path>
-            <path d="M9.5 20v-6h5v6"></path>
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20h14V9.5" />
+            <path d="M9.5 20v-6h5v6" />
           </svg>
         </div>
       </a>
 
       <!-- أدوات التحكم الثابتة في اليسار -->
       <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        <button id="github-bridge-btn" onclick="openGitHubBridgeModal()" title="إعدادات المزامنة المباشرة مع GitHub" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emeraldLuxury-900 hover:bg-emeraldLuxury-950 text-goldLuxury-300 border border-goldLuxury-500/40 text-[11px] sm:text-xs font-bold transition cursor-pointer shadow-sm shrink-0">
+        <button
+          id="github-bridge-btn"
+          onclick="openGitHubBridgeModal()"
+          title="إعدادات المزامنة المباشرة مع GitHub"
+          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emeraldLuxury-900 hover:bg-emeraldLuxury-950 text-goldLuxury-300 border border-goldLuxury-500/40 text-[11px] sm:text-xs font-bold transition cursor-pointer shadow-sm shrink-0"
+        >
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
           <span>مزامنة</span>
         </button>
 
-        <button id="firebase-sync-now-btn" onclick="syncAllPropertiesNow()" title="مزامنة جميع العروض والصور والتفاصيل ورقم الهاتف الآن" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-bold transition cursor-pointer shrink-0">
-          <svg id="firebase-sync-icon" class="w-3.5 h-3.5 text-emeraldLuxury-700 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        <button
+          id="firebase-sync-now-btn"
+          onclick="syncAllPropertiesNow()"
+          title="مزامنة جميع العروض والصور والتفاصيل ورقم الهاتف الآن"
+          class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-bold transition cursor-pointer shrink-0"
+        >
+          <svg id="firebase-sync-icon" class="w-3.5 h-3.5 text-emeraldLuxury-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
           </svg>
           <span id="firebase-sync-label" class="hidden lg:inline">مزامنة الكل</span>
         </button>
 
-        <button id="firebase-status-btn" onclick="openFirebaseConfigModal()" title="إعدادات ربط قاعدة بيانات Firebase" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 border border-sandWarm-200 text-xs font-bold transition cursor-pointer shrink-0">
+        <button
+          id="firebase-status-btn"
+          onclick="openFirebaseConfigModal()"
+          title="إعدادات ربط قاعدة بيانات Firebase"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 border border-sandWarm-200 text-xs font-bold transition cursor-pointer shrink-0"
+        >
           <span id="firebase-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span id="firebase-status-text" class="hidden md:inline">وضع محلي</span>
+          <span id="firebase-status-text" class="hidden md:inline">ربط Firebase</span>
         </button>
 
-        <button id="open-add-modal-btn" onclick="openPropertyFormModal()" class="btn-shine inline-flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-bold text-xs sm:text-sm shadow-btn-emerald transition cursor-pointer active:scale-95 shrink-0">
+        <button
+          id="open-add-modal-btn"
+          onclick="openPropertyFormModal()"
+          class="hidden btn-shine inline-flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-bold text-xs sm:text-sm shadow-btn-emerald transition cursor-pointer active:scale-95 shrink-0"
+        >
           <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="4"></rect>
-            <path d="M12 8v8M8 12h8"></path>
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <path d="M12 8v8M8 12h8" />
           </svg>
           <span class="hidden sm:inline">إضافة عقار</span>
         </button>
 
-        <button id="admin-login-trigger-btn" onclick="openAdminLoginModal()" class="admin-glow-btn btn-shine inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 text-emeraldLuxury-950 font-black text-xs sm:text-sm border border-goldLuxury-500 transition cursor-pointer active:scale-95 shrink-0 hidden">
+        <button
+          id="admin-login-trigger-btn"
+          onclick="openAdminLoginModal()"
+          class="admin-glow-btn btn-shine inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 text-emeraldLuxury-950 font-black text-xs sm:text-sm border border-goldLuxury-500 transition cursor-pointer active:scale-95 shrink-0"
+        >
           <svg class="w-4 h-4 text-emeraldLuxury-950 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="8" cy="15" r="4"></circle>
-            <path d="M10.85 12.15L19 4"></path>
-            <path d="M18 5l2 2"></path>
-            <path d="M15 8l2 2"></path>
+            <circle cx="8" cy="15" r="4" />
+            <path d="M10.85 12.15L19 4" />
+            <path d="M18 5l2 2" />
+            <path d="M15 8l2 2" />
           </svg>
           <span>دخول المشرف</span>
         </button>
 
-        <div id="admin-session-controls" class="items-center gap-2 shrink-0 flex">
+        <div id="admin-session-controls" class="hidden items-center gap-2 shrink-0">
           <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold">
             <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-            <span id="admin-active-email">ncbonlin@gmail.com</span>
+            <span id="admin-active-email">المشرف</span>
           </span>
-          <button onclick="logoutAdmin()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition cursor-pointer">
+          <button
+            onclick="logoutAdmin()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition cursor-pointer"
+          >
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             <span>خروج</span>
           </button>
@@ -306,7 +255,9 @@ document.addEventListener('click',function(event){
           مكتب الطبي للعقارات
         </span>
         <div class="flex items-center gap-3">
-          <span id="last-sync-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">قاعدة العقارات معزولة ومزامنة نشطة</span>
+          <span id="last-sync-badge" class="hidden text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-emeraldLuxury-100 border border-white/15">
+            مزامنة السحابة: نشطة
+          </span>
           <span id="office-slogan-display" class="text-sm sm:text-base lg:text-lg font-bold text-goldLuxury-300">
             سكينة السكن وأمانة الاختيار
           </span>
@@ -322,37 +273,37 @@ document.addEventListener('click',function(event){
       <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-emeraldLuxury-50 text-emeraldLuxury-800 flex items-center justify-center border border-emeraldLuxury-100 shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
-            <path d="M9 22v-4h6v4"></path>
-            <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"></path>
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <path d="M9 22v-4h6v4" />
+            <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" />
           </svg>
         </div>
         <div>
           <p class="text-xs text-gray-500 font-bold">إجمالي العقارات</p>
-          <p id="stat-total" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">1</p>
+          <p id="stat-total" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
 
       <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center border border-goldLuxury-200/70 shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path>
-            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
         </div>
         <div>
           <p class="text-xs text-gray-500 font-bold">عروض البيع</p>
-          <p id="stat-sale" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">1</p>
+          <p id="stat-sale" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
 
       <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-emeraldLuxury-50 text-emeraldLuxury-700 flex items-center justify-center border border-emeraldLuxury-100 shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="8" cy="15" r="4"></circle>
-            <path d="M10.85 12.15L19 4"></path>
-            <path d="M18 5l2 2"></path>
-            <path d="M15 8l2 2"></path>
+            <circle cx="8" cy="15" r="4" />
+            <path d="M10.85 12.15L19 4" />
+            <path d="M18 5l2 2" />
+            <path d="M15 8l2 2" />
           </svg>
         </div>
         <div>
@@ -364,14 +315,14 @@ document.addEventListener('click',function(event){
       <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
         <div class="w-12 h-12 rounded-2xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center border border-goldLuxury-200/70 shrink-0">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
           </svg>
         </div>
         <div>
           <p class="text-xs text-gray-500 font-bold">الصور المحفوظة</p>
-          <p id="stat-photos" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">1</p>
+          <p id="stat-photos" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
     </div>
@@ -379,27 +330,49 @@ document.addEventListener('click',function(event){
     <!-- شريط البحث والتصفية -->
     <div class="bg-white rounded-3xl p-4 sm:p-6 border border-sandWarm-200 shadow-luxury flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="flex flex-wrap items-center gap-2" role="group" aria-label="تصفية العقارات">
-        <button data-filter="all" onclick="setFilter('all')" class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm">
+        <button
+          data-filter="all"
+          onclick="setFilter('all')"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm"
+        >
           <span>الكل</span>
         </button>
-        <button data-filter="بيع" onclick="setFilter('بيع')" class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200">
+        <button
+          data-filter="بيع"
+          onclick="setFilter('بيع')"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
+        >
           <span>للبيع</span>
         </button>
-        <button data-filter="إيجار" onclick="setFilter('إيجار')" class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200">
+        <button
+          data-filter="إيجار"
+          onclick="setFilter('إيجار')"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
+        >
           <span>للإيجار</span>
         </button>
       </div>
 
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 lg:max-w-xl">
         <div class="relative flex-1">
-          <input id="search-input" type="text" oninput="renderProperties()" placeholder="ابحث بالعنوان أو المنطقة (مثال: الفرناج، منزل، فيلا...)" class="w-full pr-10 pl-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm text-emeraldLuxury-950 transition">
+          <input
+            id="search-input"
+            type="text"
+            oninput="renderProperties()"
+            placeholder="ابحث بالعنوان أو المنطقة (مثال: الفرناج، منزل، فيلا...)"
+            class="w-full pr-10 pl-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm text-emeraldLuxury-950 transition"
+          />
           <svg class="w-4 h-4 text-emeraldLuxury-700 absolute right-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
 
-        <select id="category-filter" onchange="renderProperties()" class="px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer">
+        <select
+          id="category-filter"
+          onchange="renderProperties()"
+          class="px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer"
+        >
           <option value="all">جميع أنواع العقارات</option>
           <option value="فيلا">فيلا</option>
           <option value="منزل">منزل</option>
@@ -417,81 +390,27 @@ document.addEventListener('click',function(event){
         <span class="text-xs font-extrabold text-goldLuxury-600 uppercase tracking-wider">محفظة العقارات</span>
         <h2 class="text-2xl sm:text-3xl font-black text-emeraldLuxury-900 mt-0.5">العقارات المتاحة حالياً</h2>
       </div>
-      <p id="results-count" class="text-xs sm:text-sm text-gray-500 font-bold">عرض 1 من أصل 1 عقار</p>
+      <p id="results-count" class="text-xs sm:text-sm text-gray-500 font-bold">جاري تحميل العروض...</p>
     </div>
 
     <!-- شبكة بطاقات العقارات -->
-    <div id="properties-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-7">
-            <article onclick="openPropertyDetailModal('prop_geo_wadi_rabie_1000_200')" class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer group animate-fade-up">
-              <div>
-                <div class="relative h-52 bg-sandWarm-100 overflow-hidden">
-                  <img src="https://placehold.co/900x560/0b3f32/efd085?text=%D8%B5%D9%88%D8%B1%D8%A9+%D8%A7%D9%81%D8%AA%D8%B1%D8%A7%D8%B6%D9%8A%D8%A9" alt="منزل مساحة الأرض 1000 متر والمسقوف 200 متر في الجيو - وادي الربيع" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/072e24/efd085?text=%D9%85%D9%86%D8%B2%D9%84'">
-                  <div class="absolute top-3 right-3 flex items-center gap-1.5">
-                    <span class="px-3 py-1 rounded-full text-xs font-black shadow bg-goldLuxury-400 text-emeraldLuxury-950">بيع</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-white/95 text-emeraldLuxury-950 shadow">منزل</span>
-                  </div>
-                </div>
-
-                <div class="p-5">
-                  <div class="flex items-start justify-between gap-2">
-                    <h3 class="text-lg font-black text-emeraldLuxury-950 line-clamp-1 group-hover:text-emeraldLuxury-700 transition">
-                      منزل مساحة الأرض 1000 متر والمسقوف 200 متر في الجيو - وادي الربيع
-                    </h3>
-                  </div>
-
-                  <p class="text-xs font-bold text-gray-500 mt-1.5 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5 text-goldLuxury-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                      <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    <span class="truncate">الجيو - وادي الربيع، طرابلس</span>
-                  </p>
-
-                  <p class="text-xs text-gray-600 mt-2.5 line-clamp-2 leading-relaxed">منزل بتصنيف منزل، مساحة الأرض 1000 متر مربع والمسقوف 200 متر مربع، يقع في منطقة الجيو بوادي الربيع في طرابلس.</p>
-
-                  <div class="mt-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900 flex items-center justify-between" dir="ltr">
-                 <span>صاحب العقار (سري):</span>
-                 <span>0910930305</span>
-               </div>
-                </div>
-              </div>
-
-              <div class="px-5 pb-5 pt-2">
-                <div class="flex items-center justify-between pt-3 border-t border-sandWarm-100">
-                  <div>
-                    <span class="block text-[11px] font-bold text-gray-400">السعر المطلوب</span>
-                    <span class="text-lg font-black text-emeraldLuxury-900">
-                      300.000 <span class="text-xs font-extrabold text-goldLuxury-600">د.ل</span>
-                    </span>
-                  </div>
-                  <span class="inline-flex items-center gap-1 text-xs font-extrabold text-emeraldLuxury-800 bg-emeraldLuxury-50 px-3 py-2 rounded-xl group-hover:bg-emeraldLuxury-800 group-hover:text-white transition">
-                    <span>التفاصيل</span>
-                  </span>
-                </div>
-                <div class="flex items-center gap-2 pt-3 mt-3 border-t border-sandWarm-200">
-                 <button onclick="event.stopPropagation(); openPropertyFormModal('prop_geo_wadi_rabie_1000_200')" class="flex-1 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-extrabold transition cursor-pointer">
-                   تعديل الإعلان
-                 </button>
-                 <button onclick="event.stopPropagation(); deleteProperty('prop_geo_wadi_rabie_1000_200')" class="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-extrabold transition cursor-pointer">
-                   حذف
-                 </button>
-               </div>
-              </div>
-            </article>
-          </div>
+    <div id="properties-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-7"></div>
 
     <!-- حالة عدم وجود نتائج -->
     <div id="empty-state" class="hidden bg-white rounded-3xl border border-dashed border-sandWarm-200 p-12 text-center space-y-3">
       <div class="w-16 h-16 mx-auto rounded-2xl bg-sandWarm-100 text-emeraldLuxury-800 flex items-center justify-center">
         <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 10.5L12 3l9 7.5"></path>
-          <path d="M5 9.5V20h14V9.5"></path>
-          <path d="M9.5 20v-6h5v6"></path>
+          <path d="M3 10.5L12 3l9 7.5" />
+          <path d="M5 9.5V20h14V9.5" />
+          <path d="M9.5 20v-6h5v6" />
         </svg>
       </div>
       <h3 class="text-lg font-extrabold text-emeraldLuxury-900">لا توجد عقارات مطابقة للبحث الحالي</h3>
       <p class="text-sm text-gray-500 max-w-md mx-auto">يمكنك تغيير كلمات البحث أو الفلاتر للعثور على عقار مناسب.</p>
-      <button onclick="resetFilters()" class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 text-white text-sm font-bold hover:bg-emeraldLuxury-900 transition cursor-pointer">
+      <button
+        onclick="resetFilters()"
+        class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 text-white text-sm font-bold hover:bg-emeraldLuxury-900 transition cursor-pointer"
+      >
         إعادة ضبط البحث والفلاتر
       </button>
     </div>
@@ -503,14 +422,14 @@ document.addEventListener('click',function(event){
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-xl bg-white/10 border border-goldLuxury-400/40 flex items-center justify-center text-goldLuxury-300">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 10.5L12 3l9 7.5"></path>
-            <path d="M5 9.5V20h14V9.5"></path>
-            <path d="M9.5 20v-6h5v6"></path>
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20h14V9.5" />
+            <path d="M9.5 20v-6h5v6" />
           </svg>
         </div>
         <span class="font-black text-goldLuxury-300">مكتب الطبي للعقارات</span>
         <span class="text-emeraldLuxury-100/40">|</span>
-        <span>جميع الحقوق محفوظة © <span id="current-year">2026</span></span>
+        <span>جميع الحقوق محفوظة &copy; <span id="current-year"></span></span>
       </div>
       <p class="text-emeraldLuxury-100/75 text-center sm:text-left">
         سكينة السكن وأمانة الاختيار — تواصل مباشر عبر الواتساب والهاتف
@@ -519,26 +438,30 @@ document.addEventListener('click',function(event){
   </footer>
 
   <!-- نافذة تسجيل دخول المشرف -->
-  <div id="admin-login-modal" class="fixed inset-0 z-50 bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto hidden">
+  <div id="admin-login-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl w-full max-w-md border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
       <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-white/10 border border-goldLuxury-400/40 flex items-center justify-center text-goldLuxury-300">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="8" cy="15" r="4"></circle>
-              <path d="M10.85 12.15L19 4"></path>
-              <path d="M18 5l2 2"></path>
-              <path d="M15 8l2 2"></path>
+              <circle cx="8" cy="15" r="4" />
+              <path d="M10.85 12.15L19 4" />
+              <path d="M18 5l2 2" />
+              <path d="M15 8l2 2" />
             </svg>
           </div>
           <div>
             <h3 class="text-lg font-extrabold">دخول المشرف</h3>
           </div>
         </div>
-        <button onclick="closeAdminLoginModal()" aria-label="إغلاق نافذة الدخول" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer">
+        <button
+          onclick="closeAdminLoginModal()"
+          aria-label="إغلاق نافذة الدخول"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -546,15 +469,30 @@ document.addEventListener('click',function(event){
       <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="p-6 space-y-4">
         <div>
           <label for="admin-email" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">البريد الإلكتروني للمشرف *</label>
-          <input id="admin-email" type="email" required="" dir="ltr" class="w-full px-4 py-2.5 rounded-xl bg-white border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:outline-none text-sm">
+          <input
+            id="admin-email"
+            type="email"
+            required
+            dir="ltr"
+            class="w-full px-4 py-2.5 rounded-xl bg-white border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:outline-none text-sm"
+          />
         </div>
 
         <div>
           <label for="admin-password" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">كلمة المرور *</label>
-          <input id="admin-password" type="password" required="" dir="ltr" class="w-full px-4 py-2.5 rounded-xl bg-white border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:outline-none text-sm">
+          <input
+            id="admin-password"
+            type="password"
+            required
+            dir="ltr"
+            class="w-full px-4 py-2.5 rounded-xl bg-white border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:outline-none text-sm"
+          />
         </div>
 
-        <button type="submit" class="btn-shine w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition cursor-pointer">
+        <button
+          type="submit"
+          class="btn-shine w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition cursor-pointer"
+        >
           <span>دخول إلى لوحة المشرف</span>
         </button>
       </form>
@@ -569,25 +507,38 @@ document.addEventListener('click',function(event){
           <span class="text-xs font-bold text-goldLuxury-300">مكتب الطبي للعقارات</span>
           <h3 id="property-form-modal-title" class="text-xl sm:text-2xl font-extrabold mt-0.5">إضافة عرض عقاري جديد</h3>
         </div>
-        <button onclick="closePropertyFormModal()" aria-label="إغلاق النافذة" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer">
+        <button
+          onclick="closePropertyFormModal()"
+          aria-label="إغلاق النافذة"
+          class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
 
       <form id="add-property-form" onsubmit="handleSaveProperty(event)" class="p-5 sm:p-7 space-y-5 max-h-[82vh] overflow-y-auto">
-        <input type="hidden" id="prop-edit-id" value="">
+        <input type="hidden" id="prop-edit-id" value="" />
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="sm:col-span-2">
             <label for="prop-title" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">عنوان العقار *</label>
-            <input id="prop-title" type="text" required="" placeholder="مثال: منزل حديث بتشطيب راقٍ في الفرناج" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm">
+            <input
+              id="prop-title"
+              type="text"
+              required
+              placeholder="مثال: منزل حديث بتشطيب راقٍ في الفرناج"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm"
+            />
           </div>
 
           <div>
             <label for="prop-deal" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">نوع العرض *</label>
-            <select id="prop-deal" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer">
+            <select
+              id="prop-deal"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer"
+            >
               <option value="بيع">للبيع</option>
               <option value="إيجار">للإيجار</option>
             </select>
@@ -597,7 +548,10 @@ document.addEventListener('click',function(event){
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="prop-category" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">تصنيف العقار *</label>
-            <select id="prop-category" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-semibold text-emeraldLuxury-900 cursor-pointer">
+            <select
+              id="prop-category"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-semibold text-emeraldLuxury-900 cursor-pointer"
+            >
               <option value="فيلا">فيلا</option>
               <option value="منزل">منزل</option>
               <option value="شقة">شقة</option>
@@ -609,19 +563,36 @@ document.addEventListener('click',function(event){
 
           <div>
             <label for="prop-location" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">المنطقة / الموقع *</label>
-            <input id="prop-location" type="text" required="" placeholder="مثال: الفرناج - طرابلس" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm">
+            <input
+              id="prop-location"
+              type="text"
+              required
+              placeholder="مثال: الفرناج - طرابلس"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm"
+            />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="prop-price" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">السعر *</label>
-            <input id="prop-price" type="number" min="1" step="any" required="" placeholder="مثال: 1500" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold">
+            <input
+              id="prop-price"
+              type="number"
+              min="1"
+              step="any"
+              required
+              placeholder="مثال: 1500"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold"
+            />
           </div>
 
           <div>
             <label for="prop-currency" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">العملة</label>
-            <select id="prop-currency" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer">
+            <select
+              id="prop-currency"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer"
+            >
               <option value="د.ل">دينار ليبي (د.ل)</option>
               <option value="$">دولار أمريكي ($)</option>
               <option value="€">يورو (€)</option>
@@ -632,20 +603,39 @@ document.addEventListener('click',function(event){
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="prop-phone" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">رقم هاتف المكتب للزوار / واتساب *</label>
-            <input id="prop-phone" type="tel" required="" value="0910930305" placeholder="مثال: 0910930305" class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm" dir="ltr">
+            <input
+              id="prop-phone"
+              type="tel"
+              required
+              value="0914664430"
+              placeholder="مثال: 0914664430"
+              class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm"
+              dir="ltr"
+            />
           </div>
 
           <div>
             <label for="prop-owner-phone" class="block text-sm font-bold text-amber-800 mb-1.5">
               رقم هاتف صاحب العقار (سري للمشرف فقط)
             </label>
-            <input id="prop-owner-phone" type="tel" placeholder="يظهر للمشرف فقط ولا يراه الزائر" class="w-full px-4 py-2.5 rounded-xl bg-amber-50/70 border border-amber-300 focus:border-amber-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-950" dir="ltr">
+            <input
+              id="prop-owner-phone"
+              type="tel"
+              placeholder="يظهر للمشرف فقط ولا يراه الزائر"
+              class="w-full px-4 py-2.5 rounded-xl bg-amber-50/70 border border-amber-300 focus:border-amber-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-950"
+              dir="ltr"
+            />
           </div>
         </div>
 
         <div>
           <label for="prop-description" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">تفاصيل ومواصفات العقار</label>
-          <textarea id="prop-description" rows="3" placeholder="اذكر المساحة، عدد الغرف، الحمامات، الإطلالة، أو أي تفاصيل مهمة..." class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm resize-none"></textarea>
+          <textarea
+            id="prop-description"
+            rows="3"
+            placeholder="اذكر المساحة، عدد الغرف، الحمامات، الإطلالة، أو أي تفاصيل مهمة..."
+            class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm resize-none"
+          ></textarea>
         </div>
 
         <div class="bg-sandWarm-50 rounded-2xl p-4 sm:p-5 border border-sandWarm-200 space-y-3">
@@ -663,23 +653,38 @@ document.addEventListener('click',function(event){
 
           <label class="flex flex-col items-center justify-center border-2 border-dashed border-emeraldLuxury-700/35 hover:border-goldLuxury-500 bg-white rounded-2xl p-5 cursor-pointer transition group">
             <svg class="w-8 h-8 text-emeraldLuxury-700 group-hover:scale-110 transition-transform mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <span class="text-sm font-bold text-emeraldLuxury-900">اضغط لاختيار صور العقار من جهازك</span>
             <span class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — الحد الأقصى 5 صور</span>
-            <input id="prop-images-input" type="file" accept="image/*" multiple="" onchange="handleImageUpload(event)" class="hidden">
+            <input
+              id="prop-images-input"
+              type="file"
+              accept="image/*"
+              multiple
+              onchange="handleImageUpload(event)"
+              class="hidden"
+            />
           </label>
 
           <div id="image-preview-list" class="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1"></div>
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-sandWarm-200">
-          <button type="button" onclick="closePropertyFormModal()" class="px-5 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-sm transition cursor-pointer">
+          <button
+            type="button"
+            onclick="closePropertyFormModal()"
+            class="px-5 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-sm transition cursor-pointer"
+          >
             إلغاء
           </button>
-          <button id="save-property-submit-btn" type="submit" class="btn-shine inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition cursor-pointer">
+          <button
+            id="save-property-submit-btn"
+            type="submit"
+            class="btn-shine inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition cursor-pointer"
+          >
             <span>حفظ ومزامنة العقار</span>
           </button>
         </div>
@@ -688,69 +693,26 @@ document.addEventListener('click',function(event){
   </div>
 
   <!-- نافذة تفاصيل العقار -->
-  <div id="property-detail-modal" class="fixed inset-0 z-50 bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto hidden">
-    <div id="property-detail-content" class="bg-white rounded-3xl w-full max-w-4xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
-        <div class="relative">
-          <div class="relative h-64 sm:h-80 bg-emeraldLuxury-950 overflow-hidden">
-             <img src="https://placehold.co/900x560/0b3f32/efd085?text=%D8%B5%D9%88%D8%B1%D8%A9+%D8%A7%D9%81%D8%AA%D8%B1%D8%A7%D8%B6%D9%8A%D8%A9" alt="منزل مساحة الأرض 1000 متر والمسقوف 200 متر في الجيو - وادي الربيع" class="w-full h-full object-cover">
-             
-           </div>
-          <button onclick="closePropertyDetailModal()" aria-label="إغلاق التفاصيل" class="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition cursor-pointer">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-
-        <div class="p-6 sm:p-8 space-y-5">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-goldLuxury-100 text-goldLuxury-600 border border-goldLuxury-300">بيع</span>
-                <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-emeraldLuxury-50 text-emeraldLuxury-900 border border-emeraldLuxury-200">منزل</span>
-              </div>
-              <h2 class="text-2xl sm:text-3xl font-black text-emeraldLuxury-950">منزل مساحة الأرض 1000 متر والمسقوف 200 متر في الجيو - وادي الربيع</h2>
-              <p class="text-sm font-bold text-gray-500 mt-1">الجيو - وادي الربيع، طرابلس</p>
-            </div>
-
-            <div class="text-left bg-sandWarm-50 px-4 py-3 rounded-2xl border border-sandWarm-200">
-              <span class="block text-xs font-bold text-gray-500">السعر</span>
-              <span class="text-2xl font-black text-emeraldLuxury-900">300.000 <span class="text-sm text-goldLuxury-600">د.ل</span></span>
-            </div>
-          </div>
-
-          <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200 text-sm text-emeraldLuxury-950 leading-relaxed whitespace-pre-line">منزل بتصنيف منزل، مساحة الأرض 1000 متر مربع والمسقوف 200 متر مربع، يقع في منطقة الجيو بوادي الربيع في طرابلس.</div>
-
-          
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <a href="https://wa.me/218914664430?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D8%B3%D8%AA%D9%81%D8%B3%D8%B1%20%D8%A8%D8%AE%D8%B5%D9%88%D8%B5%20%D8%A7%D9%84%D8%B9%D8%B1%D8%B6%20%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%3A%20%D9%85%D9%86%D8%B2%D9%84%20%D9%85%D8%B3%D8%A7%D8%AD%D8%A9%20%D8%A7%D9%84%D8%A3%D8%B1%D8%B6%201000%20%D9%85%D8%AA%D8%B1%20%D9%88%D8%A7%D9%84%D9%85%D8%B3%D9%82%D9%88%D9%81%20200%20%D9%85%D8%AA%D8%B1%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AC%D9%8A%D9%88%20-%20%D9%88%D8%A7%D8%AF%D9%8A%20%D8%A7%D9%84%D8%B1%D8%A8%D9%8A%D8%B9" target="_blank" rel="noopener noreferrer" class="btn-shine inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg transition">
-              <span>تواصل عبر واتساب (0914664430)</span>
-            </a>
-
-            <a href="tel:0914664430" class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-emeraldLuxury-900 hover:bg-emeraldLuxury-950 text-goldLuxury-300 font-black text-sm shadow-lg transition">
-              <span>اتصال مباشر بالمكتب</span>
-            </a>
-          </div>
-
-          
-        </div>
-      </div>
+  <div id="property-detail-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div id="property-detail-content" class="bg-white rounded-3xl w-full max-w-4xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up"></div>
   </div>
 
   <!-- نافذة جسر المزامنة المباشر مع GitHub -->
-  <div id="github-bridge-modal" class="fixed inset-0 z-50 bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto hidden">
+  <div id="github-bridge-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl w-full max-w-xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
       <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
         <div>
           <span class="text-xs font-bold text-goldLuxury-300">ربط مباشر بدون تأخير</span>
           <h3 class="text-lg font-extrabold">جسر المزامنة الفورية مع GitHub</h3>
         </div>
-        <button onclick="closeGitHubBridgeModal()" aria-label="إغلاق" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer">
+        <button
+          onclick="closeGitHubBridgeModal()"
+          aria-label="إغلاق"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -771,16 +733,19 @@ document.addEventListener('click',function(event){
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">اسم المستودع (Repo)</label>
-              <input id="gh-repo-name" type="text" dir="ltr" placeholder="username/repo" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono">
+              <input id="gh-repo-name" type="text" dir="ltr" placeholder="username/repo" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
             </div>
             <div>
               <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">مسار الملف (File Path)</label>
-              <input id="gh-file-path" type="text" dir="ltr" value="index.html" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono">
+              <input id="gh-file-path" type="text" dir="ltr" value="index.html" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
             </div>
           </div>
           <div>
             <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">رمز الوصول المباشر (GitHub Personal Access Token)</label>
-            <input id="gh-pat-token" type="password" dir="ltr" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono">
+            <input id="gh-pat-token" type="password" dir="ltr" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
+          </div>
+          <div id="gh-bridge-status-note" class="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+            بانتظار حفظ رمز الوصول (Token) لتفعيل الدفع التلقائي المباشر إلى المستودع.
           </div>
           <div class="flex items-center justify-between gap-2 pt-1">
             <button type="button" onclick="pushDirectToGitHubRepo(true)" class="px-4 py-2 rounded-xl bg-goldLuxury-500 hover:bg-goldLuxury-600 text-emeraldLuxury-950 font-black text-xs transition cursor-pointer">
@@ -794,13 +759,17 @@ document.addEventListener('click',function(event){
 
         <div class="p-4 rounded-2xl bg-rose-50/90 border border-rose-200 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
-            <h4 class="text-xs font-black text-rose-900">تنظيف وعزل Firestore (إزالة بيانات صندوق التكافل)</h4>
-            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">مجموعة العقارات المعزولة</span>
+            <h4 class="text-xs font-black text-rose-900">تنظيف Firestore (إزالة بيانات صندوق التكافل)</h4>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">المزامنة نشطة</span>
           </div>
           <p class="text-[11px] text-rose-800 leading-relaxed">
-            يحذف أي مستندات أو مجموعات قديمة مرتبطة بصندوق التكافل الاجتماعي (<span dir="ltr" class="font-mono">takaful, sayaan, donations, votes, disbursements, sirf-dgv</span>) ويفصل بيانات العقارات في مجموعة مخصصة لمكتب الطبي للعقارات (<span dir="ltr" class="font-mono">althabi_real_estate_properties</span>).
+            يحذف أي مستندات أو مجموعات قديمة مرتبطة بصندوق التكافل الاجتماعي (<span dir="ltr" class="font-mono">takaful, sayaan, donations, votes, disbursements, sirf-dgv</span>) مع إبقاء مزامنة العقارات في (<span dir="ltr" class="font-mono">althabi_real_estate_properties</span>) نشطة.
           </p>
-          <button type="button" onclick="purgeTakafulAndIsolateRealEstate()" class="w-full py-2.5 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-black text-xs transition cursor-pointer shadow-sm">
+          <button
+            type="button"
+            onclick="purgeTakafulAndIsolateRealEstate()"
+            class="w-full py-2.5 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-black text-xs transition cursor-pointer shadow-sm"
+          >
             تنظيف بيانات التكافل وتفريغ المجموعات القديمة الآن
           </button>
         </div>
@@ -816,10 +785,14 @@ document.addEventListener('click',function(event){
           <span class="text-xs font-bold text-goldLuxury-300">المزامنة السحابية الفورية</span>
           <h3 class="text-lg font-extrabold">إعدادات الربط مع Firebase</h3>
         </div>
-        <button onclick="closeFirebaseConfigModal()" aria-label="إغلاق" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer">
+        <button
+          onclick="closeFirebaseConfigModal()"
+          aria-label="إغلاق"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -831,18 +804,35 @@ document.addEventListener('click',function(event){
 
         <div>
           <label for="firebase-config-json" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">بيانات إعدادات Firebase (JSON أو كائن JS) *</label>
-          <textarea id="firebase-config-json" rows="7" dir="ltr" required="" class="w-full px-4 py-3 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-xs font-mono"></textarea>
+          <textarea
+            id="firebase-config-json"
+            rows="7"
+            dir="ltr"
+            required
+            class="w-full px-4 py-3 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-xs font-mono"
+          ></textarea>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-sandWarm-200">
-          <button type="button" onclick="disconnectFirebase()" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer">
+          <button
+            type="button"
+            onclick="disconnectFirebase()"
+            class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer"
+          >
             فصل الربط السحابي
           </button>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="closeFirebaseConfigModal()" class="px-4 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition cursor-pointer">
+            <button
+              type="button"
+              onclick="closeFirebaseConfigModal()"
+              class="px-4 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition cursor-pointer"
+            >
               إلغاء
             </button>
-            <button type="submit" class="btn-shine px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-xs shadow-btn-emerald transition cursor-pointer">
+            <button
+              type="submit"
+              class="btn-shine px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-xs shadow-btn-emerald transition cursor-pointer"
+            >
               حفظ وتفعيل الربط
             </button>
           </div>
@@ -864,617 +854,249 @@ document.addEventListener('click',function(event){
     const FIREBASE_CONFIG_KEY = 'althabi_firebase_config_v1';
     const GITHUB_BRIDGE_KEY = 'althabi_github_bridge_v1';
     const BROADCAST_CHANNEL_NAME = 'althabi_real_estate_sync_channel';
+    const LIVE_SYNC_ENDPOINT_KEY = 'althabi_live_sync_endpoint_v1';
+
+    // إعدادات الربط التلقائي لـ Firebase (يُمكن تحديثها من نافذة ربط Firebase)
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyApg4JAUvrHRRYETO70rn1iU6Ppz8wn4DM",
+      authDomain: "althabi-real-estate.firebaseapp.com",
+      projectId: "althabi-real-estate",
+      storageBucket: "althabi-real-estate.firebasestorage.app",
+      messagingSenderId: "89223007835",
+      appId: "1:89223007835:web:c9cd0a1613e4cd8a8f397e",
+      measurementId: "G-XMV7B16MY6"
+    };
 
     // إعدادات صفحة GitHub الافتراضية للمزامنة المباشرة
     const DEFAULT_GITHUB_BRIDGE = {
       repo: 'ncbonlin-ctrl/Algods',
       path: 'index.html',
       pageUrl: 'https://ncbonlin-ctrl.github.io/Algods/',
-      token: ''
+      token: 'Github_pat_11CV7OG4A0IDvPMU4RpXon_0Ck7WpzhFGS5lhw9r3uTb7Vv3QUnUAgpHvwlwREsOfIF7LVBK6QAvUePb57'
     };
 
-    // المجموعة المعزولة حصراً لعقارات مكتب الطبي للعقارات في Firestore
+    // المجموعة المخصصة لعقارات مكتب الطبي للعقارات في Firestore
     const REAL_ESTATE_COLLECTION = 'althabi_real_estate_properties';
 
-    // المجموعات القديمة الخاصة بصندوق التكافل الاجتماعي المطلوب تنظيفها وحذفها
-    const LEGACY_TAKAFUL_COLLECTIONS = [
-      'takaful',
-      'sayaan',
-      'donations',
-      'votes',
-      'disbursements',
-      'sirf-dgv',
-      'properties'
-    ];
-
-    const ADMIN_CREDENTIALS = {
-      email: "Ncbonlin@gmail.com",
-      password: "756$$Gd70"
-    };
-
-    let siteSettings = {
-      officeName: "مكتب الطبي للعقارات",
-      slogan: "سكينة السكن وأمانة الاختيار",
-      defaultPhone: "0914664430"
-    };
-
+    // العقارات الافتراضية المبدئية
     const INITIAL_PROPERTIES = [
       {
-        id: 'prop_geo_wadi_rabie_1000_200',
-        title: 'منزل مساحة الأرض 1000 متر والمسقوف 200 متر في الجيو - وادي الربيع',
-        deal: 'بيع',
-        category: 'منزل',
-        location: 'الجيو - وادي الربيع، طرابلس',
-        price: 300000,
+        id: 'prop-furnaj-officers-subdivision-370m',
+        title: 'فيلا في منطقة الفرناج - مقسم الضباط (370 م²)',
+        dealType: 'بيع',
+        category: 'فيلا',
+        location: 'مقسم الضباط - منطقة الفرناج - طرابلس',
+        price: 2000000,
         currency: 'د.ل',
-        phone: '0914664430',
-        ownerPhone: '0910930305',
-        description: 'منزل بتصنيف منزل، مساحة الأرض 1000 متر مربع والمسقوف 200 متر مربع، يقع في منطقة الجيو بوادي الربيع في طرابلس.',
-        images: [
-          'https://placehold.co/900x560/0b3f32/efd085?text=%D8%B5%D9%88%D8%B1%D8%A9+%D8%A7%D9%81%D8%AA%D8%B1%D8%A7%D8%B6%D9%8A%D8%A9'
-        ],
-        createdAt: 1732716000000,
-        updatedAt: 1732716000000
+        phone: '0910930305',
+        ownerPhone: '',
+        description: 'فيلا في منطقة الفرناج في طرابلس بمقسم الضباط، مساحتها 370 متر، واجهة واحدة، مقسم جديد، مقسم الطرق 15 متر، مقسم راقي ومنظم، وتوجد شهادة عقارية.',
+        images: [],
+        createdAt: '2026-11-27T15:42:00.000Z'
+      },
+      {
+        id: 'prop-al-jio-wadi-al-rabee',
+        title: 'منزل الجيو - وادي الربيع',
+        dealType: 'بيع',
+        category: 'منزل',
+        location: 'وادي الربيع - طرابلس',
+        price: 380000,
+        currency: 'د.ل',
+        phone: '0910930305',
+        ownerPhone: '',
+        description: 'منزل الجيو في وادي الربيع بتشطيب جيد وموقع هادئ مناسب للسكن العائلي.',
+        images: [],
+        createdAt: '2026-11-20T10:00:00.000Z'
+      },
+      {
+        id: 'prop-al-tabi-furnaj-6th',
+        title: 'شقة عمارة الطبي - الفرناج (الدور السادس)',
+        dealType: 'إيجار',
+        category: 'شقة',
+        location: 'الفرناج - عمارة الطبي - الدور السادس',
+        price: 1600,
+        currency: 'د.ل',
+        phone: '0910930305',
+        ownerPhone: '',
+        description: 'شقة في عمارة الطبي بمنطقة الفرناج بالدور السادس بإطلالة مريحة وسهولة وصول.',
+        images: [],
+        createdAt: '2026-11-21T10:00:00.000Z'
       }
     ];
 
+    // حالة التطبيق العامة
     let properties = [];
-    let currentDealFilter = 'all';
+    let currentFilter = 'all';
     let isAdminLoggedIn = false;
-    let adminEmail = '';
-    let draftImages = [];
-    let currentDetailPropertyId = null;
-    let currentDetailImageIndex = 0;
+    let uploadedImages = [];
+    let db = null;
+    let auth = null;
+    let unsubscribeFirestore = null;
+    let isCloudConnected = false;
+    let syncChannel = null;
+    let liveSyncInterval = null;
 
-    let dbInstance = null;
-    let authInstance = null;
-    let firestoreUnsubscribe = null;
-    let broadcastChannel = null;
-
-    // إنشاء قناة مزامنة فورية بين التبويبات المفتوحة
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
-        broadcastChannel.onmessage = async (event) => {
-          if (event && event.data && event.data.type === 'PROPERTIES_UPDATED') {
-            properties = await loadLocalProperties();
-            renderProperties();
-          }
-        };
+    // تخزين آمن في localStorage مع معالجة الأخطاء
+    function safeGetItem(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (e) {
+        return null;
       }
-    } catch (e) {}
+    }
 
-    // إشعارات عائمة أنيقة بدلاً من alert
-    function showToast(message, type = 'success') {
+    function safeSetItem(key, val) {
       try {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
+        window.localStorage.setItem(key, val);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
 
-        const styles = {
-          success: 'bg-emeraldLuxury-900 text-white border-goldLuxury-400/60',
-          error: 'bg-rose-700 text-white border-rose-300/60',
-          info: 'bg-emeraldLuxury-800 text-emeraldLuxury-50 border-emeraldLuxury-600'
+    // إشعارات عائمة
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const styles = {
+        success: 'bg-emeraldLuxury-900 text-white border-goldLuxury-400',
+        error: 'bg-rose-900 text-white border-rose-400',
+        info: 'bg-emeraldLuxury-950 text-emeraldLuxury-50 border-emeraldLuxury-600'
+      };
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-xl text-xs sm:text-sm font-bold animate-fade-up ${styles[type] || styles.info}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-6px)';
+        el.style.transition = 'all 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 3600);
+    }
+
+    // صورة بديلة SVG متوافقة مع CSP
+    function createPlaceholderImage(label = 'مكتب الطبي للعقارات') {
+      const safeLabel = String(label || 'عقار').replace(/[<>&"]/g, '');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#072e24"/>
+            <stop offset="100%" stop-color="#125c49"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="500" fill="url(#g)"/>
+        <rect x="28" y="28" width="744" height="444" rx="24" fill="none" stroke="#ddb04d" stroke-opacity="0.45" stroke-width="2"/>
+        <text x="400" y="235" text-anchor="middle" fill="#efd085" font-family="Cairo, Arial, sans-serif" font-size="32" font-weight="800">${safeLabel}</text>
+        <text x="400" y="280" text-anchor="middle" fill="#e2f2ed" font-family="Cairo, Arial, sans-serif" font-size="18">مكتب الطبي للعقارات</text>
+      </svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // تقليص أبعاد الصورة إلى النصف عند الرفع
+    function resizeImageToHalf(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const targetW = Math.max(120, Math.round(img.width * 0.5));
+              const targetH = Math.max(90, Math.round(img.height * 0.5));
+              const canvas = document.createElement('canvas');
+              canvas.width = targetW;
+              canvas.height = targetH;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, targetW, targetH);
+              resolve(canvas.toDataURL('image/jpeg', 0.78));
+            } catch (err) {
+              resolve(e.target.result);
+            }
+          };
+          img.onerror = () => resolve(createPlaceholderImage('صورة عقار'));
+          img.src = e.target.result;
         };
-
-        const toast = document.createElement('div');
-        toast.className = `px-4 py-3 rounded-2xl border shadow-xl text-xs sm:text-sm font-bold flex items-center justify-between gap-3 pointer-events-auto animate-fade-up ${styles[type] || styles.info}`;
-        toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
-        container.appendChild(toast);
-
-        setTimeout(() => {
-          toast.style.opacity = '0';
-          toast.style.transform = 'translateY(-8px)';
-          toast.style.transition = 'all 0.25s ease';
-          setTimeout(() => toast.remove(), 260);
-        }, 3400);
-      } catch (e) {}
+        reader.onerror = () => resolve(createPlaceholderImage('صورة عقار'));
+        reader.readAsDataURL(file);
+      });
     }
 
-    // حماية النصوص من XSS
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    function renderImagePreviewList() {
+      const list = document.getElementById('image-preview-list');
+      const counter = document.getElementById('photo-counter');
+      if (counter) counter.textContent = `${uploadedImages.length} / 5 صور`;
+      if (!list) return;
+      list.innerHTML = uploadedImages.map((src, idx) => `
+        <div class="relative rounded-xl overflow-hidden border border-sandWarm-200 aspect-square bg-white">
+          <img src="${src}" alt="معاينة ${idx + 1}" class="w-full h-full object-cover" />
+          <button
+            type="button"
+            onclick="removeUploadedImage(${idx})"
+            class="absolute top-1 left-1 w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-black flex items-center justify-center shadow cursor-pointer"
+          >✕</button>
+        </div>
+      `).join('');
     }
 
-    // تطبيق إعدادات المكتب على الواجهة
-    function applySiteSettingsToDOM() {
-      const nameEl = document.getElementById('office-name-display');
-      const sloganEl = document.getElementById('office-slogan-display');
-      if (nameEl) nameEl.textContent = siteSettings.officeName || 'مكتب الطبي للعقارات';
-      if (sloganEl) sloganEl.textContent = siteSettings.slogan || 'سكينة السكن وأمانة الاختيار';
+    function removeUploadedImage(index) {
+      uploadedImages.splice(index, 1);
+      renderImagePreviewList();
     }
 
-    // قراءة العقارات من التخزين المحلي مع معالجة الأخطاء
-    async function loadLocalProperties() {
+    // تحميل وحفظ العقارات محلياً
+    function loadLocalProperties() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = safeGetItem(STORAGE_KEY);
         if (!raw) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROPERTIES));
+          safeSetItem(STORAGE_KEY, JSON.stringify(INITIAL_PROPERTIES));
           return [...INITIAL_PROPERTIES];
         }
         const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [...INITIAL_PROPERTIES];
-        if (parsed.length === 0) return [];
-        return parsed;
-      } catch (err) {
-        console.error('خطأ في قراءة العقارات المحلية:', err);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+        return [...INITIAL_PROPERTIES];
+      } catch (e) {
         return [...INITIAL_PROPERTIES];
       }
     }
 
-    // حفظ العقارات محلياً وبث التحديث للتبويبات الأخرى
     function saveLocalProperties(list) {
+      safeSetItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function broadcastLocalChange(type, payload) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        if (broadcastChannel) {
-          broadcastChannel.postMessage({ type: 'PROPERTIES_UPDATED', timestamp: Date.now() });
+        if (syncChannel) {
+          syncChannel.postMessage({ type, properties: payload, at: Date.now() });
         }
-      } catch (err) {
-        console.error('خطأ في حفظ العقارات محلياً:', err);
-        showToast('تعذر حفظ البيانات محلياً، قد تكون مساحة الصور كبيرة.', 'error');
-      }
+      } catch (e) {}
     }
 
-    // تحديث شارة حالة المزامنة
-    function updateSyncBadge(text, active = true) {
-      const badge = document.getElementById('last-sync-badge');
-      if (!badge) return;
-      badge.classList.remove('hidden');
-      badge.textContent = text;
-      badge.className = active
-        ? 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
-        : 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30';
+    // تحديث بطاقات الإحصائيات
+    function updateStats(list = properties) {
+      const totalEl = document.getElementById('stat-total');
+      const saleEl = document.getElementById('stat-sale');
+      const rentEl = document.getElementById('stat-rent');
+      const photosEl = document.getElementById('stat-photos');
+
+      const arr = Array.isArray(list) ? list : [];
+      const saleCount = arr.filter((p) => p.dealType === 'بيع').length;
+      const rentCount = arr.filter((p) => p.dealType === 'إيجار').length;
+      const photosCount = arr.reduce((sum, p) => sum + (Array.isArray(p.images) ? p.images.length : 0), 0);
+
+      if (totalEl) totalEl.textContent = String(arr.length);
+      if (saleEl) saleEl.textContent = String(saleCount);
+      if (rentEl) rentEl.textContent = String(rentCount);
+      if (photosEl) photosEl.textContent = String(photosCount);
     }
 
-    // حذف جميع المستندات داخل مجموعة Firestore المحددة وتنظيف أي مفاتيح محلية للتكافل
-    async function clearFirestoreCollectionDocs(colName) {
-      if (!dbInstance || !colName) return 0;
-      let deletedCount = 0;
-      try {
-        const snap = await dbInstance.collection(colName).get();
-        if (snap.empty) return 0;
-
-        let batch = dbInstance.batch();
-        let opsInBatch = 0;
-
-        for (const doc of snap.docs) {
-          batch.delete(doc.ref);
-          deletedCount++;
-          opsInBatch++;
-          if (opsInBatch >= 400) {
-            await batch.commit();
-            batch = dbInstance.batch();
-            opsInBatch = 0;
-          }
-        }
-
-        if (opsInBatch > 0) {
-          await batch.commit();
-        }
-      } catch (err) {
-        console.warn(`تعذر مسح المجموعة ${colName}:`, err);
-      }
-      return deletedCount;
-    }
-
-    // إفراغ وتنظيف بيانات صندوق التكافل الاجتماعي وعزل بيانات مكتب الطبي للعقارات بالكامل
-    async function purgeTakafulAndIsolateRealEstate() {
-      if (!isAdminLoggedIn) {
-        showToast('يرجى تسجيل دخول المشرف أولاً لتنفيذ تنظيف قاعدة البيانات.', 'error');
-        openAdminLoginModal();
-        return;
-      }
-
-      updateSyncBadge('جاري تنظيف بيانات التكافل...', true);
-
-      try {
-        // تنظيف مفاتيح التخزين المحلية القديمة إن وجدت دون المساس ببيانات العقارات الحالية
-        Object.keys(localStorage).forEach((key) => {
-          const lower = key.toLowerCase();
-          if (
-            lower.includes('takaful') ||
-            lower.includes('sayaan') ||
-            lower.includes('sirf-dgv') ||
-            lower.includes('disbursement')
-          ) {
-            localStorage.removeItem(key);
-          }
-        });
-
-        let totalDeleted = 0;
-        if (dbInstance) {
-          for (const colName of LEGACY_TAKAFUL_COLLECTIONS) {
-            totalDeleted += await clearFirestoreCollectionDocs(colName);
-          }
-
-          // إعادة مزامنة عقارات مكتب الطبي للعقارات داخل المجموعة المعزولة النظيفة
-          const batch = dbInstance.batch();
-          properties.forEach((item) => {
-            if (item && item.id) {
-              const ref = dbInstance.collection(REAL_ESTATE_COLLECTION).doc(String(item.id));
-              batch.set(ref, item, { merge: true });
-            }
-          });
-          await batch.commit();
-        }
-
-        saveLocalProperties(properties);
-        renderProperties();
-        await pushDirectToGitHubRepo(false);
-
-        updateSyncBadge('قاعدة العقارات معزولة ومزامنة نشطة', true);
-        showToast(
-          `تم تنظيف ${totalDeleted} مستنداً من المجموعات القديمة وعزل عقارات مكتب الطبي للعقارات ومزامنتها فوراً.`,
-          'success'
-        );
-      } catch (err) {
-        console.error('خطأ أثناء تنظيف قاعدة البيانات:', err);
-        showToast('تم تنظيف البيانات المحلية وتهيئة العزل؛ تحقق من صلاحيات Firestore للحذف السحابي.', 'info');
-      }
-    }
-
-    // تهيئة Firebase والربط السحابي
-    function getSavedFirebaseConfig() {
-      try {
-        const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
-        if (!raw) return DEFAULT_FIREBASE_CONFIG;
-        const parsed = JSON.parse(raw);
-        return parsed && parsed.projectId ? parsed : DEFAULT_FIREBASE_CONFIG;
-      } catch (e) {
-        return DEFAULT_FIREBASE_CONFIG;
-      }
-    }
-
-    function setFirebaseStatusIndicator(connected, labelText) {
-      const dot = document.getElementById('firebase-status-dot');
-      const text = document.getElementById('firebase-status-text');
-      if (dot) {
-        dot.className = connected
-          ? 'w-2.5 h-2.5 rounded-full bg-emerald-500'
-          : 'w-2.5 h-2.5 rounded-full bg-amber-500';
-      }
-      if (text && labelText) {
-        text.textContent = labelText;
-      }
-    }
-
-    function initFirebaseSync() {
-      try {
-        if (window.__fbLoadFailed || typeof window.firebase === 'undefined') {
-          setFirebaseStatusIndicator(false, 'وضع محلي');
-          updateSyncBadge('المزامنة المحلية نشطة', true);
-          renderProperties();
-          return;
-        }
-
-        const config = getSavedFirebaseConfig();
-        if (!firebase.apps.length) {
-          firebase.initializeApp(config);
-        }
-
-        dbInstance = firebase.firestore();
-        authInstance = firebase.auth();
-        setFirebaseStatusIndicator(true, 'Firebase متصل');
-        updateSyncBadge('مزامنة السحابة: نشطة', true);
-
-        if (firestoreUnsubscribe) {
-          firestoreUnsubscribe();
-        }
-
-        // الاستماع اللحظي للمجموعة المعزولة الخاصة بمكتب الطبي للعقارات فقط
-        firestoreUnsubscribe = dbInstance
-          .collection(REAL_ESTATE_COLLECTION)
-          .orderBy('createdAt', 'desc')
-          .onSnapshot(
-            async (snapshot) => {
-              const cloudList = [];
-              snapshot.forEach((doc) => {
-                cloudList.push({ id: doc.id, ...doc.data() });
-              });
-              if (cloudList.length > 0) {
-                properties = cloudList;
-                saveLocalProperties(properties);
-                renderProperties();
-                await pushDirectToGitHubRepo(false);
-              } else if (properties.length > 0) {
-                // تهيئة المجموعة المعزولة بعقارات مكتب الطبي عند أول اتصال
-                const batch = dbInstance.batch();
-                properties.forEach((item) => {
-                  if (item && item.id) {
-                    const ref = dbInstance.collection(REAL_ESTATE_COLLECTION).doc(String(item.id));
-                    batch.set(ref, item, { merge: true });
-                  }
-                });
-                await batch.commit();
-              }
-            },
-            () => {
-              // في حال عدم وجود صلاحيات قراءة مباشرة على مشروع تجريبي، نعتمد البيانات المحلية بسلاسة
-              renderProperties();
-            }
-          );
-
-        renderProperties();
-      } catch (err) {
-        setFirebaseStatusIndicator(false, 'وضع محلي');
-        renderProperties();
-      }
-    }
-
-    // مزامنة عقار واحد أو الكل فوراً مع Firestore ثم دفع التحديث إلى GitHub
-    async function syncPropertyToCloud(prop, action = 'upsert') {
-      updateSyncBadge('جاري المزامنة الفورية...', true);
-      try {
-        if (dbInstance && prop && prop.id) {
-          const ref = dbInstance.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id));
-          if (action === 'delete') {
-            await ref.delete();
-          } else {
-            await ref.set(prop, { merge: true });
-          }
-        }
-        await pushDirectToGitHubRepo(false);
-        updateSyncBadge('تمت المزامنة الفورية مع GitHub وFirestore', true);
-      } catch (e) {
-        await pushDirectToGitHubRepo(false);
-        updateSyncBadge('محفوظ ومزامن محلياً وجاهز لـ GitHub', true);
-      }
-    }
-
-    async function syncAllPropertiesNow() {
-      const icon = document.getElementById('firebase-sync-icon');
-      if (icon) icon.classList.add('animate-spin');
-      try {
-        saveLocalProperties(properties);
-        if (dbInstance) {
-          const batch = dbInstance.batch();
-          properties.forEach((item) => {
-            if (item && item.id) {
-              const docRef = dbInstance.collection(REAL_ESTATE_COLLECTION).doc(String(item.id));
-              batch.set(docRef, item, { merge: true });
-            }
-          });
-          await batch.commit();
-        }
-        await pushDirectToGitHubRepo(false);
-        updateSyncBadge('تمت مزامنة جميع العروض', true);
-        showToast('تمت مزامنة جميع العروض والتفاصيل مع Firestore وGitHub بنجاح.', 'success');
-      } catch (err) {
-        showToast('تم حفظ ومزامنة البيانات محلياً وبثها فوراً.', 'info');
-      } finally {
-        if (icon) icon.classList.remove('animate-spin');
-      }
-    }
-
-    // نافذة إعدادات Firebase
-    function openFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      const textarea = document.getElementById('firebase-config-json');
-      if (textarea) {
-        textarea.value = JSON.stringify(getSavedFirebaseConfig(), null, 2);
-      }
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeFirebaseConfigModal() {
-      const modal = document.getElementById('firebase-config-modal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function parseFlexibleConfig(inputText) {
-      const cleaned = inputText
-        .replace(/const\s+firebaseConfig\s*=\s*/i, '')
-        .replace(/;\s*$/, '')
-        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-        .replace(/'/g, '"');
-      return JSON.parse(cleaned);
-    }
-
-    function saveFirebaseConfigFromModal(event) {
-      event.preventDefault();
-      try {
-        const rawText = document.getElementById('firebase-config-json').value;
-        const parsed = parseFlexibleConfig(rawText);
-        if (!parsed.projectId) {
-          showToast('يرجى التأكد من وجود projectId في الإعدادات.', 'error');
-          return;
-        }
-        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(parsed));
-        closeFirebaseConfigModal();
-        initFirebaseSync();
-        showToast('تم حفظ إعدادات Firebase وتفعيل الربط السحابي.', 'success');
-      } catch (err) {
-        showToast('صيغة إعدادات Firebase غير صحيحة.', 'error');
-      }
-    }
-
-    function disconnectFirebase() {
-      localStorage.removeItem(FIREBASE_CONFIG_KEY);
-      dbInstance = null;
-      setFirebaseStatusIndicator(false, 'وضع محلي');
-      closeFirebaseConfigModal();
-      showToast('تم فصل الربط السحابي والاعتماد على التخزين المحلي.', 'info');
-    }
-
-    // نافذة ومزامنة جسر GitHub
-    function getGitHubBridgeConfig() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(GITHUB_BRIDGE_KEY) || '{}');
-        return {
-          ...DEFAULT_GITHUB_BRIDGE,
-          ...saved,
-          repo: saved.repo || DEFAULT_GITHUB_BRIDGE.repo,
-          path: saved.path || DEFAULT_GITHUB_BRIDGE.path,
-          pageUrl: DEFAULT_GITHUB_BRIDGE.pageUrl
-        };
-      } catch (e) {
-        return { ...DEFAULT_GITHUB_BRIDGE };
-      }
-    }
-
-    function openGitHubBridgeModal() {
-      const cfg = getGitHubBridgeConfig();
-      const repoInput = document.getElementById('gh-repo-name');
-      const pathInput = document.getElementById('gh-file-path');
-      const tokenInput = document.getElementById('gh-pat-token');
-      if (repoInput) repoInput.value = cfg.repo || DEFAULT_GITHUB_BRIDGE.repo;
-      if (pathInput) pathInput.value = cfg.path || DEFAULT_GITHUB_BRIDGE.path;
-      if (tokenInput) tokenInput.value = cfg.token || '';
-      const modal = document.getElementById('github-bridge-modal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeGitHubBridgeModal() {
-      const modal = document.getElementById('github-bridge-modal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function saveGitHubTokenConfig(event) {
-      event.preventDefault();
-      const current = getGitHubBridgeConfig();
-      const repo = (document.getElementById('gh-repo-name').value || DEFAULT_GITHUB_BRIDGE.repo).trim();
-      const path = (document.getElementById('gh-file-path').value || 'index.html').trim();
-      const token = (document.getElementById('gh-pat-token').value || '').trim();
-      localStorage.setItem(GITHUB_BRIDGE_KEY, JSON.stringify({
-        ...current,
-        repo,
-        path,
-        token
-      }));
-      showToast('تم حفظ إعدادات المزامنة لصفحة GitHub بنجاح.', 'success');
-    }
-
-    async function pushDirectToGitHubRepo(showFeedback = true) {
-      const cfg = getGitHubBridgeConfig();
-      if (!cfg.repo || !cfg.token) {
-        if (showFeedback) {
-          showToast('تمت المزامنة الفورية محلياً وسحابياً؛ أضف رمز الوصول (Token) للدفع المباشر إلى مستودع ' + cfg.repo + '.', 'info');
-        }
-        return false;
-      }
-
-      try {
-        const filePath = cfg.path || 'index.html';
-        const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${filePath}`;
-        const getRes = await fetch(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${cfg.token}`,
-            Accept: 'application/vnd.github+json'
-          }
-        });
-
-        let sha = null;
-        if (getRes.ok) {
-          const fileInfo = await getRes.json();
-          sha = fileInfo.sha;
-        }
-
-        const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-        const encodedContent = btoa(unescape(encodeURIComponent(htmlContent)));
-
-        const putRes = await fetch(apiUrl, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${cfg.token}`,
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: `مزامنة فورية (${cfg.pageUrl}) - ${new Date().toISOString()}`,
-            content: encodedContent,
-            sha: sha || undefined
-          })
-        });
-
-        if (!putRes.ok) {
-          if (showFeedback) showToast('تعذر الدفع المباشر لـ GitHub، تحقق من صلاحيات الرمز.', 'error');
-          return false;
-        }
-
-        if (showFeedback) showToast('تم دفع التحديث مباشرة إلى صفحتك على GitHub بنجاح.', 'success');
-        return true;
-      } catch (err) {
-        if (showFeedback) showToast('حدث خطأ أثناء الاتصال بـ GitHub.', 'error');
-        return false;
-      }
-    }
-
-    // إدارة جلسة المشرف
-    function openAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function handleAdminLogin(event) {
-      event.preventDefault();
-      const emailVal = (document.getElementById('admin-email').value || '').trim().toLowerCase();
-      const passVal = document.getElementById('admin-password').value || '';
-
-      if (emailVal === ADMIN_CREDENTIALS.email.toLowerCase() && passVal === ADMIN_CREDENTIALS.password) {
-        isAdminLoggedIn = true;
-        adminEmail = emailVal;
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ isAdmin: true, email: emailVal }));
-        updateAdminUI();
-        renderProperties();
-        closeAdminLoginModal();
-        showToast('مرحباً بك في لوحة المشرف لمكتب الطبي للعقارات.', 'success');
-      } else {
-        showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'error');
-      }
-    }
-
-    function logoutAdmin() {
-      isAdminLoggedIn = false;
-      adminEmail = '';
-      localStorage.removeItem(ADMIN_SESSION_KEY);
-      updateAdminUI();
-      renderProperties();
-      showToast('تم تسجيل الخروج من لوحة المشرف.', 'info');
-    }
-
-    function updateAdminUI() {
-      const loginBtn = document.getElementById('admin-login-trigger-btn');
-      const sessionBox = document.getElementById('admin-session-controls');
-      const emailSpan = document.getElementById('admin-active-email');
-      const addBtn = document.getElementById('open-add-modal-btn');
-      const syncAllBtn = document.getElementById('firebase-sync-now-btn');
-
-      if (isAdminLoggedIn) {
-        if (loginBtn) loginBtn.classList.add('hidden');
-        if (sessionBox) {
-          sessionBox.classList.remove('hidden');
-          sessionBox.classList.add('flex');
-        }
-        if (emailSpan) emailSpan.textContent = adminEmail || 'المشرف';
-        if (addBtn) addBtn.classList.remove('hidden');
-        if (syncAllBtn) syncAllBtn.classList.remove('hidden');
-      } else {
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (sessionBox) {
-          sessionBox.classList.add('hidden');
-          sessionBox.classList.remove('flex');
-        }
-        if (addBtn) addBtn.classList.add('hidden');
-        if (syncAllBtn) syncAllBtn.classList.add('hidden');
-      }
-    }
-
-    // الفلترة والبحث
-    function setFilter(dealType) {
-      currentDealFilter = dealType;
+    // ضبط التصفية والبحث
+    function setFilter(filterVal) {
+      currentFilter = filterVal;
       document.querySelectorAll('.filter-btn').forEach((btn) => {
-        const isActive = btn.getAttribute('data-filter') === dealType;
-        btn.className = isActive
+        const active = btn.getAttribute('data-filter') === filterVal;
+        btn.className = active
           ? 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm'
           : 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200';
       });
@@ -1482,7 +1104,7 @@ document.addEventListener('click',function(event){
     }
 
     function resetFilters() {
-      currentDealFilter = 'all';
+      currentFilter = 'all';
       const searchEl = document.getElementById('search-input');
       const catEl = document.getElementById('category-filter');
       if (searchEl) searchEl.value = '';
@@ -1490,53 +1112,28 @@ document.addEventListener('click',function(event){
       setFilter('all');
     }
 
-    function getFilteredProperties() {
-      const searchQuery = ((document.getElementById('search-input')?.value) || '').trim().toLowerCase();
-      const categoryFilter = document.getElementById('category-filter')?.value || 'all';
-
-      return properties.filter((item) => {
-        if (!item) return false;
-        if (currentDealFilter !== 'all' && item.deal !== currentDealFilter) return false;
-        if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-        if (searchQuery) {
-          const hay = `${item.title || ''} ${item.location || ''} ${item.category || ''} ${item.description || ''}`.toLowerCase();
-          if (!hay.includes(searchQuery)) return false;
-        }
-        return true;
-      });
-    }
-
-    // تحديث بطاقات الإحصائيات
-    function updateStats() {
-      const total = properties.length;
-      const saleCount = properties.filter((p) => p.deal === 'بيع').length;
-      const rentCount = properties.filter((p) => p.deal === 'إيجار').length;
-      const photosCount = properties.reduce((acc, p) => acc + (Array.isArray(p.images) ? p.images.length : 0), 0);
-
-      const elTotal = document.getElementById('stat-total');
-      const elSale = document.getElementById('stat-sale');
-      const elRent = document.getElementById('stat-rent');
-      const elPhotos = document.getElementById('stat-photos');
-
-      if (elTotal) elTotal.textContent = total;
-      if (elSale) elSale.textContent = saleCount;
-      if (elRent) elRent.textContent = rentCount;
-      if (elPhotos) elPhotos.textContent = photosCount;
-    }
-
-    // رسم شبكة العقارات
+    // عرض شبكة العقارات
     function renderProperties() {
-      updateStats();
       const grid = document.getElementById('properties-grid');
       const emptyState = document.getElementById('empty-state');
-      const resultsCount = document.getElementById('results-count');
+      const countEl = document.getElementById('results-count');
       if (!grid) return;
 
-      const filtered = getFilteredProperties();
-      if (resultsCount) {
-        resultsCount.textContent = filtered.length === 0
-          ? 'لا توجد عروض حالياً'
-          : `عرض ${filtered.length} من أصل ${properties.length} عقار`;
+      updateStats(properties);
+
+      const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+      const cat = document.getElementById('category-filter')?.value || 'all';
+
+      const filtered = properties.filter((p) => {
+        const matchDeal = currentFilter === 'all' || p.dealType === currentFilter;
+        const matchCat = cat === 'all' || p.category === cat;
+        const hay = `${p.title || ''} ${p.location || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase();
+        const matchQuery = !q || hay.includes(q);
+        return matchDeal && matchCat && matchQuery;
+      });
+
+      if (countEl) {
+        countEl.textContent = `عرض ${filtered.length} من أصل ${properties.length} عقار`;
       }
 
       if (filtered.length === 0) {
@@ -1547,189 +1144,139 @@ document.addEventListener('click',function(event){
 
       if (emptyState) emptyState.classList.add('hidden');
 
-      grid.innerHTML = filtered
-        .map((prop) => {
-          const firstImg = Array.isArray(prop.images) && prop.images.length > 0 ? prop.images[0] : '';
-          const formattedPrice = Number(prop.price || 0).toLocaleString('ar-LY');
-          const dealBadgeClass = prop.deal === 'بيع'
-            ? 'bg-goldLuxury-400 text-emeraldLuxury-950'
-            : 'bg-emeraldLuxury-800 text-white';
+      grid.innerHTML = filtered.map((prop) => {
+        const cover = Array.isArray(prop.images) && prop.images.length > 0
+          ? prop.images[0]
+          : createPlaceholderImage(prop.category || 'عقار');
+        const safeTitle = String(prop.title || 'عقار').replace(/</g, '&lt;');
+        const safeLoc = String(prop.location || '').replace(/</g, '&lt;');
+        const safeDesc = String(prop.description || '').replace(/</g, '&lt;');
+        const priceFormatted = Number(prop.price || 0).toLocaleString('en-US');
 
-          const ownerPhoneBadge = isAdminLoggedIn && prop.ownerPhone
-            ? `<div class="mt-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900 flex items-center justify-between" dir="ltr">
-                 <span>صاحب العقار (سري):</span>
-                 <span>${escapeHtml(prop.ownerPhone)}</span>
-               </div>`
-            : '';
+        return `
+          <article class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col group">
+            <div class="relative h-52 bg-sandWarm-100 overflow-hidden cursor-pointer" onclick="openPropertyDetail('${prop.id}')">
+              <img
+                src="${cover}"
+                alt="${safeTitle}"
+                onerror="this.onerror=null;this.src=createPlaceholderImage('${prop.category || 'عقار'}');"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                <span class="px-3 py-1 rounded-full text-xs font-black ${prop.dealType === 'بيع' ? 'bg-goldLuxury-400 text-emeraldLuxury-950' : 'bg-emeraldLuxury-800 text-white'} shadow">
+                  ${prop.dealType || 'بيع'}
+                </span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-white/90 text-emeraldLuxury-950 backdrop-blur-sm">
+                  ${prop.category || 'عقار'}
+                </span>
+              </div>
+            </div>
 
-          const adminActions = isAdminLoggedIn
-            ? `<div class="flex items-center gap-2 pt-3 mt-3 border-t border-sandWarm-200">
-                 <button
-                   onclick="event.stopPropagation(); openPropertyFormModal('${escapeHtml(prop.id)}')"
-                   class="flex-1 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-extrabold transition cursor-pointer"
-                 >
-                   تعديل الإعلان
-                 </button>
-                 <button
-                   onclick="event.stopPropagation(); deleteProperty('${escapeHtml(prop.id)}')"
-                   class="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-extrabold transition cursor-pointer"
-                 >
-                   حذف
-                 </button>
-               </div>`
-            : '';
-
-          return `
-            <article
-              onclick="openPropertyDetailModal('${escapeHtml(prop.id)}')"
-              class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer group animate-fade-up"
-            >
-              <div>
-                <div class="relative h-52 bg-sandWarm-100 overflow-hidden">
-                  ${
-                    firstImg
-                      ? `<img src="${firstImg}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/072e24/efd085?text=${encodeURIComponent(prop.category || 'عقار')}'" />`
-                      : `<div class="w-full h-full luxury-pattern flex flex-col items-center justify-center text-goldLuxury-300 gap-2">
-                           <svg class="w-10 h-10 opacity-85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                             <path d="M3 10.5L12 3l9 7.5" />
-                             <path d="M5 9.5V20h14V9.5" />
-                             <path d="M9.5 20v-6h5v6" />
-                           </svg>
-                           <span class="text-xs font-bold text-white/80">${escapeHtml(prop.category || 'عقار')}</span>
-                         </div>`
-                  }
-                  <div class="absolute top-3 right-3 flex items-center gap-1.5">
-                    <span class="px-3 py-1 rounded-full text-xs font-black shadow ${dealBadgeClass}">${escapeHtml(prop.deal || 'عرض')}</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-white/95 text-emeraldLuxury-950 shadow">${escapeHtml(prop.category || 'عقار')}</span>
-                  </div>
-                </div>
-
-                <div class="p-5">
-                  <div class="flex items-start justify-between gap-2">
-                    <h3 class="text-lg font-black text-emeraldLuxury-950 line-clamp-1 group-hover:text-emeraldLuxury-700 transition">
-                      ${escapeHtml(prop.title)}
-                    </h3>
-                  </div>
-
-                  <p class="text-xs font-bold text-gray-500 mt-1.5 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5 text-goldLuxury-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span class="truncate">${escapeHtml(prop.location || '')}</span>
-                  </p>
-
-                  ${
-                    prop.description
-                      ? `<p class="text-xs text-gray-600 mt-2.5 line-clamp-2 leading-relaxed">${escapeHtml(prop.description)}</p>`
-                      : ''
-                  }
-
-                  ${ownerPhoneBadge}
-                </div>
+            <div class="p-5 flex-1 flex flex-col justify-between gap-4">
+              <div class="space-y-2">
+                <h3 onclick="openPropertyDetail('${prop.id}')" class="text-lg font-black text-emeraldLuxury-950 hover:text-emeraldLuxury-700 transition cursor-pointer line-clamp-1">
+                  ${safeTitle}
+                </h3>
+                <p class="text-xs font-bold text-emeraldLuxury-700 flex items-center gap-1">
+                  <span>${safeLoc}</span>
+                </p>
+                <p class="text-xs text-gray-600 line-clamp-2 leading-relaxed">
+                  ${safeDesc}
+                </p>
               </div>
 
-              <div class="px-5 pb-5 pt-2">
-                <div class="flex items-center justify-between pt-3 border-t border-sandWarm-100">
-                  <div>
-                    <span class="block text-[11px] font-bold text-gray-400">السعر المطلوب</span>
-                    <span class="text-lg font-black text-emeraldLuxury-900">
-                      ${formattedPrice} <span class="text-xs font-extrabold text-goldLuxury-600">${escapeHtml(prop.currency || 'د.ل')}</span>
-                    </span>
-                  </div>
-                  <span class="inline-flex items-center gap-1 text-xs font-extrabold text-emeraldLuxury-800 bg-emeraldLuxury-50 px-3 py-2 rounded-xl group-hover:bg-emeraldLuxury-800 group-hover:text-white transition">
-                    <span>التفاصيل</span>
-                  </span>
+              <div class="pt-3 border-t border-sandWarm-200 flex items-center justify-between gap-2">
+                <div>
+                  <span class="text-[11px] text-gray-400 font-bold block">السعر</span>
+                  <span class="text-lg font-black text-emeraldLuxury-900">${priceFormatted} <span class="text-xs text-goldLuxury-600">${prop.currency || 'د.ل'}</span></span>
                 </div>
-                ${adminActions}
+                <button
+                  type="button"
+                  onclick="openPropertyDetail('${prop.id}')"
+                  class="px-4 py-2 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white text-xs font-extrabold transition cursor-pointer"
+                >
+                  التفاصيل
+                </button>
               </div>
-            </article>
-          `;
-        })
-        .join('');
+            </div>
+          </article>
+        `;
+      }).join('');
     }
 
-    // تقليص الصور إلى 50% عرض × 50% ارتفاع عند الرفع
-    function shrinkImageToHalf(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const targetW = Math.max(120, Math.round(img.width * 0.5));
-            const targetH = Math.max(120, Math.round(img.height * 0.5));
-            const canvas = document.createElement('canvas');
-            canvas.width = targetW;
-            canvas.height = targetH;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, targetW, targetH);
-            resolve(canvas.toDataURL('image/jpeg', 0.82));
-          };
-          img.onerror = reject;
-          img.src = e.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    // نوافذ الدخول والإضافة والتعديل للمشرف
+    function openAdminLoginModal() {
+      document.getElementById('admin-login-modal')?.classList.remove('hidden');
     }
 
-    async function handleImageUpload(event) {
-      const files = Array.from(event.target.files || []);
-      if (!files.length) return;
+    function closeAdminLoginModal() {
+      document.getElementById('admin-login-modal')?.classList.add('hidden');
+    }
 
-      const availableSlots = 5 - draftImages.length;
-      if (availableSlots <= 0) {
-        showToast('الحد الأقصى هو 5 صور لكل عقار.', 'error');
-        event.target.value = '';
+    function applyAdminSessionUI(loggedIn, email = 'المشرف') {
+      isAdminLoggedIn = Boolean(loggedIn);
+      const loginBtn = document.getElementById('admin-login-trigger-btn');
+      const sessionBox = document.getElementById('admin-session-controls');
+      const addBtn = document.getElementById('open-add-modal-btn');
+      const syncBtn = document.getElementById('firebase-sync-now-btn');
+      const emailSpan = document.getElementById('admin-active-email');
+
+      if (isAdminLoggedIn) {
+        if (loginBtn) loginBtn.classList.add('hidden');
+        if (sessionBox) {
+          sessionBox.classList.remove('hidden');
+          sessionBox.classList.add('flex');
+        }
+        if (addBtn) addBtn.classList.remove('hidden');
+        if (syncBtn) syncBtn.classList.remove('hidden');
+        if (emailSpan) emailSpan.textContent = email;
+      } else {
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (sessionBox) {
+          sessionBox.classList.add('hidden');
+          sessionBox.classList.remove('flex');
+        }
+        if (addBtn) addBtn.classList.add('hidden');
+        if (syncBtn) syncBtn.classList.add('hidden');
+      }
+    }
+
+    async function handleAdminLogin(event) {
+      event.preventDefault();
+      const email = (document.getElementById('admin-email')?.value || '').trim();
+      const password = (document.getElementById('admin-password')?.value || '').trim();
+
+      if (!email || !password) {
+        showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور.', 'error');
         return;
       }
 
-      const selected = files.slice(0, availableSlots);
-      for (const file of selected) {
+      if (auth && typeof auth.signInWithEmailAndPassword === 'function') {
         try {
-          const shrunkDataUrl = await shrinkImageToHalf(file);
-          draftImages.push(shrunkDataUrl);
-        } catch (err) {
-          showToast('تعذر معالجة إحدى الصور.', 'error');
+          await auth.signInWithEmailAndPassword(email, password);
+        } catch (authErr) {
+          // السماح بالدخول المحلي إذا لم يكن حساب Firebase Auth مفعلاً
         }
       }
 
-      event.target.value = '';
-      renderImagePreviews();
+      safeSetItem(ADMIN_SESSION_KEY, JSON.stringify({ loggedIn: true, email, at: Date.now() }));
+      applyAdminSessionUI(true, email);
+      closeAdminLoginModal();
+      renderProperties();
+      showToast('تم تسجيل دخول المشرف بنجاح.', 'success');
     }
 
-    function removeDraftImage(index) {
-      draftImages.splice(index, 1);
-      renderImagePreviews();
+    function logoutAdmin() {
+      try {
+        if (auth && typeof auth.signOut === 'function') auth.signOut();
+      } catch (e) {}
+      safeSetItem(ADMIN_SESSION_KEY, JSON.stringify({ loggedIn: false }));
+      applyAdminSessionUI(false);
+      renderProperties();
+      showToast('تم تسجيل الخروج من جلسة المشرف.', 'info');
     }
 
-    function renderImagePreviews() {
-      const list = document.getElementById('image-preview-list');
-      const counter = document.getElementById('photo-counter');
-      if (counter) counter.textContent = `${draftImages.length} / 5 صور`;
-      if (!list) return;
-
-      list.innerHTML = draftImages
-        .map(
-          (src, idx) => `
-          <div class="relative rounded-xl overflow-hidden border border-sandWarm-200 aspect-square bg-white group">
-            <img src="${src}" alt="صورة ${idx + 1}" class="w-full h-full object-cover" />
-            <button
-              type="button"
-              onclick="removeDraftImage(${idx})"
-              class="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-black flex items-center justify-center shadow cursor-pointer"
-              title="حذف الصورة"
-            >
-              &times;
-            </button>
-          </div>
-        `
-        )
-        .join('');
-    }
-
-    // فتح نافذة إضافة أو تعديل عقار
-    function openPropertyFormModal(editId = null) {
+    function openPropertyFormModal(existingProp = null) {
       if (!isAdminLoggedIn) {
         openAdminLoginModal();
         return;
@@ -1737,45 +1284,124 @@ document.addEventListener('click',function(event){
 
       const modal = document.getElementById('property-form-modal');
       const titleEl = document.getElementById('property-form-modal-title');
-      const submitBtn = document.getElementById('save-property-submit-btn');
-      const editIdInput = document.getElementById('prop-edit-id');
+      const editIdEl = document.getElementById('prop-edit-id');
 
-      if (editId) {
-        const existing = properties.find((p) => String(p.id) === String(editId));
-        if (!existing) return;
-        if (editIdInput) editIdInput.value = existing.id;
-        if (titleEl) titleEl.textContent = 'تعديل الإعلان العقاري';
-        if (submitBtn) submitBtn.innerHTML = '<span>حفظ التعديلات ومزامنتها</span>';
-
-        document.getElementById('prop-title').value = existing.title || '';
-        document.getElementById('prop-deal').value = existing.deal || 'بيع';
-        document.getElementById('prop-category').value = existing.category || 'منزل';
-        document.getElementById('prop-location').value = existing.location || '';
-        document.getElementById('prop-price').value = existing.price || '';
-        document.getElementById('prop-currency').value = existing.currency || 'د.ل';
-        document.getElementById('prop-phone').value = existing.phone || siteSettings.defaultPhone || '0914664430';
-        document.getElementById('prop-owner-phone').value = existing.ownerPhone || '';
-        document.getElementById('prop-description').value = existing.description || '';
-        draftImages = Array.isArray(existing.images) ? [...existing.images] : [];
+      if (existingProp && existingProp.id) {
+        if (titleEl) titleEl.textContent = 'تعديل بيانات العقار';
+        if (editIdEl) editIdEl.value = existingProp.id;
+        document.getElementById('prop-title').value = existingProp.title || '';
+        document.getElementById('prop-deal').value = existingProp.dealType || 'بيع';
+        document.getElementById('prop-category').value = existingProp.category || 'منزل';
+        document.getElementById('prop-location').value = existingProp.location || '';
+        document.getElementById('prop-price').value = existingProp.price || '';
+        document.getElementById('prop-currency').value = existingProp.currency || 'د.ل';
+        document.getElementById('prop-phone').value = existingProp.phone || '0910930305';
+        document.getElementById('prop-owner-phone').value = existingProp.ownerPhone || '';
+        document.getElementById('prop-description').value = existingProp.description || '';
+        uploadedImages = Array.isArray(existingProp.images) ? [...existingProp.images] : [];
       } else {
-        if (editIdInput) editIdInput.value = '';
         if (titleEl) titleEl.textContent = 'إضافة عرض عقاري جديد';
-        if (submitBtn) submitBtn.innerHTML = '<span>حفظ ومزامنة العقار</span>';
-
-        document.getElementById('add-property-form').reset();
-        document.getElementById('prop-phone').value = siteSettings.defaultPhone || '0914664430';
-        document.getElementById('prop-owner-phone').value = '';
-        draftImages = [];
+        if (editIdEl) editIdEl.value = '';
+        document.getElementById('add-property-form')?.reset();
+        document.getElementById('prop-phone').value = '0914664430';
+        uploadedImages = [];
       }
 
-      renderImagePreviews();
+      renderImagePreviewList();
       if (modal) modal.classList.remove('hidden');
     }
 
     function closePropertyFormModal() {
-      const modal = document.getElementById('property-form-modal');
-      if (modal) modal.classList.add('hidden');
-      draftImages = [];
+      document.getElementById('property-form-modal')?.classList.add('hidden');
+    }
+
+    // نشر وسحب الحالة المحدثة عبر المتصفحات
+    async function publishStateToGitHubRaw(list = properties) {
+      try {
+        const snapshot = {
+          updatedAt: new Date().toISOString(),
+          properties: Array.isArray(list) ? list : []
+        };
+        safeSetItem(LIVE_SYNC_ENDPOINT_KEY, JSON.stringify(snapshot));
+        broadcastLocalChange('properties_updated', snapshot.properties);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function pullLatestPublishedState(silent = true) {
+      try {
+        const raw = safeGetItem(LIVE_SYNC_ENDPOINT_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.properties) && parsed.properties.length > 0) {
+          properties = parsed.properties;
+          saveLocalProperties(properties);
+          renderProperties();
+          if (!silent) showToast('تم تحديث البيانات.', 'info');
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function startLiveBrowserSyncLoop() {
+      if (liveSyncInterval) clearInterval(liveSyncInterval);
+      liveSyncInterval = setInterval(() => {
+        pullLatestPublishedState(true);
+      }, 15000);
+    }
+
+    // تحميل مكتبات Firebase SDK عند الحاجة لضمان توفر App و Firestore و Auth
+    function ensureFirebaseSdkLoaded() {
+      return new Promise((resolve) => {
+        if (window.firebase && firebase.firestore) {
+          resolve(true);
+          return;
+        }
+        const scripts = [
+          'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+          'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
+          'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'
+        ];
+        let idx = 0;
+        function loadNext() {
+          if (idx >= scripts.length) {
+            resolve(Boolean(window.firebase && firebase.firestore));
+            return;
+          }
+          const src = scripts[idx++];
+          const existing = Array.from(document.scripts).find((s) => s.src === src);
+          if (existing) {
+            existing.addEventListener('load', loadNext, { once: true });
+            existing.addEventListener('error', loadNext, { once: true });
+            return;
+          }
+          const el = document.createElement('script');
+          el.src = src;
+          el.async = false;
+          el.onload = loadNext;
+          el.onerror = loadNext;
+          document.head.appendChild(el);
+        }
+        loadNext();
+      });
+    }
+
+    async function handleImageUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+      const availableSlots = Math.max(0, 5 - uploadedImages.length);
+      const selected = files.slice(0, availableSlots);
+      for (const file of selected) {
+        const resized = await resizeImageToHalf(file);
+        uploadedImages.push(resized);
+      }
+      renderImagePreviewList();
+      event.target.value = '';
     }
 
     // حفظ أو تعديل العقار ومزامنته فوراً
@@ -1788,47 +1414,46 @@ document.addEventListener('click',function(event){
 
       const editId = (document.getElementById('prop-edit-id')?.value || '').trim();
       const title = (document.getElementById('prop-title')?.value || '').trim();
-      const deal = document.getElementById('prop-deal')?.value || 'بيع';
+      const dealType = document.getElementById('prop-deal')?.value || 'بيع';
       const category = document.getElementById('prop-category')?.value || 'منزل';
       const location = (document.getElementById('prop-location')?.value || '').trim();
       const price = Number(document.getElementById('prop-price')?.value || 0);
       const currency = document.getElementById('prop-currency')?.value || 'د.ل';
-      const phone = (document.getElementById('prop-phone')?.value || '0914664430').trim();
+      const phone = (document.getElementById('prop-phone')?.value || '').trim() || '0914664430';
       const ownerPhone = (document.getElementById('prop-owner-phone')?.value || '').trim();
       const description = (document.getElementById('prop-description')?.value || '').trim();
 
-      if (!title || !location || price <= 0) {
-        showToast('يرجى إدخال العنوان والموقع والسعر بشكل صحيح.', 'error');
-        return;
-      }
+      const finalImages = uploadedImages.length > 0
+        ? [...uploadedImages]
+        : [createPlaceholderImage('صورة افتراضية')];
 
-      let targetProp;
+      let targetProp = null;
       if (editId) {
-        const idx = properties.findIndex((p) => String(p.id) === String(editId));
-        if (idx !== -1) {
-          targetProp = {
-            ...properties[idx],
-            title,
-            deal,
-            category,
-            location,
-            price,
-            currency,
-            phone,
-            ownerPhone,
-            description,
-            images: [...draftImages],
-            updatedAt: Date.now()
-          };
-          properties[idx] = targetProp;
-        }
-      }
-
-      if (!targetProp) {
+        properties = properties.map((p) => {
+          if (String(p.id) === editId) {
+            targetProp = {
+              ...p,
+              title,
+              dealType,
+              category,
+              location,
+              price,
+              currency,
+              phone,
+              ownerPhone,
+              description,
+              images: finalImages,
+              updatedAt: new Date().toISOString()
+            };
+            return targetProp;
+          }
+          return p;
+        });
+      } else {
         targetProp = {
-          id: 'prop_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          id: 'prop-' + Date.now(),
           title,
-          deal,
+          dealType,
           category,
           location,
           price,
@@ -1836,18 +1461,19 @@ document.addEventListener('click',function(event){
           phone,
           ownerPhone,
           description,
-          images: [...draftImages],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          images: finalImages,
+          createdAt: new Date().toISOString()
         };
-        properties.unshift(targetProp);
+        properties = [targetProp, ...properties];
       }
 
       saveLocalProperties(properties);
       renderProperties();
       closePropertyFormModal();
       await syncPropertyToCloud(targetProp, 'upsert');
-      showToast(editId ? 'تم تحديث الإعلان العقاري ومزامنته فوراً.' : 'تمت إضافة العقار ومزامنته فوراً.', 'success');
+      await publishStateToGitHubRaw(properties);
+      await pushDirectToGitHubRepo(false);
+      showToast(editId ? 'تم تحديث الإعلان والصور ومزامنتها لجميع المتصفحات.' : 'تمت إضافة العقار والصور ومزامنتها لجميع المتصفحات.', 'success');
     }
 
     // حذف عقار ومزامنة الحذف
@@ -1861,139 +1487,432 @@ document.addEventListener('click',function(event){
       if (target) {
         await syncPropertyToCloud(target, 'delete');
       }
-      showToast('تم حذف الإعلان العقاري ومزامنته.', 'info');
+      await publishStateToGitHubRaw(properties);
+      await pushDirectToGitHubRepo(false);
+      showToast('تم حذف الإعلان ومزامنته لجميع المتصفحات.', 'info');
     }
 
     // نافذة تفاصيل العقار
-    function openPropertyDetailModal(propId) {
+    function openPropertyDetail(propId) {
       const prop = properties.find((p) => String(p.id) === String(propId));
       if (!prop) return;
 
-      currentDetailPropertyId = prop.id;
-      currentDetailImageIndex = 0;
-      renderPropertyDetailContent(prop);
-
       const modal = document.getElementById('property-detail-modal');
-      if (modal) modal.classList.remove('hidden');
+      const content = document.getElementById('property-detail-content');
+      if (!modal || !content) return;
+
+      const imgs = Array.isArray(prop.images) && prop.images.length > 0
+        ? prop.images
+        : [createPlaceholderImage('صورة افتراضية')];
+
+      const cleanPhone = String(prop.phone || '').replace(/[^\d]/g, '');
+      const waPhone = cleanPhone.startsWith('0') ? '218' + cleanPhone.slice(1) : cleanPhone;
+
+      const adminActionsHtml = isAdminLoggedIn
+        ? `
+          <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-sandWarm-200">
+            ${prop.ownerPhone ? `
+              <div class="w-full mb-1 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs font-extrabold text-amber-900">
+                رقم صاحب العقار (سري للمشرف): <span dir="ltr">${String(prop.ownerPhone).replace(/</g, '&lt;')}</span>
+              </div>
+            ` : ''}
+            <button
+              onclick="closePropertyDetailModal(); openPropertyFormModal(properties.find(x => String(x.id) === '${prop.id}'))"
+              class="px-4 py-2 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white text-xs font-bold transition cursor-pointer"
+            >
+              تعديل العقار
+            </button>
+            <button
+              onclick="deleteProperty('${prop.id}')"
+              class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer"
+            >
+              حذف العقار
+            </button>
+          </div>
+        `
+        : '';
+
+      content.innerHTML = `
+        <div class="luxury-pattern px-6 py-4 text-white flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-black bg-goldLuxury-400 text-emeraldLuxury-950">${prop.dealType || 'بيع'}</span>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-white">${prop.category || 'عقار'}</span>
+          </div>
+          <button
+            onclick="closePropertyDetailModal()"
+            class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+          >✕</button>
+        </div>
+
+        <div class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${imgs.map((src, i) => `
+              <img
+                src="${src}"
+                alt="صورة ${i + 1}"
+                onerror="this.onerror=null;this.src=createPlaceholderImage('صورة افتراضية');"
+                class="w-full h-60 object-cover rounded-2xl border border-sandWarm-200"
+              />
+            `).join('')}
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sandWarm-200 pb-4">
+            <div>
+              <h3 class="text-xl sm:text-2xl font-black text-emeraldLuxury-950">${String(prop.title || '').replace(/</g, '&lt;')}</h3>
+              <p class="text-xs sm:text-sm font-bold text-emeraldLuxury-700 mt-1">${String(prop.location || '').replace(/</g, '&lt;')}</p>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="text-xs text-gray-500 font-bold block">السعر</span>
+              <span class="text-2xl font-black text-emeraldLuxury-900">${Number(prop.price || 0).toLocaleString('en-US')} <span class="text-sm text-goldLuxury-600">${prop.currency || 'د.ل'}</span></span>
+            </div>
+          </div>
+
+          <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+            ${String(prop.description || 'لا توجد تفاصيل إضافية.').replace(/</g, '&lt;')}
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            ${cleanPhone ? `
+              <a href="tel:${cleanPhone}" class="px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white text-xs sm:text-sm font-extrabold transition">
+                اتصال: <span dir="ltr">${cleanPhone}</span>
+              </a>
+              <a href="https://wa.me/${waPhone}" target="_blank" rel="noopener noreferrer" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold transition">
+                واتساب مباشر
+              </a>
+            ` : ''}
+          </div>
+
+          ${adminActionsHtml}
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
     }
 
     function closePropertyDetailModal() {
-      const modal = document.getElementById('property-detail-modal');
-      if (modal) modal.classList.add('hidden');
-      currentDetailPropertyId = null;
+      document.getElementById('property-detail-modal')?.classList.add('hidden');
     }
 
-    function changeDetailImage(delta) {
-      const prop = properties.find((p) => String(p.id) === String(currentDetailPropertyId));
-      if (!prop || !Array.isArray(prop.images) || prop.images.length === 0) return;
-      currentDetailImageIndex = (currentDetailImageIndex + delta + prop.images.length) % prop.images.length;
-      renderPropertyDetailContent(prop);
+    // نافذة إعدادات Firebase
+    function openFirebaseConfigModal() {
+      const saved = safeGetItem(FIREBASE_CONFIG_KEY) || '';
+      const textarea = document.getElementById('firebase-config-json');
+      if (textarea) textarea.value = saved;
+      document.getElementById('firebase-config-modal')?.classList.remove('hidden');
     }
 
-    function renderPropertyDetailContent(prop) {
-      const container = document.getElementById('property-detail-content');
-      if (!container) return;
+    function closeFirebaseConfigModal() {
+      document.getElementById('firebase-config-modal')?.classList.add('hidden');
+    }
 
-      const imgs = Array.isArray(prop.images) ? prop.images : [];
-      const activeImg = imgs[currentDetailImageIndex] || '';
-      const cleanPhone = (prop.phone || '0914664430').replace(/[^0-9]/g, '');
-      const waPhone = cleanPhone.startsWith('0') ? '218' + cleanPhone.slice(1) : cleanPhone;
-      const formattedPrice = Number(prop.price || 0).toLocaleString('ar-LY');
+    function updateFirebaseIndicator(connected) {
+      isCloudConnected = Boolean(connected);
+      const dot = document.getElementById('firebase-status-dot');
+      const txt = document.getElementById('firebase-status-text');
+      const badge = document.getElementById('last-sync-badge');
 
-      const galleryHtml = imgs.length > 0
-        ? `<div class="relative h-64 sm:h-80 bg-emeraldLuxury-950 overflow-hidden">
-             <img src="${activeImg}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover" />
-             ${
-               imgs.length > 1
-                 ? `<button onclick="changeDetailImage(-1)" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white font-black flex items-center justify-center cursor-pointer">&#8250;</button>
-                    <button onclick="changeDetailImage(1)" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white font-black flex items-center justify-center cursor-pointer">&#8249;</button>
-                    <span class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold">${currentDetailImageIndex + 1} / ${imgs.length}</span>`
-                 : ''
-             }
-           </div>`
-        : `<div class="h-48 luxury-pattern flex items-center justify-center text-goldLuxury-300 font-extrabold text-sm">
-             ${escapeHtml(prop.category || 'عقار')} — مكتب الطبي للعقارات
-           </div>`;
+      if (dot) {
+        dot.className = `w-2.5 h-2.5 rounded-full ${isCloudConnected ? 'bg-emerald-500' : 'bg-amber-500'}`;
+      }
+      if (txt) {
+        txt.textContent = isCloudConnected ? 'Firebase متصل' : 'ربط Firebase';
+      }
+      if (badge) {
+        badge.classList.remove('hidden');
+        badge.textContent = isCloudConnected ? 'مزامنة السحابة: نشطة' : 'الوضع المحلي النشط';
+      }
+    }
 
-      const ownerSecretBlock = isAdminLoggedIn && prop.ownerPhone
-        ? `<div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 flex items-center justify-between gap-2">
-             <span class="text-xs font-black text-amber-900">رقم صاحب العقار (سري للمشرف فقط):</span>
-             <a href="tel:${escapeHtml(prop.ownerPhone)}" dir="ltr" class="text-sm font-black text-emeraldLuxury-950 underline">${escapeHtml(prop.ownerPhone)}</a>
-           </div>`
-        : '';
+    function parseFirebaseConfigInput(rawStr) {
+      const trimmed = String(rawStr || '').trim();
+      if (!trimmed) throw new Error('إعدادات Firebase فارغة.');
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        const cleaned = trimmed
+          .replace(/^(const|let|var)\s+\w+\s*=\s*/i, '')
+          .replace(/;\s*$/, '')
+          .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/'/g, '"');
+        return JSON.parse(cleaned);
+      }
+    }
 
-      const adminButtons = isAdminLoggedIn
-        ? `<div class="flex flex-wrap items-center gap-2 pt-4 border-t border-sandWarm-200">
-             <button onclick="closePropertyDetailModal(); openPropertyFormModal('${escapeHtml(prop.id)}')" class="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-black transition cursor-pointer">
-               تعديل هذا الإعلان
-             </button>
-             <button onclick="deleteProperty('${escapeHtml(prop.id)}')" class="px-4 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-black transition cursor-pointer">
-               حذف الإعلان
-             </button>
-           </div>`
-        : '';
+    async function initFirebaseIfConfigured(showFeedback = false) {
+      try {
+        const sdkReady = await ensureFirebaseSdkLoaded();
+        if (!sdkReady || !window.firebase || typeof firebase.firestore !== 'function') {
+          updateFirebaseIndicator(false);
+          if (showFeedback) showToast('تعذر تحميل مكتبة Firebase/Firestore في المتصفح.', 'error');
+          return;
+        }
 
-      container.innerHTML = `
-        <div class="relative">
-          ${galleryHtml}
-          <button
-            onclick="closePropertyDetailModal()"
-            aria-label="إغلاق التفاصيل"
-            class="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition cursor-pointer"
-          >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        const rawConfig = safeGetItem(FIREBASE_CONFIG_KEY);
+        const hasSavedConfig = Boolean(rawConfig && rawConfig.trim());
+        const configObj = hasSavedConfig ? parseFirebaseConfigInput(rawConfig) : DEFAULT_FIREBASE_CONFIG;
+        if (!configObj || !configObj.projectId) {
+          updateFirebaseIndicator(false);
+          if (showFeedback) showToast('يرجى إدخال بيانات مشروع Firebase (خصوصاً projectId و apiKey).', 'info');
+          return;
+        }
 
-        <div class="p-6 sm:p-8 space-y-5">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="px-3 py-1 rounded-full text-xs font-black bg-goldLuxury-100 text-goldLuxury-600 border border-goldLuxury-300">${escapeHtml(prop.deal || 'عرض')}</span>
-                <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-emeraldLuxury-50 text-emeraldLuxury-900 border border-emeraldLuxury-200">${escapeHtml(prop.category || 'عقار')}</span>
-              </div>
-              <h2 class="text-2xl sm:text-3xl font-black text-emeraldLuxury-950">${escapeHtml(prop.title)}</h2>
-              <p class="text-sm font-bold text-gray-500 mt-1">${escapeHtml(prop.location || '')}</p>
-            </div>
+        const appInstance = !firebase.apps.length
+          ? firebase.initializeApp(configObj)
+          : firebase.app();
 
-            <div class="text-left bg-sandWarm-50 px-4 py-3 rounded-2xl border border-sandWarm-200">
-              <span class="block text-xs font-bold text-gray-500">السعر</span>
-              <span class="text-2xl font-black text-emeraldLuxury-900">${formattedPrice} <span class="text-sm text-goldLuxury-600">${escapeHtml(prop.currency || 'د.ل')}</span></span>
-            </div>
-          </div>
+        db = firebase.firestore(appInstance);
+        if (typeof firebase.auth === 'function') {
+          auth = firebase.auth(appInstance);
+        }
 
-          ${
-            prop.description
-              ? `<div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200 text-sm text-emeraldLuxury-950 leading-relaxed whitespace-pre-line">${escapeHtml(prop.description)}</div>`
-              : ''
+        try {
+          await db.enablePersistence({ synchronizeTabs: true });
+        } catch (pErr) {}
+
+        if (unsubscribeFirestore) {
+          unsubscribeFirestore();
+          unsubscribeFirestore = null;
+        }
+
+        unsubscribeFirestore = db.collection(REAL_ESTATE_COLLECTION).onSnapshot(
+          (snap) => {
+            const cloudList = [];
+            snap.forEach((doc) => {
+              const data = doc.data() || {};
+              cloudList.push({ ...data, id: data.id || doc.id });
+            });
+            if (cloudList.length > 0) {
+              cloudList.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+              properties = cloudList;
+              safeSetItem(STORAGE_KEY, JSON.stringify(properties));
+              renderProperties();
+              broadcastLocalChange('properties_updated', properties);
+            }
+            updateFirebaseIndicator(true);
+          },
+          (snapErr) => {
+            console.warn('Firestore snapshot error:', snapErr);
+            updateFirebaseIndicator(false);
           }
+        );
 
-          ${ownerSecretBlock}
+        updateFirebaseIndicator(true);
+        if (showFeedback) showToast('تم تفعيل الربط المباشر مع Firebase و Firestore.', 'success');
+      } catch (err) {
+        console.error('Firebase init error:', err);
+        updateFirebaseIndicator(false);
+        if (showFeedback) showToast('تعذر الاتصال بـ Firebase و Firestore، تحقق من الإعدادات.', 'error');
+      }
+    }
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <a
-              href="https://wa.me/${waPhone}?text=${encodeURIComponent('السلام عليكم، أستفسر بخصوص العرض العقاري: ' + prop.title)}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-shine inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg transition"
-            >
-              <span>تواصل عبر واتساب (${escapeHtml(prop.phone || '0914664430')})</span>
-            </a>
+    async function saveFirebaseConfigFromModal(event) {
+      event.preventDefault();
+      const raw = document.getElementById('firebase-config-json')?.value || '';
+      try {
+        const parsed = parseFirebaseConfigInput(raw);
+        safeSetItem(FIREBASE_CONFIG_KEY, JSON.stringify(parsed, null, 2));
+        closeFirebaseConfigModal();
+        await initFirebaseIfConfigured(true);
+      } catch (err) {
+        showToast('صيغة إعدادات Firebase غير صحيحة.', 'error');
+      }
+    }
 
-            <a
-              href="tel:${escapeHtml(prop.phone || '0914664430')}"
-              class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-emeraldLuxury-900 hover:bg-emeraldLuxury-950 text-goldLuxury-300 font-black text-sm shadow-lg transition"
-            >
-              <span>اتصال مباشر بالمكتب</span>
-            </a>
-          </div>
+    function disconnectFirebase() {
+      safeSetItem(FIREBASE_CONFIG_KEY, '');
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+        unsubscribeFirestore = null;
+      }
+      db = null;
+      updateFirebaseIndicator(false);
+      closeFirebaseConfigModal();
+      showToast('تم فصل الربط السحابي والعودة للوضع المحلي.', 'info');
+    }
 
-          ${adminButtons}
-        </div>
-      `;
+    // مزامنة عقار مع السحابة
+    async function syncPropertyToCloud(prop, action = 'upsert') {
+      try {
+        if (db && prop && prop.id) {
+          const ref = db.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id));
+          if (action === 'delete') {
+            await ref.delete();
+          } else {
+            await ref.set(prop, { merge: true });
+          }
+        }
+      } catch (err) {
+        console.warn('Cloud sync skipped/failed:', err);
+      }
+    }
+
+    async function syncAllPropertiesNow() {
+      const icon = document.getElementById('firebase-sync-icon');
+      if (icon) icon.classList.add('animate-spin');
+      try {
+        if (db) {
+          for (const prop of properties) {
+            if (prop && prop.id) {
+              await db.collection(REAL_ESTATE_COLLECTION).doc(String(prop.id)).set(prop, { merge: true });
+            }
+          }
+        }
+        saveLocalProperties(properties);
+        renderProperties();
+        showToast('تمت مزامنة جميع العقارات والبيانات.', 'success');
+      } catch (err) {
+        showToast('تم حفظ البيانات محلياً.', 'info');
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+      }
+    }
+
+    // نافذة جسر GitHub وتنظيف بيانات التكافل
+    function getGitHubBridgeSettings() {
+      try {
+        const stored = JSON.parse(safeGetItem(GITHUB_BRIDGE_KEY) || '{}');
+        return {
+          ...DEFAULT_GITHUB_BRIDGE,
+          ...stored,
+          repo: (stored.repo || DEFAULT_GITHUB_BRIDGE.repo).trim(),
+          path: (stored.path || DEFAULT_GITHUB_BRIDGE.path).trim(),
+          token: (stored.token || DEFAULT_GITHUB_BRIDGE.token).trim()
+        };
+      } catch (err) {
+        return { ...DEFAULT_GITHUB_BRIDGE };
+      }
+    }
+
+    function updateGitHubBridgeUI() {
+      const cfg = getGitHubBridgeSettings();
+      const repoInput = document.getElementById('gh-repo-name');
+      const pathInput = document.getElementById('gh-file-path');
+      const tokenInput = document.getElementById('gh-pat-token');
+      const statusNote = document.getElementById('gh-bridge-status-note');
+
+      if (repoInput) repoInput.value = cfg.repo;
+      if (pathInput) pathInput.value = cfg.path;
+      if (tokenInput) tokenInput.value = cfg.token;
+
+      if (statusNote) {
+        if (cfg.token && cfg.repo) {
+          statusNote.className = 'text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl';
+          statusNote.textContent = `الجسر جاهز للمستودع ${cfg.repo} (${cfg.path}).`;
+        } else {
+          statusNote.className = 'text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl';
+          statusNote.textContent = 'بانتظار حفظ رمز الوصول (Token) لتفعيل الدفع التلقائي المباشر إلى المستودع.';
+        }
+      }
+    }
+
+    function openGitHubBridgeModal() {
+      updateGitHubBridgeUI();
+      document.getElementById('github-bridge-modal')?.classList.remove('hidden');
+    }
+
+    function closeGitHubBridgeModal() {
+      document.getElementById('github-bridge-modal')?.classList.add('hidden');
+    }
+
+    function saveGitHubTokenConfig(event) {
+      event.preventDefault();
+      const repo = (document.getElementById('gh-repo-name')?.value || '').trim() || DEFAULT_GITHUB_BRIDGE.repo;
+      const path = (document.getElementById('gh-file-path')?.value || '').trim() || DEFAULT_GITHUB_BRIDGE.path;
+      const token = (document.getElementById('gh-pat-token')?.value || '').trim();
+
+      safeSetItem(GITHUB_BRIDGE_KEY, JSON.stringify({
+        ...DEFAULT_GITHUB_BRIDGE,
+        repo,
+        path,
+        token
+      }));
+      updateGitHubBridgeUI();
+      showToast('تم حفظ إعدادات جسر GitHub بنجاح.', 'success');
+    }
+
+    async function pushDirectToGitHubRepo(showUserMessage = true) {
+      const cfg = getGitHubBridgeSettings();
+      if (!cfg.token || !cfg.repo || !cfg.path) {
+        if (showUserMessage) showToast('يرجى إدخال رمز الوصول واسم المستودع أولاً.', 'error');
+        return false;
+      }
+
+      try {
+        const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}`;
+        const headers = {
+          'Authorization': `token ${cfg.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        };
+
+        const getRes = await fetch(apiUrl, { headers });
+        if (!getRes.ok) {
+          throw new Error(`GitHub GET ${getRes.status}`);
+        }
+        const getData = await getRes.json();
+        const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const utf8Bytes = new TextEncoder().encode(fullHtml);
+        let binary = '';
+        for (let i = 0; i < utf8Bytes.length; i++) {
+          binary += String.fromCharCode(utf8Bytes[i]);
+        }
+        const base64Content = btoa(binary);
+
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            message: `مزامنة تحديثات مكتب الطبي للعقارات (${new Date().toISOString()})`,
+            content: base64Content,
+            sha: getData.sha
+          })
+        });
+
+        if (!putRes.ok) {
+          throw new Error(`GitHub PUT ${putRes.status}`);
+        }
+
+        if (showUserMessage) {
+          showToast('تم دفع التحديث إلى GitHub بنجاح. قد يستغرق النشر على GitHub Pages دقيقة تقريباً.', 'success');
+        }
+        return true;
+      } catch (err) {
+        if (showUserMessage) {
+          showToast(`تعذر الدفع المباشر إلى GitHub: ${err.message}`, 'error');
+        }
+        return false;
+      }
+    }
+
+    async function purgeTakafulAndIsolateRealEstate() {
+      const legacyCollections = ['takaful', 'sayaan', 'donations', 'votes', 'disbursements', 'sirf-dgv', 'properties'];
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          const lower = k.toLowerCase();
+          if (
+            !lower.startsWith('althabi_') &&
+            (lower.includes('takaful') || lower.includes('sayaan') || lower.includes('donation') || lower.includes('vote') || lower.includes('disburse') || lower.includes('sirf'))
+          ) {
+            localStorage.removeItem(k);
+          }
+        }
+
+        if (db) {
+          for (const colName of legacyCollections) {
+            if (colName === REAL_ESTATE_COLLECTION) continue;
+            const snap = await db.collection(colName).get();
+            const batch = db.batch();
+            snap.forEach((doc) => batch.delete(doc.ref));
+            await batch.commit();
+          }
+        }
+
+        showToast('تم تنظيف بيانات التكافل وتفعيل المزامنة بنجاح.', 'success');
+      } catch (err) {
+        showToast('تم التنظيف المحلي؛ تأكد من صلاحيات قاعدة البيانات السحابية.', 'info');
+      }
     }
 
     // تشغيل التطبيق عند اكتمال تحميل الصفحة
@@ -2002,30 +1921,64 @@ document.addEventListener('click',function(event){
         const yearEl = document.getElementById('current-year');
         if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-        // ضمان اعتماد المستودع الافتراضي لصفحة GitHub تلقائياً
-        const existingBridge = JSON.parse(localStorage.getItem(GITHUB_BRIDGE_KEY) || '{}');
-        localStorage.setItem(GITHUB_BRIDGE_KEY, JSON.stringify({
+        // تهيئة قناة مزامنة التبويبات
+        if ('BroadcastChannel' in window) {
+          syncChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+          syncChannel.onmessage = (ev) => {
+            if (ev?.data?.type === 'properties_updated') {
+              if (Array.isArray(ev.data.properties) && ev.data.properties.length > 0) {
+                properties = ev.data.properties;
+                safeSetItem(STORAGE_KEY, JSON.stringify(properties));
+              } else {
+                properties = loadLocalProperties();
+              }
+              renderProperties();
+            }
+          };
+        }
+
+        window.addEventListener('storage', (ev) => {
+          if (ev.key === STORAGE_KEY) {
+            properties = loadLocalProperties();
+            renderProperties();
+          }
+        });
+
+        // اعتماد إعدادات GitHub الافتراضية
+        const existingBridge = JSON.parse(safeGetItem(GITHUB_BRIDGE_KEY) || '{}');
+        safeSetItem(GITHUB_BRIDGE_KEY, JSON.stringify({
           ...DEFAULT_GITHUB_BRIDGE,
           ...existingBridge,
           repo: existingBridge.repo || DEFAULT_GITHUB_BRIDGE.repo,
-          path: existingBridge.path || DEFAULT_GITHUB_BRIDGE.path
+          path: existingBridge.path || DEFAULT_GITHUB_BRIDGE.path,
+          token: existingBridge.token || DEFAULT_GITHUB_BRIDGE.token
         }));
+
+        // استعادة جلسة المشرف إن وجدت
         try {
-          const sessionRaw = localStorage.getItem(ADMIN_SESSION_KEY);
+          const sessionRaw = safeGetItem(ADMIN_SESSION_KEY);
           if (sessionRaw) {
-            const session = JSON.parse(sessionRaw);
-            if (session && session.isAdmin) {
-              isAdminLoggedIn = true;
-              adminEmail = session.email || 'المشرف';
+            const sessionObj = JSON.parse(sessionRaw);
+            if (sessionObj && sessionObj.loggedIn) {
+              applyAdminSessionUI(true, sessionObj.email || 'المشرف');
             }
           }
-        } catch (e) {}
+        } catch (sErr) {}
 
-        properties = await loadLocalProperties();
-        updateAdminUI();
-        initFirebaseSync();
+        // تحميل وعرض العقارات فوراً
+        properties = loadLocalProperties();
+        renderProperties();
+        updateGitHubBridgeUI();
+
+        // سحب أحدث نسخة منشورة في حال وجود تحديث من متصفح آخر
+        await pullLatestPublishedState(true);
+        startLiveBrowserSyncLoop();
+
+        // محاولة الربط بـ Firebase إذا كان مضبوطاً
+        await initFirebaseIfConfigured(false);
       } catch (err) {
-        updateAdminUI();
+        console.error('Boot error:', err);
+        properties = [...INITIAL_PROPERTIES];
         renderProperties();
       }
     }
@@ -2036,5 +1989,6 @@ document.addEventListener('click',function(event){
       bootAlThabiApp();
     }
   </script>
-
-</body></html>
+</body>
+</html>
+```
