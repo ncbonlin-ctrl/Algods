@@ -169,6 +169,32 @@
 
       <!-- أدوات التحكم الثابتة في اليسار -->
       <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- زر المزامنة الفورية اليدوية مع Firebase -->
+        <button
+          id="firebase-sync-now-btn"
+          onclick="syncAllPropertiesNow()"
+          title="مزامنة جميع العروض والصور والتفاصيل الآن"
+          class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 hover:bg-emeraldLuxury-100 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-bold transition cursor-pointer"
+        >
+          <svg id="firebase-sync-icon" class="w-3.5 h-3.5 text-emeraldLuxury-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+          </svg>
+          <span class="hidden lg:inline">مزامنة الكل</span>
+        </button>
+
+        <!-- مؤشر حالة الربط مع Firebase -->
+        <button
+          id="firebase-status-btn"
+          onclick="openFirebaseConfigModal()"
+          title="إعدادات ربط قاعدة بيانات Firebase"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 border border-sandWarm-200 text-xs font-bold transition cursor-pointer"
+        >
+          <span id="firebase-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <span id="firebase-status-text" class="hidden md:inline">ربط Firebase</span>
+        </button>
+
         <!-- زر إضافة عقار (يظهر للمشرف فقط) -->
         <button
           id="open-add-modal-btn"
@@ -786,10 +812,99 @@
     <div id="property-detail-content" class="bg-white rounded-3xl w-full max-w-4xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up"></div>
   </div>
 
+  <!-- نافذة إعدادات ربط Firebase -->
+  <div id="firebase-config-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl w-full max-w-lg border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
+      <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-goldLuxury-300">المزامنة السحابية الفورية</span>
+          <h3 class="text-lg font-extrabold">إعدادات الربط مع Firebase</h3>
+        </div>
+        <button
+          onclick="closeFirebaseConfigModal()"
+          aria-label="إغلاق"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="saveFirebaseConfigFromModal(event)" class="p-6 space-y-4">
+        <p class="text-xs text-gray-600 leading-relaxed bg-sandWarm-50 p-3.5 rounded-2xl border border-sandWarm-200">
+          الصق كائن <code class="font-bold text-emeraldLuxury-900" dir="ltr">firebaseConfig</code> من لوحة تحكم Firebase (Project Settings) ليتم حفظ العقارات ومزامنتها لحظياً عبر Firestore.
+        </p>
+
+        <div>
+          <label for="firebase-config-json" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">بيانات إعدادات Firebase (JSON أو كائن JS) *</label>
+          <textarea
+            id="firebase-config-json"
+            rows="7"
+            dir="ltr"
+            required
+            placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project-id",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abcdef"
+}'
+            class="w-full px-4 py-3 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-xs font-mono"
+          ></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-sandWarm-200">
+          <button
+            type="button"
+            onclick="disconnectFirebase()"
+            class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer"
+          >
+            فصل الربط السحابي
+          </button>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              onclick="closeFirebaseConfigModal()"
+              class="px-4 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition cursor-pointer"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              class="btn-shine px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-xs shadow-btn-emerald transition cursor-pointer"
+            >
+              حفظ وتفعيل الربط
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مكتبات Firebase SDK (Compat لسهولة العمل الفوري داخل ملف واحد) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
   <script>
     const STORAGE_KEY = 'al_thabi_real_estate_properties_v1';
     const ADMIN_SESSION_KEY = 'al_thabi_admin_session_v1';
+    const FIREBASE_CONFIG_KEY = 'al_thabi_firebase_config_v1';
+    const FIRESTORE_COLLECTION = 'althabi_properties';
     const MAX_PHOTOS = 5;
+
+    // يمكنك وضع بيانات مشروعك هنا مباشرة لتعمل تلقائياً لجميع الزوار
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
 
     const ADMIN_CREDENTIALS = {
       email: 'admin@althabi.ly'
@@ -800,6 +915,261 @@
     let draftImages = [];
     let isAdminLoggedIn = false;
     let activeAdminEmail = '';
+    let db = null;
+    let isFirebaseConnected = false;
+    let firestoreUnsubscribe = null;
+
+    function getActiveFirebaseConfig() {
+      if (DEFAULT_FIREBASE_CONFIG && DEFAULT_FIREBASE_CONFIG.apiKey && DEFAULT_FIREBASE_CONFIG.projectId) {
+        return DEFAULT_FIREBASE_CONFIG;
+      }
+      try {
+        const saved = localStorage.getItem(FIREBASE_CONFIG_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.apiKey && parsed.projectId) return parsed;
+        }
+      } catch (err) {
+        console.warn('تعذر قراءة إعدادات Firebase المحفوظة:', err);
+      }
+      return null;
+    }
+
+    function updateFirebaseStatusUI(connected, labelText) {
+      const dot = document.getElementById('firebase-status-dot');
+      const text = document.getElementById('firebase-status-text');
+      const syncBtn = document.getElementById('firebase-sync-now-btn');
+      if (dot) {
+        dot.className = connected
+          ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse'
+          : 'w-2.5 h-2.5 rounded-full bg-amber-500';
+      }
+      if (text) {
+        text.textContent = labelText || (connected ? 'متصل بـ Firebase' : 'ربط Firebase');
+      }
+      if (syncBtn) {
+        if (connected) {
+          syncBtn.classList.remove('hidden');
+        } else {
+          syncBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    // توحيد هيكل بيانات العقار لضمان مزامنة جميع الحقول والصور والهاتف والتفاصيل بدقة
+    function normalizePropertyRecord(raw) {
+      const normalizedImages = Array.isArray(raw.images)
+        ? raw.images.slice(0, MAX_PHOTOS).map((img, idx) => ({
+            id: img.id || `img-${Date.now()}-${idx}`,
+            name: String(img.name || `صورة-${idx + 1}.jpg`),
+            originalWidth: Number(img.originalWidth) || Number(img.width) || 800,
+            originalHeight: Number(img.originalHeight) || Number(img.height) || 600,
+            width: Number(img.width) || 400,
+            height: Number(img.height) || 300,
+            dataUrl: String(img.dataUrl || '')
+          })).filter(img => img.dataUrl)
+        : [];
+
+      return {
+        id: String(raw.id || 'prop-' + Date.now()),
+        title: String(raw.title || '').trim(),
+        dealType: raw.dealType === 'إيجار' ? 'إيجار' : 'بيع',
+        category: String(raw.category || 'فيلا').trim(),
+        location: String(raw.location || '').trim(),
+        price: Number(raw.price) || 0,
+        currency: String(raw.currency || 'د.ل').trim(),
+        phone: String(raw.phone || '').trim(),
+        description: String(raw.description || '').trim(),
+        images: normalizedImages,
+        createdAt: Number(raw.createdAt) || Date.now(),
+        updatedAt: Date.now()
+      };
+    }
+
+    // مزامنة جميع العروض المحلية مع Firestore (رفع المفقود وتحديث الكل بالصور والتفاصيل والهاتف)
+    async function pushAllLocalPropertiesToFirestore(localList) {
+      if (!db || !Array.isArray(localList) || localList.length === 0) return;
+      const batch = db.batch();
+      localList.forEach((item) => {
+        const cleanItem = normalizePropertyRecord(item);
+        const docRef = db.collection(FIRESTORE_COLLECTION).doc(cleanItem.id);
+        batch.set(docRef, cleanItem, { merge: true });
+      });
+      await batch.commit();
+    }
+
+    async function syncAllPropertiesNow() {
+      if (!isFirebaseConnected || !db) {
+        showToast('يرجى ربط إعدادات Firebase أولاً لتفعيل المزامنة السحابية.', 'warning');
+        openFirebaseConfigModal();
+        return;
+      }
+
+      const icon = document.getElementById('firebase-sync-icon');
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        await pushAllLocalPropertiesToFirestore(properties);
+        const snapshot = await db.collection(FIRESTORE_COLLECTION).orderBy('createdAt', 'desc').get();
+        properties = snapshot.docs.map(doc => normalizePropertyRecord({ id: doc.id, ...doc.data() }));
+        saveProperties();
+        renderProperties();
+        showToast(`تمت مزامنة ${properties.length} عرض عقاري بكامل الصور والتفاصيل وأرقام الهواتف بنجاح!`, 'success');
+      } catch (err) {
+        console.error('خطأ أثناء المزامنة الشاملة:', err);
+        showToast('حدث خطأ أثناء المزامنة؛ تأكد من حجم الصور أو صلاحيات Firestore.', 'error');
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+      }
+    }
+
+    function initFirebaseConnection() {
+      // تحميل النسخة المحلية أولاً حتى تكون جاهزة للدمج والمزامنة مع السحابة
+      loadProperties();
+
+      const config = getActiveFirebaseConfig();
+      if (!config || typeof firebase === 'undefined') {
+        isFirebaseConnected = false;
+        db = null;
+        updateFirebaseStatusUI(false, 'ربط Firebase');
+        renderProperties();
+        return;
+      }
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(config);
+        } else {
+          firebase.app().delete().then(() => {
+            firebase.initializeApp(config);
+            subscribeToFirestoreProperties();
+          });
+          return;
+        }
+        db = firebase.firestore();
+        isFirebaseConnected = true;
+        updateFirebaseStatusUI(true, 'متصل بـ Firebase');
+        subscribeToFirestoreProperties();
+      } catch (err) {
+        console.error('خطأ في تهيئة Firebase:', err);
+        isFirebaseConnected = false;
+        db = null;
+        updateFirebaseStatusUI(false, 'خطأ بالربط');
+        showToast('تعذر الاتصال بـ Firebase؛ يرجى التحقق من صحة بيانات الإعداد.', 'error');
+        renderProperties();
+      }
+    }
+
+    function subscribeToFirestoreProperties() {
+      if (!db) return;
+      if (typeof firestoreUnsubscribe === 'function') {
+        firestoreUnsubscribe();
+      }
+
+      let initialMergeDone = false;
+
+      firestoreUnsubscribe = db.collection(FIRESTORE_COLLECTION)
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(
+          async (snapshot) => {
+            const remoteDocs = snapshot.docs.map(doc => normalizePropertyRecord({ id: doc.id, ...doc.data() }));
+
+            if (!initialMergeDone) {
+              initialMergeDone = true;
+              const remoteIds = new Set(remoteDocs.map(d => d.id));
+              const localOnly = properties.filter(p => !remoteIds.has(p.id));
+
+              if (remoteDocs.length === 0 && properties.length > 0) {
+                await pushAllLocalPropertiesToFirestore(properties);
+                showToast('تم رفع ومزامنة جميع العروض والصور والتفاصيل إلى Firebase.', 'success');
+                return;
+              } else if (localOnly.length > 0) {
+                await pushAllLocalPropertiesToFirestore(localOnly);
+                showToast(`تمت مزامنة ${localOnly.length} عرض محلي إضافي مع Firebase.`, 'success');
+                return;
+              }
+            }
+
+            properties = remoteDocs;
+            saveProperties();
+            renderProperties();
+          },
+          (error) => {
+            console.error('خطأ في مزامنة Firestore:', error);
+            showToast('تعذر جلب البيانات من Firestore (تأكد من قواعد الأمان Rules).', 'warning');
+            renderProperties();
+          }
+        );
+    }
+
+    function openFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
+      const textarea = document.getElementById('firebase-config-json');
+      const current = getActiveFirebaseConfig();
+      if (textarea) {
+        textarea.value = current ? JSON.stringify(current, null, 2) : '';
+      }
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeFirebaseConfigModal() {
+      const modal = document.getElementById('firebase-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    }
+
+    function parseFirebaseConfigInput(rawInput) {
+      let cleaned = rawInput.trim();
+      const braceStart = cleaned.indexOf('{');
+      const braceEnd = cleaned.lastIndexOf('}');
+      if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+        cleaned = cleaned.slice(braceStart, braceEnd + 1);
+      }
+      // تحويل مفاتيح كائن JS غير المحاطة بعلامات تنصيص إلى JSON صالح
+      cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+      cleaned = cleaned.replace(/'/g, '"');
+      cleaned = cleaned.replace(/,\s*}/g, '}');
+      return JSON.parse(cleaned);
+    }
+
+    function saveFirebaseConfigFromModal(event) {
+      event.preventDefault();
+      const raw = document.getElementById('firebase-config-json').value;
+      try {
+        const parsed = parseFirebaseConfigInput(raw);
+        if (!parsed || !parsed.apiKey || !parsed.projectId) {
+          showToast('يرجى التأكد من وجود apiKey و projectId داخل الإعدادات.', 'warning');
+          return;
+        }
+        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(parsed));
+        closeFirebaseConfigModal();
+        showToast('تم حفظ إعدادات Firebase وجاري الاتصال بقاعدة البيانات...', 'success');
+        initFirebaseConnection();
+      } catch (err) {
+        console.error('خطأ في تحليل إعدادات Firebase:', err);
+        showToast('صيغة الإعدادات غير صالحة؛ انسخ كائن firebaseConfig كما هو من Firebase.', 'error');
+      }
+    }
+
+    function disconnectFirebase() {
+      localStorage.removeItem(FIREBASE_CONFIG_KEY);
+      if (typeof firestoreUnsubscribe === 'function') {
+        firestoreUnsubscribe();
+        firestoreUnsubscribe = null;
+      }
+      isFirebaseConnected = false;
+      db = null;
+      updateFirebaseStatusUI(false, 'ربط Firebase');
+      closeFirebaseConfigModal();
+      loadProperties();
+      renderProperties();
+      showToast('تم فصل الربط السحابي والعودة للتخزين المحلي.', 'info');
+    }
 
     async function hashPassword(password) {
       try {
@@ -1492,7 +1862,7 @@
         return;
       }
 
-      const newProperty = {
+      const newProperty = normalizePropertyRecord({
         id: 'prop-' + Date.now(),
         title,
         dealType,
@@ -1504,13 +1874,29 @@
         description,
         images: [...draftImages],
         createdAt: Date.now()
-      };
+      });
 
-      properties.unshift(newProperty);
-      saveProperties();
-      renderProperties();
-      closePropertyFormModal();
-      showToast(`تم نشر العقار "${title}" بنجاح عبر مكتب الطبي للعقارات!`, 'success');
+      if (isFirebaseConnected && db) {
+        db.collection(FIRESTORE_COLLECTION).doc(newProperty.id).set(newProperty, { merge: true })
+          .then(() => {
+            closePropertyFormModal();
+            showToast(`تم نشر العقار "${title}" ومزامنة صوره وتفاصيله ورقم الهاتف مع Firebase!`, 'success');
+          })
+          .catch((err) => {
+            console.error('خطأ في حفظ العقار على Firestore:', err);
+            showToast('تعذر الحفظ على Firebase؛ تم الحفظ محلياً كنسخة احتياطية.', 'warning');
+            properties.unshift(newProperty);
+            saveProperties();
+            renderProperties();
+            closePropertyFormModal();
+          });
+      } else {
+        properties.unshift(newProperty);
+        saveProperties();
+        renderProperties();
+        closePropertyFormModal();
+        showToast(`تم نشر العقار "${title}" بنجاح عبر مكتب الطبي للعقارات!`, 'success');
+      }
     }
 
     function deleteProperty(propertyId) {
@@ -1521,11 +1907,23 @@
       const target = properties.find(p => p.id === propertyId);
       if (!target) return;
 
-      properties = properties.filter(p => p.id !== propertyId);
-      saveProperties();
-      renderProperties();
-      closePropertyDetail();
-      showToast(`تم حذف العقار "${target.title}".`, 'info');
+      if (isFirebaseConnected && db) {
+        db.collection(FIRESTORE_COLLECTION).doc(propertyId).delete()
+          .then(() => {
+            closePropertyDetail();
+            showToast(`تم حذف العقار "${target.title}" من Firebase.`, 'info');
+          })
+          .catch((err) => {
+            console.error('خطأ أثناء الحذف من Firestore:', err);
+            showToast('تعذر حذف العقار من Firebase.', 'error');
+          });
+      } else {
+        properties = properties.filter(p => p.id !== propertyId);
+        saveProperties();
+        renderProperties();
+        closePropertyDetail();
+        showToast(`تم حذف العقار "${target.title}".`, 'info');
+      }
     }
 
     function openPropertyDetail(propertyId) {
@@ -1647,18 +2045,19 @@
       const formModal = document.getElementById('property-form-modal');
       const detailModal = document.getElementById('property-detail-modal');
       const loginModal = document.getElementById('admin-login-modal');
+      const firebaseModal = document.getElementById('firebase-config-modal');
       if (e.target === formModal) closePropertyFormModal();
       if (e.target === detailModal) closePropertyDetail();
       if (e.target === loginModal) closeAdminLoginModal();
+      if (e.target === firebaseModal) closeFirebaseConfigModal();
     });
 
     window.addEventListener('DOMContentLoaded', function () {
       const yearEl = document.getElementById('current-year');
       if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-      loadProperties();
       restoreAdminSession();
-      renderProperties();
+      initFirebaseConnection();
     });
   </script>
 </body>
