@@ -42,10 +42,10 @@
             }
           },
           boxShadow: {
-            'luxury': '0 14px 36px -10px rgba(7, 46, 36, 0.12), 0 4px 14px -4px rgba(194, 145, 50, 0.14)',
-            'luxury-hover': '0 22px 48px -12px rgba(7, 46, 36, 0.2), 0 8px 20px -6px rgba(194, 145, 50, 0.22)',
-            'btn-gold': '0 6px 20px -4px rgba(194, 145, 50, 0.45)',
-            'btn-emerald': '0 6px 20px -4px rgba(12, 68, 54, 0.35)',
+            'luxury': '0 14px 36px -10px rgba(7, 46, 36, 0.10), 0 4px 14px -4px rgba(194, 145, 50, 0.12)',
+            'luxury-hover': '0 24px 50px -12px rgba(7, 46, 36, 0.18), 0 8px 20px -6px rgba(194, 145, 50, 0.22)',
+            'btn-gold': '0 8px 20px -4px rgba(194, 145, 50, 0.42)',
+            'btn-emerald': '0 8px 20px -4px rgba(12, 68, 54, 0.32)',
           }
         }
       }
@@ -62,30 +62,36 @@
       overflow-x: hidden;
     }
 
-    /* خلفية معمارية دافئة تعكس الطمأنينة والرقي */
+    /* خلفية معمارية هندسية حديثة */
     .luxury-pattern {
+      background-color: #06271f;
       background-image:
-        radial-gradient(circle at 18% 22%, rgba(221, 176, 77, 0.16) 0%, transparent 45%),
-        radial-gradient(circle at 82% 78%, rgba(25, 117, 93, 0.18) 0%, transparent 50%),
-        linear-gradient(135deg, #06271f 0%, #0c4436 55%, #051f18 100%);
+        radial-gradient(circle at 15% 20%, rgba(221, 176, 77, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(25, 117, 93, 0.22) 0%, transparent 50%),
+        linear-gradient(135deg, #052019 0%, #0b3f32 55%, #041914 100%);
     }
 
-    /* توهج ناعم ينير وينطفئ قليلاً لزر دخول المشرف */
+    /* شبكة هندسية خفيفة تعكس المخططات المعمارية */
+    .architectural-grid {
+      background-size: 36px 36px;
+      background-image:
+        linear-gradient(to right, rgba(239, 208, 133, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(239, 208, 133, 0.05) 1px, transparent 1px);
+    }
+
+    /* توهج أنيق لزر دخول المشرف */
     @keyframes gentlePulseGlow {
       0%, 100% {
-        box-shadow: 0 0 10px rgba(221, 176, 77, 0.35), 0 0 0 1px rgba(221, 176, 77, 0.55);
-        filter: brightness(0.96);
+        box-shadow: 0 0 0 1px rgba(194, 145, 50, 0.45), 0 4px 12px rgba(194, 145, 50, 0.2);
       }
       50% {
-        box-shadow: 0 0 22px rgba(239, 208, 133, 0.85), 0 0 0 2px rgba(239, 208, 133, 0.95);
-        filter: brightness(1.08);
+        box-shadow: 0 0 0 2px rgba(221, 176, 77, 0.85), 0 6px 18px rgba(221, 176, 77, 0.45);
       }
     }
 
     .admin-glow-btn {
       animation: gentlePulseGlow 3.2s ease-in-out infinite;
       white-space: nowrap;
-      line-height: 1.2;
     }
 
     @keyframes fadeUp {
@@ -116,7 +122,7 @@
       left: -100%;
       width: 65%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
       transform: skewX(-20deg);
       transition: left 0.55s ease;
     }
@@ -144,150 +150,190 @@
 <body class="min-h-screen flex flex-col selection:bg-goldLuxury-300 selection:text-emeraldLuxury-950">
 
   <!-- حاوية الإشعارات العائمة -->
-  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[70] w-full max-w-md px-4 space-y-2 pointer-events-none"></div>
+  <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-[70] w-full max-w-md px-4 space-y-2 pointer-events-none"></div>
 
-  <!-- الشريط العلوي: الشعار في اليمين وزر دخول المشرف المستطيل المتوهج في اليسار -->
-  <!-- الشريط العلوي: اسم المكتب على الحاشية اليمنى وشعار المنزل المربع في اليسار -->
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-sandWarm-200 shadow-sm">
-    <div class="w-full pr-2 pl-3 sm:pr-4 sm:pl-6 min-h-20 py-2.5 flex items-center justify-between gap-3">
-      <!-- اسم مكتب الطبي للعقارات بالعرض ومحاذي على الحاشية اليمنى -->
-      <a href="#top" class="flex flex-col items-start text-right group shrink-0">
-        <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-emeraldLuxury-900 group-hover:text-emeraldLuxury-700 transition leading-tight tracking-tight">
-          مكتب الطبي للعقارات
-        </span>
-        <span class="text-base sm:text-lg lg:text-xl font-extrabold text-goldLuxury-600 mt-1 leading-snug">سكينة السكن وأمانة الاختيار</span>
+  <!-- الشريط العلوي الثابت العصري -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-sandWarm-200/90 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+      <!-- أيقونة الشعار في اليمين -->
+      <a href="#top" aria-label="الرئيسية" class="flex items-center group shrink-0">
+        <div class="w-12 h-12 rounded-2xl luxury-pattern border border-goldLuxury-400/70 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
+          <!-- أيقونة معمارية موحدة (سقف منزل وأعمدة) -->
+          <svg class="w-6 h-6 text-goldLuxury-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20h14V9.5" />
+            <path d="M9.5 20v-6h5v6" />
+          </svg>
+        </div>
       </a>
 
-      <!-- جهة اليسار: زر إضافة العقار للمشرف وشعار المنزل المربع -->
-      <div class="flex items-center justify-end gap-2.5 shrink-0">
-
-      <!-- جهة اليسار: زر إضافة العقار للمشرف وشعار المنزل المربع -->
-      <div class="flex items-center justify-end gap-2.5 shrink-0 min-w-12 sm:min-w-28">
+      <!-- أدوات التحكم الثابتة في اليسار -->
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- زر إضافة عقار (يظهر للمشرف فقط) -->
         <button
           id="open-add-modal-btn"
           onclick="openPropertyFormModal()"
-          class="hidden btn-shine inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-extrabold text-xs sm:text-sm shadow-btn-gold border border-goldLuxury-300 cursor-pointer active:scale-95"
+          class="hidden btn-shine inline-flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-bold text-xs sm:text-sm shadow-btn-emerald transition cursor-pointer active:scale-95"
         >
-          <svg class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <path d="M12 8v8M8 12h8" />
           </svg>
-          <span>إضافة عقار جديد</span>
+          <span class="hidden sm:inline">إضافة عقار</span>
         </button>
 
-        <a href="#top" aria-label="شعار مكتب الطبي للعقارات" class="w-12 h-12 rounded-2xl luxury-pattern border border-goldLuxury-400/60 flex items-center justify-center shadow-md hover:scale-105 transition-transform shrink-0">
-          <svg class="w-7 h-7 text-goldLuxury-300" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 5L5 15.5V30H14.5V21H21.5V30H31V15.5L18 5Z" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/>
+        <!-- زر دخول المشرف الثابت -->
+        <button
+          id="admin-login-trigger-btn"
+          onclick="openAdminLoginModal()"
+          class="admin-glow-btn btn-shine inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 text-emeraldLuxury-950 font-black text-xs sm:text-sm border border-goldLuxury-500 transition cursor-pointer active:scale-95"
+        >
+          <svg class="w-4 h-4 text-emeraldLuxury-950 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="15" r="4" />
+            <path d="M10.85 12.15L19 4" />
+            <path d="M18 5l2 2" />
+            <path d="M15 8l2 2" />
           </svg>
-        </a>
+          <span>دخول المشرف</span>
+        </button>
+
+        <!-- عناصر جلسة المشرف بعد الدخول -->
+        <div id="admin-session-controls" class="hidden items-center gap-2">
+          <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emeraldLuxury-50 text-emeraldLuxury-900 border border-emeraldLuxury-200 text-xs font-extrabold">
+            <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span id="admin-active-email">المشرف</span>
+          </span>
+          <button
+            onclick="logoutAdmin()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition cursor-pointer"
+          >
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>خروج</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- القسم التعريفي الفاخر -->
-  <section id="top" class="luxury-pattern text-white relative overflow-hidden border-b border-goldLuxury-500/25">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-12 sm:pb-16 relative z-10">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <div class="lg:col-span-8 space-y-5">
-          <!-- زر دخول المشرف في الأعلى على اليمين ملاصق للحد الأبيض -->
-          <div class="flex items-center justify-start pt-0">
-            <div class="p-1 rounded-b-2xl rounded-t-none bg-white/10 border-x border-b border-goldLuxury-400/50 shadow-sm shrink-0 backdrop-blur-sm">
-              <button
-                id="admin-login-trigger-btn"
-                onclick="openAdminLoginModal()"
-                class="admin-glow-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 text-emeraldLuxury-950 hover:text-emeraldLuxury-950 font-black text-xs sm:text-sm border-2 border-goldLuxury-500 transition cursor-pointer active:scale-95"
-              >
-                <svg class="w-4 h-4 text-emeraldLuxury-950 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                <span class="text-emeraldLuxury-950 font-black tracking-normal">دخول المشرف</span>
-              </button>
-            </div>
+  <!-- القسم التعريفي المعماري الحديث -->
+  <section id="top" class="luxury-pattern architectural-grid text-white relative overflow-hidden border-b border-goldLuxury-500/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20 relative z-10">
+      <!-- شريط اسم المكتب والشعار أسفل زر دخول المشرف بقليل وبالعرض -->
+      <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 pb-6 mb-8 border-b border-goldLuxury-400/25">
+        <span class="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">
+          مكتب الطبي للعقارات
+        </span>
+        <span class="text-sm sm:text-base lg:text-lg font-bold text-goldLuxury-300">
+          سكينة السكن وأمانة الاختيار
+        </span>
+      </div>
 
-            <div id="admin-session-controls" class="hidden items-center gap-2">
-              <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-goldLuxury-200 border border-goldLuxury-400/35 text-xs font-extrabold backdrop-blur-sm">
-                <span class="w-2 h-2 rounded-full bg-goldLuxury-400"></span>
-                <span id="admin-active-email">وضع المشرف</span>
-              </span>
-              <button
-                onclick="logoutAdmin()"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm transition cursor-pointer"
-              >
-                <span>خروج</span>
-              </button>
-            </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <!-- المحتوى النصي -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/10 border border-goldLuxury-400/40 text-goldLuxury-300 text-xs sm:text-sm font-bold backdrop-blur-sm">
+            <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            <span>المنصة العقارية المعتمدة لمكتب الطبي</span>
           </div>
 
-          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-goldLuxury-400/40 text-goldLuxury-300 text-xs sm:text-sm font-semibold backdrop-blur-sm">
-            <span class="w-2 h-2 rounded-full bg-goldLuxury-400 animate-pulse"></span>
-            <span>عروض عقارية منتقاة بعناية من مكتب الطبي للعقارات</span>
-          </div>
-
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
-            حيث يلتقي جمال المكان بـ <span class="text-goldLuxury-300">سكينة الروح</span>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.22] tracking-tight">
+            نختار لك المسكن الذي يجمع بين <span class="text-goldLuxury-300">الفخامة والطمأنينة</span>
           </h1>
 
-          <p class="text-emeraldLuxury-100 text-sm sm:text-lg leading-relaxed max-w-2xl font-normal">
-            في مكتب الطبي للعقارات نضع بين يديك خيارات مدروسة من الفلل والشقق والأراضي والمحلات التجارية بوضوح تام وتواصل مباشر عبر الواتساب والهاتف، مع معالجة تلقائية للصور بتصغير أبعادها إلى النصف وبحد أقصى 5 صور للعقار.
+          <p class="text-emeraldLuxury-100/90 text-sm sm:text-lg leading-relaxed max-w-2xl">
+            استكشف مجموعة منتقاة من الفلل الفاخرة، الشقق العصرية، والأراضي الاستثمارية بمعلومات واضحة، ومعرض صور منظم، وتواصل فوري عبر الواتساب والهاتف.
           </p>
 
-          <div class="flex flex-wrap items-center gap-3 pt-2">
+          <div class="flex flex-wrap items-center gap-3.5 pt-1">
             <a
               href="#listings-section"
-              class="btn-shine inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-emeraldLuxury-900 hover:bg-goldLuxury-50 font-extrabold text-sm shadow-lg transition"
+              class="btn-shine inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-l from-goldLuxury-400 to-goldLuxury-300 hover:from-goldLuxury-500 hover:to-goldLuxury-400 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition"
             >
-              <span>تصفح والبحث في العقارات</span>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
+              <span>استعراض العروض العقارية</span>
             </a>
 
             <button
               id="hero-admin-add-btn"
               onclick="openPropertyFormModal()"
-              class="hidden btn-shine inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emeraldLuxury-700/80 hover:bg-emeraldLuxury-600 text-white border border-goldLuxury-400/40 font-bold text-sm transition cursor-pointer"
+              class="hidden btn-shine inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white border border-goldLuxury-400/50 font-bold text-sm backdrop-blur-sm transition cursor-pointer"
             >
-              <svg class="w-4 h-4 text-goldLuxury-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="4" />
+                <path d="M12 8v8M8 12h8" />
               </svg>
-              <span>رفع صور وعرض عقار (حتى 5 صور)</span>
+              <span>إضافة عقار جديد (حتى 5 صور)</span>
             </button>
           </div>
         </div>
 
-        <div class="lg:col-span-4">
-          <div class="bg-white/10 backdrop-blur-md border border-goldLuxury-400/35 rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-white/15 pb-3">
-              <span class="text-sm font-bold text-goldLuxury-300">معايير مكتب الطبي</span>
-              <span class="text-xs px-2.5 py-1 rounded-lg bg-emeraldLuxury-900/80 text-emeraldLuxury-100 border border-white/10">موثوق</span>
+        <!-- بطاقة المعايير العقارية الموحدة -->
+        <div class="lg:col-span-5">
+          <div class="bg-white/10 backdrop-blur-md border border-goldLuxury-400/35 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-white/15 pb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-goldLuxury-400/20 border border-goldLuxury-300/40 flex items-center justify-center text-goldLuxury-300">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M9 12l2 2 4-4" />
+                  </svg>
+                </div>
+                <span class="text-base font-extrabold text-white">مزايا مكتب الطبي</span>
+              </div>
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-goldLuxury-400/20 text-goldLuxury-300 border border-goldLuxury-400/30">جودة معتمدة</span>
             </div>
 
-            <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-goldLuxury-400/20 border border-goldLuxury-300/40 flex items-center justify-center shrink-0 text-goldLuxury-300 font-extrabold text-sm">
-                5
+            <div class="space-y-4">
+              <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white">معرض صور منظم (5 صور كحد أقصى)</h3>
+                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">عرض واضح لكل تفاصيل العقار من الداخل والخارج.</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-sm font-bold text-white">أقصى شيء 5 صور للعقار</h3>
-                <p class="text-xs text-emeraldLuxury-100/85 mt-0.5 leading-relaxed">معرض صور منظم لكل عقار بحد أقصى خمس صور.</p>
-              </div>
-            </div>
 
-            <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-goldLuxury-400/20 border border-goldLuxury-300/40 flex items-center justify-center shrink-0 text-goldLuxury-300 font-extrabold text-sm">
-                ½
+              <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 14 10 14 10 20" />
+                    <polyline points="20 10 14 10 14 4" />
+                    <line x1="14" y1="10" x2="21" y2="3" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white">معالجة ذكية للصور بنسبة 50%</h3>
+                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">تقليص تلقائي لأبعاد الصور إلى النصف لتصفح فائق السرعة.</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-sm font-bold text-white">تصغير تلقائي إلى النصف</h3>
-                <p class="text-xs text-emeraldLuxury-100/85 mt-0.5 leading-relaxed">يتم تقليص أبعاد الصور تلقائياً بنسبة 50% عند التحميل.</p>
-              </div>
-            </div>
 
-            <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-goldLuxury-400/20 border border-goldLuxury-300/40 flex items-center justify-center shrink-0 text-goldLuxury-300 font-extrabold text-sm">
-                ✆
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-white">واتساب مباشر وهاتف فوري</h3>
-                <p class="text-xs text-emeraldLuxury-100/85 mt-0.5 leading-relaxed">تواصل فوري برسالة جاهزة باسم العقار والسعر ومكتب الطبي.</p>
+              <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-emeraldLuxury-900/90 border border-goldLuxury-400/40 flex items-center justify-center shrink-0 text-goldLuxury-300">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white">تواصل مباشر عبر الواتساب والهاتف</h3>
+                  <p class="text-xs text-emeraldLuxury-100/80 mt-0.5 leading-relaxed">استفسر بضغطة زر مع إرسال بيانات العقار تلقائياً.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -296,73 +342,104 @@
     </div>
   </section>
 
-  <!-- المحتوى الرئيسي: الإحصائيات والبحث والعقارات -->
-  <main id="listings-section" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-      <div class="bg-white rounded-2xl p-4 border border-sandWarm-200 shadow-sm flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-xl bg-emeraldLuxury-50 text-emeraldLuxury-800 flex items-center justify-center font-black text-lg border border-emeraldLuxury-100">
-          #
+  <!-- المحتوى الرئيسي -->
+  <main id="listings-section" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    <!-- بطاقات الإحصائيات بأيقونات موحدة -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-emeraldLuxury-50 text-emeraldLuxury-800 flex items-center justify-center border border-emeraldLuxury-100 shrink-0">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <path d="M9 22v-4h6v4" />
+            <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" />
+          </svg>
         </div>
         <div>
-          <p class="text-xs text-gray-500 font-semibold">إجمالي العقارات</p>
-          <p id="stat-total" class="text-xl sm:text-2xl font-black text-emeraldLuxury-900">0</p>
+          <p class="text-xs text-gray-500 font-bold">إجمالي العقارات</p>
+          <p id="stat-total" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-4 border border-sandWarm-200 shadow-sm flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center font-black text-base border border-goldLuxury-200/70">
-          بيع
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center border border-goldLuxury-200/70 shrink-0">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
         </div>
         <div>
-          <p class="text-xs text-gray-500 font-semibold">عروض البيع</p>
-          <p id="stat-sale" class="text-xl sm:text-2xl font-black text-emeraldLuxury-900">0</p>
+          <p class="text-xs text-gray-500 font-bold">عروض البيع</p>
+          <p id="stat-sale" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-4 border border-sandWarm-200 shadow-sm flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-xl bg-emeraldLuxury-50 text-emeraldLuxury-700 flex items-center justify-center font-black text-base border border-emeraldLuxury-100">
-          إيجار
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-emeraldLuxury-50 text-emeraldLuxury-700 flex items-center justify-center border border-emeraldLuxury-100 shrink-0">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="15" r="4" />
+            <path d="M10.85 12.15L19 4" />
+            <path d="M18 5l2 2" />
+            <path d="M15 8l2 2" />
+          </svg>
         </div>
         <div>
-          <p class="text-xs text-gray-500 font-semibold">عروض الإيجار</p>
-          <p id="stat-rent" class="text-xl sm:text-2xl font-black text-emeraldLuxury-900">0</p>
+          <p class="text-xs text-gray-500 font-bold">عروض الإيجار</p>
+          <p id="stat-rent" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-4 border border-sandWarm-200 shadow-sm flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center font-black text-base border border-goldLuxury-200/70">
-          صور
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-sandWarm-200 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-goldLuxury-50 text-goldLuxury-600 flex items-center justify-center border border-goldLuxury-200/70 shrink-0">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
         </div>
         <div>
-          <p class="text-xs text-gray-500 font-semibold">الصور المحفوظة</p>
-          <p id="stat-photos" class="text-xl sm:text-2xl font-black text-emeraldLuxury-900">0</p>
+          <p class="text-xs text-gray-500 font-bold">الصور المحفوظة</p>
+          <p id="stat-photos" class="text-2xl font-black text-emeraldLuxury-900 mt-0.5">0</p>
         </div>
       </div>
     </div>
 
-    <!-- شريط البحث والتصفية -->
+    <!-- شريط البحث والتصفية العصري -->
     <div class="bg-white rounded-3xl p-4 sm:p-6 border border-sandWarm-200 shadow-luxury flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="flex flex-wrap items-center gap-2" role="group" aria-label="تصفية العقارات">
         <button
           data-filter="all"
           onclick="setFilter('all')"
-          class="filter-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm"
         >
-          الكل
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>الكل</span>
         </button>
         <button
           data-filter="بيع"
           onclick="setFilter('بيع')"
-          class="filter-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
         >
-          للبيع
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20h14V9.5" />
+          </svg>
+          <span>للبيع</span>
         </button>
         <button
           data-filter="إيجار"
           onclick="setFilter('إيجار')"
-          class="filter-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
+          class="filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200"
         >
-          للإيجار
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="15" r="4" />
+            <path d="M10.85 12.15L19 4" />
+          </svg>
+          <span>للإيجار</span>
         </button>
       </div>
 
@@ -375,17 +452,18 @@
             placeholder="ابحث بالعنوان أو المنطقة (مثال: الفرناج، فيلا...)"
             class="w-full pr-10 pl-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm text-emeraldLuxury-950 transition"
           />
-          <svg class="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/>
+          <svg class="w-4 h-4 text-emeraldLuxury-700 absolute right-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
 
         <select
           id="category-filter"
           onchange="renderProperties()"
-          class="px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-semibold text-emeraldLuxury-900 cursor-pointer"
+          class="px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer"
         >
-          <option value="all">جميع الأنواع</option>
+          <option value="all">جميع أنواع العقارات</option>
           <option value="فيلا">فيلا</option>
           <option value="شقة">شقة</option>
           <option value="أرض">أرض</option>
@@ -395,22 +473,28 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between">
+    <!-- عنوان القسم -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-sandWarm-200 pb-4">
       <div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-emeraldLuxury-900">العقارات المتاحة</h2>
-        <p id="results-count" class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">جاري تحميل العروض...</p>
+        <span class="text-xs font-extrabold text-goldLuxury-600 uppercase tracking-wider">محفظة العقارات</span>
+        <h2 class="text-2xl sm:text-3xl font-black text-emeraldLuxury-900 mt-0.5">العقارات المتاحة حالياً</h2>
       </div>
+      <p id="results-count" class="text-xs sm:text-sm text-gray-500 font-bold">جاري تحميل العروض...</p>
     </div>
 
+    <!-- شبكة بطاقات العقارات -->
     <div id="properties-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-7"></div>
 
-    <div id="empty-state" class="hidden bg-white rounded-3xl border border-dashed border-sandWarm-200 p-10 text-center space-y-3">
-      <div class="w-14 h-14 mx-auto rounded-2xl bg-sandWarm-100 text-emeraldLuxury-800 flex items-center justify-center">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+    <!-- حالة عدم وجود نتائج -->
+    <div id="empty-state" class="hidden bg-white rounded-3xl border border-dashed border-sandWarm-200 p-12 text-center space-y-3">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-sandWarm-100 text-emeraldLuxury-800 flex items-center justify-center">
+        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10.5L12 3l9 7.5" />
+          <path d="M5 9.5V20h14V9.5" />
+          <path d="M9.5 20v-6h5v6" />
         </svg>
       </div>
-      <h3 class="text-lg font-bold text-emeraldLuxury-900">لا توجد عقارات مطابقة للبحث الحالي</h3>
+      <h3 class="text-lg font-extrabold text-emeraldLuxury-900">لا توجد عقارات مطابقة للبحث الحالي</h3>
       <p class="text-sm text-gray-500 max-w-md mx-auto">يمكنك تغيير كلمات البحث أو الفلاتر للعثور على عقار مناسب.</p>
       <button
         onclick="resetFilters()"
@@ -422,15 +506,22 @@
   </main>
 
   <!-- تذييل الموقع -->
-  <footer class="bg-emeraldLuxury-950 text-emeraldLuxury-100 border-t border-goldLuxury-500/25 mt-12">
+  <footer class="bg-emeraldLuxury-950 text-emeraldLuxury-100 border-t border-goldLuxury-500/25 mt-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-white/10 border border-goldLuxury-400/40 flex items-center justify-center text-goldLuxury-300">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20h14V9.5" />
+            <path d="M9.5 20v-6h5v6" />
+          </svg>
+        </div>
         <span class="font-black text-goldLuxury-300">مكتب الطبي للعقارات</span>
-        <span class="text-emeraldLuxury-100/60">|</span>
+        <span class="text-emeraldLuxury-100/40">|</span>
         <span>جميع الحقوق محفوظة &copy; <span id="current-year"></span></span>
       </div>
       <p class="text-emeraldLuxury-100/75 text-center sm:text-left">
-        تصميم عقاري يعكس الطمأنينة والرقي — تواصل مباشر عبر الواتساب والهاتف
+        سكينة السكن وأمانة الاختيار — تواصل مباشر عبر الواتساب والهاتف
       </p>
     </div>
   </footer>
@@ -439,27 +530,40 @@
   <div id="admin-login-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl w-full max-w-md border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
       <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-goldLuxury-300">ملف إدارة مكتب الطبي للعقارات</span>
-          <h3 class="text-xl font-extrabold mt-0.5">تسجيل دخول المشرف</h3>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 border border-goldLuxury-400/40 flex items-center justify-center text-goldLuxury-300">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="15" r="4" />
+              <path d="M10.85 12.15L19 4" />
+              <path d="M18 5l2 2" />
+              <path d="M15 8l2 2" />
+            </svg>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-goldLuxury-300">إدارة مكتب الطبي للعقارات</span>
+            <h3 class="text-lg font-extrabold">تسجيل دخول المشرف</h3>
+          </div>
         </div>
         <button
           onclick="closeAdminLoginModal()"
           aria-label="إغلاق نافذة الدخول"
-          class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
 
       <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="p-6 space-y-4">
-        <p class="text-xs text-gray-600 leading-relaxed bg-sandWarm-50 p-3 rounded-2xl border border-sandWarm-200">
-          هذه المساحة مخصصة لصاحب الموقع والمكتب فقط لإضافة وحذف العقارات. بيانات الدخول الافتراضية:
-          <span class="block font-bold text-emeraldLuxury-900 mt-1" dir="ltr">admin@althabi.ly</span>
-          <span class="block font-bold text-emeraldLuxury-900" dir="ltr">Althabi@2026</span>
-        </p>
+        <div class="text-xs text-gray-600 leading-relaxed bg-sandWarm-50 p-3.5 rounded-2xl border border-sandWarm-200">
+          مساحة مخصصة لإدارة عروض مكتب الطبي للعقارات. بيانات الدخول الافتراضية:
+          <div class="mt-1.5 flex items-center justify-between font-bold text-emeraldLuxury-900" dir="ltr">
+            <span>admin@althabi.ly</span>
+            <span>Althabi@2026</span>
+          </div>
+        </div>
 
         <div>
           <label for="admin-email" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">البريد الإلكتروني للمشرف *</label>
@@ -487,7 +591,7 @@
 
         <button
           type="submit"
-          class="btn-shine w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-extrabold text-sm shadow-btn-gold transition cursor-pointer"
+          class="btn-shine w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-sm shadow-btn-gold transition cursor-pointer"
         >
           <span>دخول إلى لوحة المشرف</span>
         </button>
@@ -495,12 +599,12 @@
     </div>
   </div>
 
-  <!-- نافذة إضافة عقار جديد (للمشرف فقط) -->
+  <!-- نافذة إضافة عقار جديد -->
   <div id="property-form-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
     <div class="bg-white rounded-3xl w-full max-w-3xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
       <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
         <div>
-          <span class="text-xs font-bold text-goldLuxury-300 uppercase tracking-wider">مكتب الطبي للعقارات</span>
+          <span class="text-xs font-bold text-goldLuxury-300">مكتب الطبي للعقارات</span>
           <h3 class="text-xl sm:text-2xl font-extrabold mt-0.5">إضافة عرض عقاري جديد</h3>
         </div>
         <button
@@ -508,8 +612,9 @@
           aria-label="إغلاق النافذة"
           class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -633,8 +738,10 @@
             class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed border-emeraldLuxury-600/40 hover:border-goldLuxury-500 bg-white hover:bg-goldLuxury-50/40 transition cursor-pointer text-center"
           >
             <div class="w-11 h-11 rounded-2xl bg-emeraldLuxury-50 text-emeraldLuxury-800 flex items-center justify-center">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
               </svg>
             </div>
             <span class="text-sm font-bold text-emeraldLuxury-900">اضغط لاختيار الصور من جهازك</span>
@@ -664,8 +771,8 @@
             type="submit"
             class="btn-shine w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-l from-emeraldLuxury-800 to-emeraldLuxury-700 hover:from-emeraldLuxury-900 hover:to-emeraldLuxury-800 text-white font-extrabold text-sm shadow-btn-emerald transition cursor-pointer"
           >
-            <svg class="w-4 h-4 text-goldLuxury-300" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            <svg class="w-4 h-4 text-goldLuxury-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12" />
             </svg>
             <span>نشر العقار الآن</span>
           </button>
@@ -1019,8 +1126,8 @@
       document.querySelectorAll('.filter-btn').forEach(btn => {
         const isActive = btn.dataset.filter === filter;
         btn.className = isActive
-          ? 'filter-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm'
-          : 'filter-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200';
+          ? 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-emeraldLuxury-800 text-white shadow-sm'
+          : 'filter-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-900 hover:bg-sandWarm-200';
       });
       renderProperties();
     }
@@ -1047,7 +1154,7 @@
 
       const resultsLabel = document.getElementById('results-count');
       if (resultsLabel) {
-        resultsLabel.textContent = `عرض ${filteredCount} من أصل ${total} عقار مسجل لدى مكتب الطبي للعقارات`;
+        resultsLabel.textContent = `عرض ${filteredCount} من أصل ${total} عقار مسجل`;
       }
     }
 
@@ -1091,14 +1198,16 @@
                 coverImage
                   ? `<img src="${coverImage}" alt="${escapeHtml(prop.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />`
                   : `<div class="w-full h-full flex flex-col items-center justify-center text-goldLuxury-300 gap-2">
-                       <svg class="w-10 h-10 opacity-80" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                       <svg class="w-10 h-10 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                         <path d="M3 10.5L12 3l9 7.5" />
+                         <path d="M5 9.5V20h14V9.5" />
+                         <path d="M9.5 20v-6h5v6" />
                        </svg>
                        <span class="text-xs font-bold">مكتب الطبي للعقارات</span>
                      </div>`
               }
 
-              <div class="absolute top-3 right-3 flex items-center gap-2">
+              <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
                 <span class="px-3 py-1 rounded-full text-xs font-extrabold shadow ${dealBadgeClass}">
                   ${escapeHtml(prop.dealType)}
                 </span>
@@ -1107,21 +1216,23 @@
                 </span>
               </div>
 
-              <div class="absolute bottom-3 left-3 px-2.5 py-1 rounded-xl bg-emeraldLuxury-950/80 backdrop-blur-sm text-white text-xs font-bold flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-goldLuxury-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              <div class="absolute bottom-3.5 left-3.5 px-3 py-1 rounded-xl bg-emeraldLuxury-950/80 backdrop-blur-sm text-white text-xs font-bold flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-goldLuxury-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
                 </svg>
                 <span>${images.length} / ${MAX_PHOTOS}</span>
               </div>
             </div>
 
-            <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
-              <div class="space-y-2">
+            <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-2.5">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-xs font-bold text-emeraldLuxury-700 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5 text-goldLuxury-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <span class="text-xs font-bold text-emeraldLuxury-700 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-goldLuxury-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                      <circle cx="12" cy="10" r="3" />
                     </svg>
                     ${escapeHtml(prop.location)}
                   </span>
@@ -1131,10 +1242,11 @@
                       ? `<button
                            onclick="deleteProperty('${escapeHtml(prop.id)}')"
                            title="حذف العقار"
-                           class="text-gray-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
+                           class="text-gray-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
                          >
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                             <polyline points="3 6 5 6 21 6" />
+                             <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                            </svg>
                          </button>`
                       : ''
@@ -1153,15 +1265,15 @@
                 </p>
               </div>
 
-              <div class="pt-3 border-t border-sandWarm-200 space-y-3">
+              <div class="pt-4 border-t border-sandWarm-200 space-y-3">
                 <div class="flex items-center justify-between gap-2">
                   <div>
-                    <span class="block text-[11px] font-semibold text-gray-400">السعر المطلوب</span>
+                    <span class="block text-[11px] font-bold text-gray-400">السعر المطلوب</span>
                     <span class="text-lg sm:text-xl font-black text-emeraldLuxury-900">${formatPrice(prop.price, prop.currency)}</span>
                   </div>
                   <div class="text-left">
-                    <span class="block text-[11px] font-semibold text-gray-400">هاتف التواصل</span>
-                    <span class="text-xs sm:text-sm font-bold text-emeraldLuxury-800" dir="ltr">${escapeHtml(prop.phone)}</span>
+                    <span class="block text-[11px] font-bold text-gray-400">هاتف التواصل</span>
+                    <span class="text-xs sm:text-sm font-extrabold text-emeraldLuxury-800" dir="ltr">${escapeHtml(prop.phone)}</span>
                   </div>
                 </div>
 
@@ -1172,8 +1284,8 @@
                     rel="noopener noreferrer"
                     class="btn-shine inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-l from-emeraldLuxury-700 to-emeraldLuxury-600 hover:from-emeraldLuxury-800 hover:to-emeraldLuxury-700 text-white font-extrabold text-xs sm:text-sm shadow-btn-emerald transition"
                   >
-                    <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.77 14.08c-.24.68-1.41 1.3-1.94 1.38-.52.08-1.16.12-1.87-.11-.43-.14-.99-.32-1.7-.63-2.99-1.29-4.95-4.3-5.1-4.5-.15-.2-1.22-1.62-1.22-3.09s.77-2.19 1.04-2.49c.27-.3.6-.37.8-.37.2 0 .4 0 .58.01.19.01.44-.07.69.53.25.6.86 2.1.94 2.25.08.15.13.33.03.53-.1.2-.15.33-.3.51-.15.18-.31.4-.45.54-.15.15-.31.31-.13.61.18.3.78 1.29 1.68 2.09 1.16 1.03 2.14 1.35 2.44 1.5.3.15.48.13.66-.08.18-.2.76-.88.96-1.18.2-.3.4-.25.67-.15.27.1 1.73.82 2.03.97.3.15.5.22.57.34.08.13.08.73-.16 1.41z"/>
+                    <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
                     </svg>
                     <span>واتساب</span>
                   </a>
@@ -1182,7 +1294,11 @@
                     onclick="openPropertyDetail('${escapeHtml(prop.id)}')"
                     class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-goldLuxury-100 hover:bg-goldLuxury-200/80 text-emeraldLuxury-950 border border-goldLuxury-300/70 font-extrabold text-xs sm:text-sm transition cursor-pointer"
                   >
-                    <span>التفاصيل والصور</span>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    <span>التفاصيل</span>
                   </button>
                 </div>
 
@@ -1190,8 +1306,8 @@
                   href="${telHref}"
                   class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition"
                 >
-                  <svg class="w-3.5 h-3.5 text-emeraldLuxury-700" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  <svg class="w-3.5 h-3.5 text-emeraldLuxury-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
                   </svg>
                   <span>اتصال هاتفي مباشر</span>
                 </a>
@@ -1437,8 +1553,9 @@
             aria-label="إغلاق"
             class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0 transition cursor-pointer"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
