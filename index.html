@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -784,14 +783,15 @@
     const FIRESTORE_COLLECTION = 'althabi_properties';
     const MAX_PHOTOS = 5;
 
-    // يمكنك وضع بيانات مشروعك هنا مباشرة لتعمل تلقائياً لجميع الزوار
+    // إعدادات مشروع Firebase الافتراضية لتعمل تلقائياً لجميع الزوار
     const DEFAULT_FIREBASE_CONFIG = {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
+      apiKey: "AIzaSyApg4JAUvrHRRYETO70rn1iU6Ppz8wn4DM",
+      authDomain: "althabi-real-estate.firebaseapp.com",
+      projectId: "althabi-real-estate",
+      storageBucket: "althabi-real-estate.firebasestorage.app",
+      messagingSenderId: "89223007835",
+      appId: "1:89223007835:web:0e0c99b06d5c30c18f397e",
+      measurementId: "G-1LSD4Q7Z3F"
     };
 
     const ADMIN_CREDENTIALS = {
@@ -1172,17 +1172,7 @@
 
     function formatPrice(price, currency = 'د.ل') {
       const num = Number(price) || 0;
-      return `${num.toLocaleString('en-US')} ${currency}`;
-    }
-
-    function formatWhatsAppLink(phone, title) {
-      let digits = String(phone || '').replace(/\D/g, '');
-      if (digits.startsWith('09')) {
-        digits = '218' + digits.slice(1);
-      } else if (digits.startsWith('00')) {
-        digits = digits.slice(2);
-      }
-      const msg = encodeURIComponent(`السلام عليكم، أستفسر بخصوص العقار المعروض لديكم في مكتب الطبي للعقارات: ${title}`);
+      return `${num.toLocaleString('en-US')} ${currency}`; }  function formatWhatsAppLink(phone, title) { let digits = String(phone \vert{}\vert{} '').replace(/\D/g, ''); if (digits.startsWith('09')) { digits = '218' + digits.slice(1); } else if (digits.startsWith('00')) { digits = digits.slice(2); } const msg = encodeURIComponent(`السلام عليكم، أستفسر بخصوص العقار المعروض لديكم في مكتب الطبي للعقارات: ${title}`);
       return `https://wa.me/${digits}?text=${msg}`;
     }
 
@@ -1500,7 +1490,7 @@
     function renderDraftImages() {
       const badge = document.getElementById('photo-counter-badge');
       const container = document.getElementById('draft-images-preview');
-      if (badge) badge.textContent = `${draftImages.length} / ${MAX_PHOTOS} صور`;
+      if (badge) badge.textContent = `${draftImages.length} /${MAX_PHOTOS} صور`;
       if (!container) return;
 
       container.innerHTML = draftImages.map((src, idx) => `
@@ -1559,22 +1549,7 @@
         db.collection(FIRESTORE_COLLECTION).doc(newProperty.id).set(newProperty, { merge: true })
           .then(async () => {
             closePropertyFormModal();
-            showToast(`تم نشر العقار "${title}" ومزامنة صوره وتفاصيله ورقم الهاتف مع Firebase!`, 'success');
-          })
-          .catch(async (err) => {
-            console.error('خطأ في حفظ العقار على Firestore:', err);
-            properties.unshift(newProperty);
-            await saveProperties();
-            renderProperties();
-            closePropertyFormModal();
-            showToast('تم حفظ العقار وصوره محلياً بنجاح (تحقق من صلاحيات Firestore للمزامنة السحابية).', 'info');
-          });
-      } else {
-        properties.unshift(newProperty);
-        await saveProperties();
-        renderProperties();
-        closePropertyFormModal();
-        showToast(`تم نشر العقار "${title}" وحفظ جميع صوره بنجاح!`, 'success');
+            showToast(`تم نشر العقار "${title}" ومزامنة صوره وتفاصيله ورقم الهاتف مع Firebase!`, 'success'); }) .catch(async (err) => { console.error('خطأ في حفظ العقار على Firestore:', err); properties.unshift(newProperty); await saveProperties(); renderProperties(); closePropertyFormModal(); showToast('تم حفظ العقار وصوره محلياً بنجاح (تحقق من صلاحيات Firestore للمزامنة السحابية).', 'info'); }); } else { properties.unshift(newProperty); await saveProperties(); renderProperties(); closePropertyFormModal(); showToast(`تم نشر العقار "${title}" وحفظ جميع صوره بنجاح!`, 'success');
       }
     }
 
@@ -1590,18 +1565,7 @@
         db.collection(FIRESTORE_COLLECTION).doc(propertyId).delete()
           .then(() => {
             closePropertyDetail();
-            showToast(`تم حذف العقار "${target.title}" من Firebase.`, 'info');
-          })
-          .catch((err) => {
-            console.error('خطأ أثناء الحذف من Firestore:', err);
-            showToast('تعذر حذف العقار من Firebase.', 'error');
-          });
-      } else {
-        properties = properties.filter(p => p.id !== propertyId);
-        await saveProperties();
-        renderProperties();
-        closePropertyDetail();
-        showToast(`تم حذف العقار "${target.title}".`, 'info');
+            showToast(`تم حذف العقار "${target.title}" من Firebase.`, 'info'); }) .catch((err) => { console.error('خطأ أثناء الحذف من Firestore:', err); showToast('تعذر حذف العقار من Firebase.', 'error'); }); } else { properties = properties.filter(p => p.id !== propertyId); await saveProperties(); renderProperties(); closePropertyDetail(); showToast(`تم حذف العقار "${target.title}".`, 'info');
       }
     }
 
@@ -1620,7 +1584,7 @@
       content.innerHTML = `
         <div class="luxury-pattern px-6 py-4 text-white flex items-center justify-between gap-3">
           <div>
-            <span class="text-xs font-bold text-goldLuxury-300">${escapeHtml(prop.category)} • ${prop.dealType === 'بيع' ? 'للبيع' : 'للإيجار'}</span>
+            <span class="text-xs font-bold text-goldLuxury-300">${escapeHtml(prop.category)} •${prop.dealType === 'بيع' ? 'للبيع' : 'للإيجار'}</span>
             <h3 class="text-lg sm:text-xl font-black mt-0.5">${escapeHtml(prop.title)}</h3>
           </div>
           <button
@@ -1719,4 +1683,3 @@
   </script>
 </body>
 </html>
-```
