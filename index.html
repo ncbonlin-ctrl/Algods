@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -216,8 +216,8 @@
           title="إعدادات ربط قاعدة بيانات Firebase"
           class="w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
         >
-          <span id="firebase-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-          <span id="firebase-status-text">ربط Firebase</span>
+          <span id="firebase-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+          <span id="firebase-status-text">متصل بـ Firebase</span>
         </button>
 
         <button
@@ -2192,6 +2192,18 @@ service cloud.firestore {
     // مزامنة Firebase و GitHub
     function updateSyncBadge(active = true) {
       const badge = document.getElementById('last-sync-badge');
+      const dot = document.getElementById('firebase-status-dot');
+      const statusText = document.getElementById('firebase-status-text');
+
+      if (dot) {
+        dot.className = active
+          ? 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0'
+          : 'w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0';
+      }
+      if (statusText) {
+        statusText.textContent = active ? 'متصل بـ Firebase' : 'ربط Firebase';
+      }
+
       if (!badge) return;
       if (active) {
         badge.classList.remove('hidden');
