@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -751,7 +751,7 @@
               <h4 class="text-xs sm:text-sm font-black text-goldLuxury-300">الإملاء الصوتي الفوري للعقارات</h4>
               <p class="text-[11px] text-emeraldLuxury-100/80">تحدث بالصوت بحرية حتى تكمل إملاءك، ثم اضغط «إيقاف الاستماع» أو «إضافة ومزامنة تلقائياً».</p>
             </div>
-            <span id="voice-dictation-status" class="px-2.5 py-1 rounded-xl bg-emeraldLuxury-900 text-emeraldLuxury-100 border border-white/15 text-[11px] font-bold">
+            <span id="modal-voice-dictation-status" class="px-2.5 py-1 rounded-xl bg-emeraldLuxury-900 text-emeraldLuxury-100 border border-white/15 text-[11px] font-bold">
               جاهز للاستماع
             </span>
           </div>
@@ -851,6 +851,10 @@
           </div>
           <div id="gh-bridge-status-note" class="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
             يتم استنتاج المستودع تلقائياً من رابط GitHub Pages؛ أدخل Token للمشرف لتفعيل الدفع الفوري لملف المزامنة.
+          </div>
+          <div id="gh-permission-help-box" class="hidden text-[11px] text-rose-900 bg-rose-50 border border-rose-200 p-3 rounded-xl space-y-1">
+            <p class="font-black">لماذا ظهر (Resource not accessible by personal access token)؟</p>
+            <p>الرمز الحالي لا يملك صلاحية الكتابة على المستودع <span dir="ltr" class="font-mono font-bold">ncbonlin-ctrl/Algods</span> (أو انتهت صلاحيته). تم تفعيل <strong>المزامنة السحابية الموحدة الفورية</strong> تلقائياً كبديل مباشر لتوحيد البيانات بين جوجل كروم وفايرفوكس.</p>
           </div>
           <div class="flex items-center justify-between gap-2 pt-1">
             <button type="button" onclick="pushDirectToGitHubRepo(true)" class="px-4 py-2 rounded-xl bg-goldLuxury-500 hover:bg-goldLuxury-600 text-emeraldLuxury-950 font-black text-xs transition cursor-pointer">
@@ -1105,6 +1109,8 @@
     let lastAppliedCloudFingerprint = '';
     let isSyncPullInProgress = false;
     let isSyncPushInProgress = false;
+    let likedPropertyIds = new Set();
+    const LIKED_IDS_KEY = 'althabi_liked_property_ids_v1';
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1390,20 +1396,27 @@
       const parsed = parseDictatedPropertyText(rawText);
       if (!parsed) return;
 
+      // تصفير الفلاتر والبحث وضبط الفرز على الأحدث ظهوراً ليظهر العقار المملى صوتياً فوراً في الصفحة
+      resetFilters();
+      setSortMode('newest');
+
       const code = generateNextPropertyCode(properties);
       const id = `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const savedProp = normalizeProperty({
         ...parsed,
         id,
-        code
+        code,
+        createdAt: new Date().toISOString()
       });
 
       properties = saveLocalProperties([savedProp, ...properties]);
       renderProperties();
       if (inputEl) inputEl.value = '';
-      showToast(`تمت إضافة العقار (${code}) تلقائياً ومزامنته مع جميع المتصفحات.`, 'success');
+      voiceCommittedTranscript = '';
+      showToast(`تمت إضافة العقار (${code}) وإدراجه فوراً في الصفحة، وجاري النشر والمزامنة...`, 'success');
       await syncSinglePropertyToCloud(savedProp);
       await pushUnifiedMasterState();
+      await syncAllPropertiesNow();
     }
 
     function clearVoiceDictationBox() {
