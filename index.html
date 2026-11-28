@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -67,23 +67,22 @@
       background-color: #06271f;
       background-image:
         radial-gradient(circle at 15% 20%, rgba(221, 176, 77, 0.18) 0%, transparent 45%),
-        radial-gradient(circle at 85% 80%, rgba(25, 117, 93, 0.22) 0%, transparent 50%),
-    // تنسيق التاريخ والوقت العربي للإعلان العقاري (اليوم/الشهر/السنة وتحته مباشرة التوقيت على اليسار)
-    function formatPropertyDateTime(isoString) {
-      try {
-        const d = new Date(isoString || Date.now());
-        if (Number.isNaN(d.getTime())) return { dateText: '', timeText: '' };
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = String(d.getFullYear());
-        const dateText = `${day}/${month}/${year}`;
-        const timeText = d.toLocaleTimeString('ar-LY', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        return { dateText, timeText };
-      } catch (e) {
-        return { dateText: '', timeText: '' };
+        radial-gradient(circle at 85% 80%, rgba(25, 117, 93, 0.22) 0%, transparent 50%);
+    }
+
+    .architectural-grid {
+      background-size: 36px 36px;
+      background-image:
+        linear-gradient(to right, rgba(221, 176, 77, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(221, 176, 77, 0.06) 1px, transparent 1px);
+    }
+
+    @keyframes gentlePulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(221, 176, 77, 0.45), 0 8px 20px -4px rgba(194, 145, 50, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(221, 176, 77, 0), 0 10px 24px -4px rgba(194, 145, 50, 0.6);
       }
     }
 
@@ -919,6 +918,8 @@
     const LIVE_SYNC_ENDPOINT_KEY = 'althabi_live_sync_endpoint_v1';
     const DEFAULT_CONTACT_PHONE = '0914664430';
     const SYNC_REVISION_KEY = 'althabi_sync_revision_v1';
+    const SEED_VERSION_KEY = 'althabi_seed_version_v1';
+    const CURRENT_SEED_VERSION = '2026-11-28-tab0014-v1';
     const SYNC_META_DOC_ID = '__althabi_sync_state__';
     const DEFAULT_FIREBASE_CONFIG = {
       apiKey: "AIzaSyApg4JAUvrHRRYETO70rn1iU6Ppz8wn4DM",
@@ -1147,6 +1148,54 @@ service cloud.firestore {
         description: 'شقة من الحجم الكبير للبيع في الدور الثالث بعمارة الطبي، تتكون من ثلاث غرف وصالة وعدد 2 مطبخ وعدد 2 بلكونات، مصينة بالكامل ولا تحتاج إلى أي صيانة، وأبوابها ونوافذها مسيجة بالحديد. السعر 380,000 د.ل. للتواصل والاستفسار: 0914664430.',
         images: [],
         createdAt: '2026-11-27T18:30:00.000Z'
+      },
+      {
+        id: 'prop-tab-0012',
+        code: 'TAB-0012',
+        title: 'منزل للبيع في الفرناج — مساحة 600 متر وواجهة 16 متر (قابل للنقاش)',
+        dealType: 'بيع',
+        category: 'منزل',
+        location: 'الفرناج - طرابلس',
+        price: 6000000,
+        currency: 'د.ل',
+        phone: DEFAULT_CONTACT_PHONE,
+        ownerName: 'ناصر عون',
+        ownerPhone: '0940948081',
+        description: 'منزل للبيع في الفرناج، طرابلس (منطقة الفرناج). المساحة: 600 متر، بناء قديم هدم، واجهة 16 متر على طريق فرعي. يبعد عن كوبري عودة الحياة حوالي 50 متر. موقع ممتاز استثماري درجة أولى. السعر: 6 مليون د.ل، قابل للنقاش.',
+        images: [],
+        createdAt: '2026-11-27T23:52:00.000Z'
+      },
+      {
+        id: 'prop-tab-0013',
+        code: 'TAB-0013',
+        title: 'منزل للبيع في الفرناج قرب مصحة طرابلس — بناء حديث ونصف تشطيب (+80%)',
+        dealType: 'بيع',
+        category: 'منزل',
+        location: 'الفرناج - طرابلس (قرب مصحة طرابلس)',
+        price: 0,
+        currency: 'د.ل',
+        phone: DEFAULT_CONTACT_PHONE,
+        ownerName: 'محمد غيث',
+        ownerPhone: '0912212920',
+        description: 'منزل للبيع في منطقة الفرناج، طرابلس، قرب مصحة طرابلس. نصف تشطيب (نسبة التشطيب تتجاوز 80%)، بناء حديث، واجهة واحدة. مساحة الأرض: 133 متر، ومساحة المسقوف: 350 متر. العقار به شهادة عقارية.',
+        images: [],
+        createdAt: '2026-11-27T23:56:00.000Z'
+      },
+      {
+        id: 'prop-tab-0014',
+        code: 'TAB-0014',
+        title: 'شقة للبيع في عمارة الطبي - الفرناج (الدور السادس)',
+        dealType: 'بيع',
+        category: 'شقة',
+        location: 'الفرناج - عمارة الطبي - طرابلس',
+        price: 200000,
+        currency: 'د.ل',
+        phone: DEFAULT_CONTACT_PHONE,
+        ownerName: 'صاحب الشقة',
+        ownerPhone: '0926506489',
+        description: 'شقة للبيع في الفرناج في عمارة الطبي، الحجم المتوسط، الدور السادس، صيانة تامة، باب كاسا، مطبخ راكب، وصيانة تامة للحمام.',
+        images: [],
+        createdAt: '2026-11-27T22:30:00.000Z'
       }
     ];
 
@@ -1310,23 +1359,25 @@ service cloud.firestore {
       };
     }
 
-    // تنسيق التاريخ والوقت العربي للإعلان العقاري
+    // تنسيق التاريخ والوقت العربي الفعلي لكل إعلان عقاري لحظة إنشائه
     function formatPropertyDateTime(isoString) {
       try {
         const d = new Date(isoString || Date.now());
-        if (Number.isNaN(d.getTime())) return '';
-        const datePart = d.toLocaleDateString('ar-LY', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        const timePart = d.toLocaleTimeString('ar-LY', {
+        if (Number.isNaN(d.getTime())) {
+          return { dateText: '', timeText: '' };
+        }
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear());
+        const dateText = `${day}/${month}/${year}`;
+        const timeText = d.toLocaleTimeString('ar-LY', {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          hour12: true
         });
-        return `${datePart} • ${timePart}`;
+        return { dateText, timeText };
       } catch (e) {
-        return '';
+        return { dateText: '', timeText: '' };
       }
     }
 
@@ -1534,8 +1585,31 @@ service cloud.firestore {
       }
 
       if (!list.length && !hasReceivedCloudSnapshot) {
-        list = INITIAL_PROPERTIES.map((item, idx) => normalizeProperty(item, idx));
+        list = INITIAL_PROPERTIES.map((p, idx) => normalizeProperty(p, idx));
       }
+
+      // ضمان إدراج العقارات الافتراضية الجديدة غير المحذوفة عند تحديث الإصدار أو عدم وجودها
+      try {
+        const lastSeedVersion = localStorage.getItem(SEED_VERSION_KEY) || '';
+        const existingIds = new Set(list.map((p) => String(p.id).toLowerCase()));
+        const existingCodes = new Set(list.map((p) => String(p.code || '').toLowerCase()));
+        let addedAny = false;
+        INITIAL_PROPERTIES.forEach((initProp, idx) => {
+          const norm = normalizeProperty(initProp, idx);
+          const missing =
+            !existingIds.has(String(norm.id).toLowerCase()) &&
+            !existingCodes.has(String(norm.code || '').toLowerCase());
+          if (!isPropertyMarkedDeleted(norm) && (lastSeedVersion !== CURRENT_SEED_VERSION || missing)) {
+            if (missing) {
+              list.push(norm);
+              addedAny = true;
+            }
+          }
+        });
+        if (lastSeedVersion !== CURRENT_SEED_VERSION || addedAny) {
+          localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
+        }
+      } catch (e) {}
 
       const filtered = list.filter((p) => !isPropertyMarkedDeleted(p));
       try {
@@ -2361,7 +2435,36 @@ service cloud.firestore {
             }
 
             // السحابة هي المصدر الموحد للحقيقة بعد الاتصال: نعتمد قائمة السحابة مباشرة حتى لو كانت فارغة بعد حذف الكل
-            const authoritativeList = cloudProps.filter((p) => !isPropertyMarkedDeleted(p));
+            let authoritativeList = cloudProps.filter((p) => !isPropertyMarkedDeleted(p));
+
+            // إذا كانت السحابة تحتوي على نسخة قديمة تفتقد للعقارات الجديدة في الإصدار الحالي، ندمجها وننشرها
+            try {
+              const lastSeedVersion = localStorage.getItem(SEED_VERSION_KEY) || '';
+              const existingIds = new Set(authoritativeList.map((p) => String(p.id).toLowerCase()));
+              const existingCodes = new Set(authoritativeList.map((p) => String(p.code || '').toLowerCase()));
+              let addedFromSeed = false;
+              INITIAL_PROPERTIES.forEach((initProp, idx) => {
+                const norm = normalizeProperty(initProp, idx);
+                const missing =
+                  !existingIds.has(String(norm.id).toLowerCase()) &&
+                  !existingCodes.has(String(norm.code || '').toLowerCase());
+                if (!isPropertyMarkedDeleted(norm) && (lastSeedVersion !== CURRENT_SEED_VERSION || missing)) {
+                  if (missing) {
+                    authoritativeList.push(norm);
+                    addedFromSeed = true;
+                  }
+                }
+              });
+              if (lastSeedVersion !== CURRENT_SEED_VERSION || addedFromSeed) {
+                localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
+                if (addedFromSeed && authoritativeList.length > 0) {
+                  setTimeout(() => {
+                    publishUnifiedStateToCloud(authoritativeList);
+                  }, 250);
+                }
+              }
+            } catch (e) {}
+
             properties = saveLocalProperties(authoritativeList);
 
             renderProperties();
