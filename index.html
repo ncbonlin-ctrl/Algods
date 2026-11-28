@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1503,10 +1503,13 @@
           isVoiceListening = false;
           if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
           const finalText = String(inputEl?.value || '').trim();
-          if (statusEl) {
-            statusEl.textContent = finalText
-              ? 'اكتمل الإملاء — اضغط «إضافة ومزامنة تلقائياً» لاعتماد العقار'
-              : 'جاهز للاستماع';
+          if (finalText) {
+            if (statusEl) {
+              statusEl.textContent = 'جاري الإدراج الفوري ونشر العقار على جميع المتصفحات...';
+            }
+            addPropertyFromVoiceText();
+          } else if (statusEl) {
+            statusEl.textContent = 'جاهز للاستماع';
           }
         };
 
@@ -2893,3 +2896,4 @@
   </script>
 </body>
 </html>
+```
