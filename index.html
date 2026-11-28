@@ -292,7 +292,7 @@
             onclick="addPropertyFromVoiceText()"
             class="btn-shine px-5 h-10 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 font-black text-xs border border-goldLuxury-500 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
           >
-            <span>إضافة ومزامنة تلقائياً</span>
+            <span>نشر ومزامنة العرض</span>
           </button>
 
           <button
@@ -1283,12 +1283,12 @@
       }
 
       let category = 'شقة';
-      if (/فيلا/.test(text)) category = 'فيلا';
-      else if (/منزل|بيت|حوش/.test(text)) category = 'منزل';
-      else if (/شقة/.test(text)) category = 'شقة';
-      else if (/أرض|ارض|قطعة/.test(text)) category = 'أرض';
-      else if (/محل|تجاري/.test(text)) category = 'محل تجاري';
-      else if (/عمارة/.test(text)) category = 'عمارة';
+      if (/فيلا|فيللا|فيلات/.test(text)) category = 'فيلا';
+      else if (/شقة|شقق/.test(text)) category = 'شقة';
+      else if (/منزل|بيت|حوش|منازل|بيوت/.test(text)) category = 'منزل';
+      else if (/أرض|ارض|قطعة|أراضي|اراضي/.test(text)) category = 'أرض';
+      else if (/محل|تجاري|محلات/.test(text)) category = 'محل تجاري';
+      else if (/عمارة|عمارات/.test(text)) category = 'عمارة';
 
       const normalizedDigits = text.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
       const phoneMatch = normalizedDigits.match(/(?:\+?218|0)?(9[1-6]\d{7}|\d{8,10})/);
@@ -1321,20 +1321,29 @@
       }
 
       let ownerName = '';
-      const ownerMatch = text.match(/(?:صاحب العقار|المالك|اسمه|الاسم)\s+([^\s،.]+(?:\s+[^\s،.]+)?)/);
+      const ownerMatch = text.match(
+        /(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل|الأرض|المحل|العمارة)?|المالك|مالك\s*(?:العقار|الفيلا|الشقة|المنزل)?|اسمه|الاسم)\s*(?:هو|:|-)?\s*([^\s،.0-9٠-٩]+(?:\s+[^\s،.0-9٠-٩]+)?)/i
+      );
       if (ownerMatch && ownerMatch[1]) {
-        ownerName = ownerMatch[1].trim();
+        const candidateName = ownerMatch[1].trim();
+        if (!/^(رقم|هاتف|جوال|موبايل|السعر|سعر|للبيع|للإيجار|للاستبدال|في|بمنطقة|منطقة|حي)$/i.test(candidateName)) {
+          ownerName = candidateName;
+        }
       }
 
-      // تنظيف مواصفات العقار من بيانات صاحب العقار ورقم الهاتف لضمان الخصوصية
+      // تنظيف مواصفات العقار من بيانات صاحب العقار ورقم الهاتف لضمان الخصوصية ومنع ظهورها للعامة
       let cleanDescription = text;
       if (ownerPhone) {
         cleanDescription = cleanDescription.replace(new RegExp(ownerPhone.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), ' ');
       }
+      if (ownerName) {
+        cleanDescription = cleanDescription.replace(new RegExp(ownerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
+      }
       cleanDescription = cleanDescription
-        .replace(/(?:رقم\s*(?:صاحب\s*العقار|المالك|هاتف\s*المالك|هاتفه|الهاتف)|هاتف\s*(?:صاحب\s*العقار|المالك)|جوال\s*(?:صاحب\s*العقار|المالك))\s*[:\-]?\s*[\d٠-٩+]+/gi, ' ')
-        .replace(/(?:صاحب\s*العقار|المالك|اسمه|الاسم)\s*[:\-]?\s*[^\s،.]+(?:\s+[^\s،.]+)?/gi, ' ')
+        .replace(/(?:رقم\s*(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل|الأرض|المحل|العمارة)?|المالك|هاتف\s*المالك|هاتفه|الهاتف|الجوال|الموبايل)|هاتف\s*(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل)?|المالك|هاتفه)?|جوال\s*(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل)?|المالك)?|موبايل\s*(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل)?|المالك)?)\s*(?:هو|:|-)?\s*[\d٠-٩+\s\-]*/gi, ' ')
+        .replace(/(?:صاحب\s*(?:العقار|الفيلا|الشقة|المنزل|الأرض|المحل|العمارة)?|المالك|مالك\s*(?:العقار|الفيلا|الشقة|المنزل)?|اسمه|الاسم)\s*(?:هو|:|-)?\s*[^\s،.]+(?:\s+[^\s،.]+)?/gi, ' ')
         .replace(/(?:السعر|سعر|بمبلغ|مطلوب)\s*[:\-]?\s*[\d٠-٩,\.]+\s*(?:مليون|ألف|الف|دينار|د\.ل|\$|€)?/gi, ' ')
+        .replace(/\b(?:\+?218|0)?9[1-6]\d{7}\b/g, ' ')
         .replace(/\s{2,}/g, ' ')
         .replace(/^[،,\-\s]+|[،,\-\s]+$/g, '')
         .trim();
@@ -1499,14 +1508,10 @@
           }
           isVoiceListening = false;
           if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
-          const finalText = String(inputEl?.value || '').trim();
-          if (finalText) {
-            if (statusEl) {
-              statusEl.textContent = 'جاري الإدراج الفوري ونشر العقار على جميع المتصفحات...';
-            }
-            addPropertyFromVoiceText();
-          } else if (statusEl) {
-            statusEl.textContent = 'جاهز للاستماع';
+          if (statusEl) {
+            statusEl.textContent = voiceManualStopRequested
+              ? 'تم إيقاف الصوت — راجع النص أو عدّله ثم اضغط "نشر ومزامنة العرض"'
+              : 'جاهز للاستماع';
           }
         };
 
@@ -2991,4 +2996,3 @@
   </script>
 </body>
 </html>
-```
