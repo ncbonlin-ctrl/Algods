@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-28T18:15:42.912Z",
-  "revision": 1795889741749,
+  "updatedAt": "2026-11-28T18:18:32.510Z",
+  "revision": 1795889911081,
   "deletedIds": [
     "prop-tab-0001",
     "tab-0001",
@@ -398,6 +398,25 @@
       "primaryImage": "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/mtqqdsdu1tycr8mx6cjf.jpg",
       "img": "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/mtqqdsdu1tycr8mx6cjf.jpg",
       "createdAt": "2026-11-28T17:19:04.347Z"
+    },
+    {
+      "id": "prop-1795889851881-ravq",
+      "code": "TAB-0029",
+      "title": "شقه للبيع في عماره الطب الدور الثالث الشقق المتوسطه فيها ثلاث غرف وحمام...",
+      "dealType": "بيع",
+      "category": "شقة",
+      "location": "عماره الطب الدور",
+      "price": 100000,
+      "currency": "د.ل",
+      "phone": "0914664430",
+      "ownerName": "خالد رقم",
+      "ownerPhone": "",
+      "description": "شقه للبيع في عماره الطب الدور الثالث الشقق المتوسطه فيها ثلاث غرف وحمام وكوجينه وصاله صغيره وبلكونه اسم 091",
+      "closedStamp": "",
+      "images": [],
+      "primaryImage": "",
+      "img": "",
+      "createdAt": "2026-11-28T18:17:31.881Z"
     },
     {
       "id": "prop-tab-0009",
