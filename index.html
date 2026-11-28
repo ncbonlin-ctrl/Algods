@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1102,6 +1102,9 @@
     let voiceCommittedTranscript = '';
     let voiceManualStopRequested = false;
     let isApplyingRemoteSync = false;
+    let lastAppliedCloudFingerprint = '';
+    let isSyncPullInProgress = false;
+    let isSyncPushInProgress = false;
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1608,15 +1611,65 @@
       return Array.from(map.values());
     }
 
+    // تطبيق لقطة الحقيقة الواحدة (Single Source of Truth) على أي متصفح بدون دمج بيانات محلية متعارضة
+    function applyAuthoritativeRemoteSnapshot(rawProperties, rawDeletedIds = [], sourceLabel = 'cloud') {
+      if (!Array.isArray(rawProperties)) return false;
+
+      const remoteDeletedSet = new Set((Array.isArray(rawDeletedIds) ? rawDeletedIds : []).map(String));
+      const cleanRemoteProps = rawProperties
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((item) => !remoteDeletedSet.has(item.id));
+
+      const fingerprint = JSON.stringify({
+        p: cleanRemoteProps,
+        d: Array.from(remoteDeletedSet).sort()
+      });
+
+      if (fingerprint === lastAppliedCloudFingerprint) {
+        return false;
+      }
+
+      isApplyingRemoteSync = true;
+      try {
+        deletedPropertyIds = remoteDeletedSet;
+        saveDeletedPropertyIds(deletedPropertyIds);
+        properties = cleanRemoteProps;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+        localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
+        lastAppliedCloudFingerprint = fingerprint;
+        renderProperties();
+        updateSyncIndicatorBadge(sourceLabel);
+      } finally {
+        isApplyingRemoteSync = false;
+      }
+      return true;
+    }
+
+    function updateSyncIndicatorBadge(sourceLabel = 'متزامن') {
+      const syncBadge = document.getElementById('last-sync-badge');
+      if (!syncBadge) return;
+      syncBadge.classList.remove('hidden');
+      syncBadge.classList.add('inline-flex');
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span><span>متزامن (${hh}:${mm}:${ss})</span>`;
+    }
+
     function loadLocalProperties() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        const baseList = Array.isArray(parsed) ? parsed : [];
-        const merged = mergeWithInitialSeed(baseList);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((item, idx) => normalizeProperty(item, idx))
+            .filter((item) => !deletedPropertyIds.has(item.id));
+        }
+        const seeded = mergeWithInitialSeed([]);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
         localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
-        return merged;
+        return seeded;
       } catch (e) {
         return INITIAL_PROPERTIES.map((p, idx) => normalizeProperty(p, idx));
       }
@@ -1629,6 +1682,10 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
       } catch (e) {}
+      lastAppliedCloudFingerprint = JSON.stringify({
+        p: normalized,
+        d: Array.from(deletedPropertyIds).sort()
+      });
       if (!isApplyingRemoteSync) {
         bumpSyncRevision();
       }
@@ -1636,8 +1693,10 @@
     }
 
     function applyUnifiedPropertiesList(incomingList, pushToCloud = false) {
-      const merged = mergeWithInitialSeed(incomingList || []);
-      properties = saveLocalProperties(merged);
+      const cleaned = (incomingList || [])
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((item) => !deletedPropertyIds.has(item.id));
+      properties = saveLocalProperties(cleaned);
       renderProperties();
       if (pushToCloud && !isApplyingRemoteSync) {
         syncAllPropertiesNow();
@@ -2336,31 +2395,23 @@
           .collection('althabi_real_estate_meta')
           .doc('unified_master_state')
           .onSnapshot(
+            { includeMetadataChanges: false },
             (docSnap) => {
               if (!docSnap || !docSnap.exists) return;
               const stateData = docSnap.data() || {};
-              const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds.map(String) : [];
+              const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds : [];
               const remoteProps = Array.isArray(stateData.properties) ? stateData.properties : null;
-
-              isApplyingRemoteSync = true;
-              remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
-              saveDeletedPropertyIds(deletedPropertyIds);
-
               if (remoteProps) {
-                const exactMirror = remoteProps
-                  .map((item, idx) => normalizeProperty(item, idx))
-                  .filter((item) => !deletedPropertyIds.has(item.id));
-                properties = saveLocalProperties(exactMirror);
-                renderProperties();
+                applyAuthoritativeRemoteSnapshot(remoteProps, remoteDeleted, 'Firestore');
               }
-              isApplyingRemoteSync = false;
             },
             () => {}
           );
 
         unsubscribeSnapshot = db.collection('althabi_real_estate_properties').onSnapshot(
+          { includeMetadataChanges: false },
           (snapshot) => {
-            if (!snapshot) return;
+            if (!snapshot || snapshot.empty) return;
             const cloudItems = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
@@ -2369,14 +2420,7 @@
               }
             });
             if (cloudItems.length > 0) {
-              isApplyingRemoteSync = true;
-              const mergedMap = new Map(properties.map((p) => [p.id, p]));
-              cloudItems.forEach((cItem) => {
-                mergedMap.set(cItem.id, cItem);
-              });
-              properties = saveLocalProperties(Array.from(mergedMap.values()));
-              isApplyingRemoteSync = false;
-              renderProperties();
+              applyAuthoritativeRemoteSnapshot(cloudItems, Array.from(deletedPropertyIds), 'Firestore');
             }
           },
           () => {}
@@ -2385,52 +2429,67 @@
     }
 
     async function pushUnifiedMasterState() {
-      if (!db) return;
+      if (!db) return false;
       try {
+        const cleanProps = properties.filter((p) => !deletedPropertyIds.has(String(p.id)));
+        const cleanDeleted = Array.from(deletedPropertyIds);
         await db.collection('althabi_real_estate_meta').doc('unified_master_state').set(
           {
-            properties: properties.filter((p) => !deletedPropertyIds.has(String(p.id))),
-            deletedIds: Array.from(deletedPropertyIds),
+            properties: cleanProps,
+            deletedIds: cleanDeleted,
+            revision: currentSyncRevision || Date.now(),
             updatedAt: new Date().toISOString()
           },
           { merge: false }
         );
-      } catch (e) {}
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
 
     async function syncSinglePropertyToCloud(prop) {
       if (!db || !prop) return;
       try {
-        await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+        await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: false });
       } catch (e) {}
     }
 
     async function syncAllPropertiesNow() {
+      if (isSyncPushInProgress) return;
+      isSyncPushInProgress = true;
       const syncIcon = document.getElementById('firebase-sync-icon');
       if (syncIcon) syncIcon.classList.add('animate-spin');
 
       let cloudSynced = false;
       let githubSynced = false;
 
-      if (db) {
-        try {
-          await pushUnifiedMasterState();
-          for (const prop of properties) {
-            if (!deletedPropertyIds.has(String(prop.id))) {
-              await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+      try {
+        if (db) {
+          try {
+            cloudSynced = await pushUnifiedMasterState();
+            const existingSnap = await db.collection('althabi_real_estate_properties').get();
+            const activeIds = new Set(properties.map((p) => String(p.id)));
+            for (const doc of existingSnap.docs) {
+              if (!activeIds.has(String(doc.id)) || deletedPropertyIds.has(String(doc.id))) {
+                await doc.ref.delete();
+              }
             }
-          }
-          for (const delId of deletedPropertyIds) {
-            await db.collection('althabi_real_estate_properties').doc(String(delId)).delete();
-          }
-          cloudSynced = true;
-        } catch (e) {}
-      }
+            for (const prop of properties) {
+              if (!deletedPropertyIds.has(String(prop.id))) {
+                await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: false });
+              }
+            }
+          } catch (e) {}
+        }
 
-      githubSynced = await pushDirectToGitHubRepo(false);
-
-      if (syncIcon) {
-        setTimeout(() => syncIcon.classList.remove('animate-spin'), 450);
+        githubSynced = await pushDirectToGitHubRepo(false);
+        updateSyncIndicatorBadge('مزامنة كاملة');
+      } finally {
+        isSyncPushInProgress = false;
+        if (syncIcon) {
+          setTimeout(() => syncIcon.classList.remove('animate-spin'), 450);
+        }
       }
 
       if (githubSynced && cloudSynced) {
@@ -2624,18 +2683,23 @@
     }
 
     async function pullDirectFromGitHubRepo() {
+      if (isSyncPullInProgress || isSyncPushInProgress || isApplyingRemoteSync) return false;
       const cfg = getGitHubBridgeConfig();
       if (!cfg.repo) return false;
 
+      isSyncPullInProgress = true;
       try {
         let parsedPayload = null;
+        const cacheBuster = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-        // القراءة عبر API إذا توفر Token لتفادي الكاش، أو عبر الرابط العام لصفحة GitHub Pages
+        // 1. القراءة الفورية بدون كاش عبر GitHub REST API عند توفر Token
         if (cfg.token) {
-          const apiResp = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}?t=${Date.now()}`, {
+          const apiResp = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}?cb=${cacheBuster}`, {
             headers: {
               Authorization: `Bearer ${cfg.token}`,
-              Accept: 'application/vnd.github+json'
+              Accept: 'application/vnd.github+json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache'
             },
             cache: 'no-store'
           });
@@ -2647,8 +2711,27 @@
           }
         }
 
+        // 2. القراءة المباشرة من raw.githubusercontent.com لتجاوز تأخير كاش CDN في فايرفوكس وبقية المتصفحات
+        if (!parsedPayload && cfg.repo.includes('/')) {
+          const branches = ['main', 'master'];
+          for (const branch of branches) {
+            try {
+              const rawUrl = `https://raw.githubusercontent.com/${cfg.repo}/${branch}/${cfg.path}?cb=${cacheBuster}`;
+              const rawResp = await fetch(rawUrl, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+              });
+              if (rawResp.ok) {
+                parsedPayload = await rawResp.json();
+                if (parsedPayload && Array.isArray(parsedPayload.properties)) break;
+              }
+            } catch (err) {}
+          }
+        }
+
+        // 3. مسار احتياطي من نفس النطاق مع كسر الكاش
         if (!parsedPayload) {
-          const publicUrl = `${cfg.path}?t=${Date.now()}`;
+          const publicUrl = `${cfg.path}?cb=${cacheBuster}`;
           const pubResp = await fetch(publicUrl, { cache: 'no-store' });
           if (pubResp.ok) {
             parsedPayload = await pubResp.json();
@@ -2656,26 +2739,34 @@
         }
 
         if (parsedPayload && Array.isArray(parsedPayload.properties)) {
-          isApplyingRemoteSync = true;
-          const remoteDeleted = Array.isArray(parsedPayload.deletedIds) ? parsedPayload.deletedIds.map(String) : [];
-          remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
-          saveDeletedPropertyIds(deletedPropertyIds);
-
-          const exactMirror = parsedPayload.properties
-            .map((item, idx) => normalizeProperty(item, idx))
-            .filter((item) => !deletedPropertyIds.has(item.id));
-
-          if (JSON.stringify(exactMirror) !== JSON.stringify(properties)) {
-            properties = saveLocalProperties(exactMirror);
-            renderProperties();
-          }
-          isApplyingRemoteSync = false;
+          const remoteDeleted = Array.isArray(parsedPayload.deletedIds) ? parsedPayload.deletedIds : [];
+          applyAuthoritativeRemoteSnapshot(parsedPayload.properties, remoteDeleted, 'GitHub');
           return true;
         }
       } catch (e) {
-        isApplyingRemoteSync = false;
+      } finally {
+        isSyncPullInProgress = false;
       }
       return false;
+    }
+
+    async function pullLatestAuthoritativeState() {
+      if (isSyncPullInProgress || isSyncPushInProgress || isApplyingRemoteSync) return;
+      const pulledFromGh = await pullDirectFromGitHubRepo();
+      if (pulledFromGh) return;
+
+      if (!db) return;
+      try {
+        const snap = await db.collection('althabi_real_estate_meta').doc('unified_master_state').get({ source: 'server' });
+        if (snap && snap.exists) {
+          const stateData = snap.data() || {};
+          const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds : [];
+          const remoteProps = Array.isArray(stateData.properties) ? stateData.properties : null;
+          if (remoteProps) {
+            applyAuthoritativeRemoteSnapshot(remoteProps, remoteDeleted, 'Firestore');
+          }
+        }
+      } catch (e) {}
     }
 
     async function purgeTakafulAndIsolateRealEstate() {
@@ -2717,43 +2808,30 @@
       setSortMode('newest');
       updateGitHubBridgeStatusUI();
       initFirebase();
-      pullDirectFromGitHubRepo();
+      pullLatestAuthoritativeState();
 
-      // تحديث دوري خفيف كل 8 ثوانٍ لضمان تطابق فايرفوكس وجوجل كروم وأي متصفح آخر لحظياً
-      setInterval(async () => {
-        if (isApplyingRemoteSync) return;
-        await pullDirectFromGitHubRepo();
-        if (!db || isApplyingRemoteSync) return;
-        try {
-          const snap = await db.collection('althabi_real_estate_meta').doc('unified_master_state').get();
-          if (snap && snap.exists) {
-            const stateData = snap.data() || {};
-            const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds.map(String) : [];
-            const remoteProps = Array.isArray(stateData.properties) ? stateData.properties : null;
-            isApplyingRemoteSync = true;
-            remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
-            saveDeletedPropertyIds(deletedPropertyIds);
-            if (remoteProps) {
-              const exactMirror = remoteProps
-                .map((item, idx) => normalizeProperty(item, idx))
-                .filter((item) => !deletedPropertyIds.has(item.id));
-              if (JSON.stringify(exactMirror) !== JSON.stringify(properties)) {
-                properties = saveLocalProperties(exactMirror);
-                renderProperties();
-              }
-            }
-            isApplyingRemoteSync = false;
-          }
-        } catch (e) {}
-      }, 8000);
+      // تحديث دوري سريع كل 3 ثوانٍ لكسر الكاش في فايرفوكس وكروم وضمان تطابق 100% للبيانات
+      setInterval(() => {
+        pullLatestAuthoritativeState();
+      }, 3000);
+
+      // جلب فوري عند العودة لتبويب المتصفح أو استعادة الاتصال بالشبكة
+      window.addEventListener('focus', () => {
+        pullLatestAuthoritativeState();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          pullLatestAuthoritativeState();
+        }
+      });
+      window.addEventListener('online', () => {
+        pullLatestAuthoritativeState();
+      });
 
       // مزامنة فورية بين التبويبات والمتصفحات عبر التخزين المشترك
       window.addEventListener('storage', (event) => {
         if (!event || !event.key) return;
-        if (event.key === DELETED_IDS_KEY) {
-          deletedPropertyIds = loadDeletedPropertyIds();
-          applyUnifiedPropertiesList(properties, false);
-        } else if (event.key === STORAGE_KEY || event.key === SYNC_REVISION_KEY) {
+        if (event.key === DELETED_IDS_KEY || event.key === STORAGE_KEY || event.key === SYNC_REVISION_KEY) {
           isApplyingRemoteSync = true;
           deletedPropertyIds = loadDeletedPropertyIds();
           properties = loadLocalProperties();
