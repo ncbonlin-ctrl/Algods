@@ -1144,6 +1144,31 @@
       return trimmed.startsWith('data:image/') || trimmed.startsWith('http://') || trimmed.startsWith('https://');
     }
 
+    function extractNormalizedImages(raw) {
+      const candidates = [];
+      if (Array.isArray(raw?.images)) {
+        candidates.push(...raw.images);
+      }
+      if (raw?.primaryImage) {
+        candidates.unshift(raw.primaryImage);
+      }
+      if (raw?.img) {
+        candidates.unshift(raw.img);
+      }
+
+      const unique = [];
+      const seen = new Set();
+      for (const item of candidates) {
+        if (!isRealPropertyImage(item)) continue;
+        const cleanSrc = item.trim();
+        if (seen.has(cleanSrc)) continue;
+        seen.add(cleanSrc);
+        unique.push(cleanSrc);
+        if (unique.length >= 10) break;
+      }
+      return unique;
+    }
+
     function generateFallbackPropertyImage(prop) {
       // تقسيم العنوان إلى سطرين متوازنين لعرضه بخط عريض وواضح كما في التصميم المرفق
       const rawTitle = String(prop?.title || 'عرض عقاري متاح').trim();
@@ -1236,7 +1261,8 @@
 
     function normalizeProperty(raw, idx = 0) {
       const code = String(raw?.code || `TAB-${String(idx + 1).padStart(4, '0')}`).trim();
-      const images = Array.isArray(raw?.images) ? raw.images.filter(isRealPropertyImage).slice(0, 10) : [];
+      const images = extractNormalizedImages(raw);
+      const primaryImage = images[0] || '';
       const createdAt = raw?.createdAt && !Number.isNaN(Date.parse(raw.createdAt))
         ? new Date(raw.createdAt).toISOString()
         : new Date().toISOString();
@@ -1258,6 +1284,8 @@
           ? String(raw?.closedStamp || '')
           : '',
         images,
+        primaryImage,
+        img: primaryImage,
         createdAt
       };
     }
@@ -1682,8 +1710,35 @@
         .map((item, idx) => normalizeProperty(item, idx))
         .filter((item) => !remoteDeletedSet.has(item.id));
 
+      // الحفاظ على الصور المحلية الأحدث فقط إذا كانت النسخة البعيدة لم تحمّل صوراً بعد ولم يقم المشرف بإزالتها عمداً
+      const localMap = new Map((properties || []).map((p) => [String(p.id), p]));
+      const mergedProps = cleanRemoteProps.map((remoteProp) => {
+        const localProp = localMap.get(String(remoteProp.id));
+        const remoteImgs = extractNormalizedImages(remoteProp);
+        const localImgs = localProp ? extractNormalizedImages(localProp) : [];
+        const localUpdatedAfterRemote =
+          localProp &&
+          Date.parse(localProp.createdAt || 0) > Date.parse(remoteProp.createdAt || 0) &&
+          Date.now() - (currentSyncRevision || 0) < 4000;
+
+        if (remoteImgs.length === 0 && localImgs.length > 0 && localUpdatedAfterRemote) {
+          return normalizeProperty({
+            ...remoteProp,
+            images: localImgs,
+            primaryImage: localImgs[0],
+            img: localImgs[0]
+          });
+        }
+        return normalizeProperty({
+          ...remoteProp,
+          images: remoteImgs,
+          primaryImage: remoteImgs[0] || '',
+          img: remoteImgs[0] || ''
+        });
+      });
+
       const fingerprint = JSON.stringify({
-        p: cleanRemoteProps,
+        p: mergedProps,
         d: Array.from(remoteDeletedSet).sort()
       });
 
@@ -1695,7 +1750,7 @@
       try {
         deletedPropertyIds = remoteDeletedSet;
         saveDeletedPropertyIds(deletedPropertyIds);
-        properties = cleanRemoteProps;
+        properties = mergedProps;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
         localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
         lastAppliedCloudFingerprint = fingerprint;
@@ -2343,7 +2398,9 @@
         closedStamp,
         likes: existingProp ? existingProp.likes || 0 : 0,
         images: formImages,
-        createdAt
+        primaryImage: formImages[0] || '',
+        img: formImages[0] || '',
+        createdAt: new Date().toISOString()
       });
 
       const updatedList = existingProp
@@ -2353,10 +2410,18 @@
       properties = saveLocalProperties(updatedList);
       renderProperties();
       closePropertyFormModal();
-      showToast(existingProp ? `تم تحديث العقار (${code}) ومزامنته.` : `تمت إضافة العقار (${code}) ومزامنته.`, 'success');
+      showToast(
+        existingProp
+          ? `تم تحديث العقار (${code}) وصوره ومزامنته مع الصفحة وGitHub.`
+          : `تمت إضافة العقار (${code}) وصوره ومزامنته مع الصفحة وGitHub.`,
+        'success'
+      );
+
+      // دفع فوري ومباشر إلى GitHub وFirestore وبث الحالة لجميع المتصفحات
       await syncSinglePropertyToCloud(savedProp);
       await pushUnifiedMasterState();
-      await syncAllPropertiesNow();
+      await pushDirectToGitHubRepo(false);
+      broadcastLocalSyncState('property_images_published');
     }
 
     async function togglePropertyClosedStamp(propId) {
@@ -2791,7 +2856,9 @@
           updatedAt: new Date().toISOString(),
           revision: currentSyncRevision || Date.now(),
           deletedIds: Array.from(deletedPropertyIds),
-          properties: properties.filter((p) => !deletedPropertyIds.has(String(p.id)))
+          properties: properties
+            .filter((p) => !deletedPropertyIds.has(String(p.id)))
+            .map((p, idx) => normalizeProperty(p, idx))
         };
 
         const body = {
@@ -2899,6 +2966,9 @@
 
     async function pullLatestAuthoritativeState() {
       if (isSyncPullInProgress || isSyncPushInProgress || isApplyingRemoteSync) return;
+      // إذا كان المشرف قد أجرى تعديلاً محلياً للتو ولم يكتمل الدفع، لا نطمس التحديث المحلي
+      if (Date.now() - (currentSyncRevision || 0) < 2500) return;
+
       const pulledFromGh = await pullDirectFromGitHubRepo();
       if (pulledFromGh) return;
 
