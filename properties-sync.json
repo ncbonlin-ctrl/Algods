@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-28T19:23:29.735Z",
-  "revision": 1795893804498,
+  "updatedAt": "2026-11-28T19:23:43.567Z",
+  "revision": 1795893822227,
   "deletedIds": [
     "prop-tab-0001",
     "tab-0001",
@@ -451,9 +451,11 @@
       "description": "شقه للبيع في عماره الطب الدور الثالث الشقق المتوسطه فيها ثلاث غرف وحمام وكوجينه وصاله صغيره وبلكونه اسم 091",
       "closedStamp": "",
       "likes": 0,
-      "images": [],
-      "primaryImage": "",
-      "img": "",
+      "images": [
+        "https://placehold.co/800x520/072e24/efd085?text=%D9%85%D9%83%D8%AA%D8%A8%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%20%7C%20TAB-0018"
+      ],
+      "primaryImage": "https://placehold.co/800x520/072e24/efd085?text=%D9%85%D9%83%D8%AA%D8%A8%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%20%7C%20TAB-0018",
+      "img": "https://placehold.co/800x520/072e24/efd085?text=%D9%85%D9%83%D8%AA%D8%A8%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%20%7C%20TAB-0018",
       "createdAt": "2026-11-28T18:17:31.881Z"
     },
     {
