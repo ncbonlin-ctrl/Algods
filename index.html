@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -412,14 +412,14 @@
           <button
             data-filter="بيع"
             onclick="setFilter('بيع')"
-            class="filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm whitespace-nowrap"
+            class="filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-950 hover:bg-goldLuxury-100 border border-goldLuxury-400/60 shadow-sm whitespace-nowrap"
           >
             <span>للبيع</span>
           </button>
           <button
             data-filter="إيجار"
             onclick="setFilter('إيجار')"
-            class="filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm whitespace-nowrap"
+            class="filter-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-950 hover:bg-goldLuxury-100 border border-goldLuxury-400/60 shadow-sm whitespace-nowrap"
           >
             <span>للإيجار</span>
           </button>
@@ -430,7 +430,7 @@
             id="sort-newest-btn"
             type="button"
             onclick="setSortMode('newest')"
-            class="sort-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm whitespace-nowrap"
+            class="sort-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-950 hover:bg-goldLuxury-100 border border-goldLuxury-400/60 shadow-sm whitespace-nowrap"
           >
             <span>الأحدث ظهوراً</span>
           </button>
@@ -438,7 +438,7 @@
             id="sort-price-asc-btn"
             type="button"
             onclick="setSortMode('price-asc')"
-            class="sort-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-emeraldLuxury-800 text-white hover:bg-emeraldLuxury-900 border border-emeraldLuxury-900 shadow-sm whitespace-nowrap"
+            class="sort-btn w-36 h-10 inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer bg-sandWarm-100 text-emeraldLuxury-950 hover:bg-goldLuxury-100 border border-goldLuxury-400/60 shadow-sm whitespace-nowrap"
           >
             <span>السعر: من الأقل للأكثر</span>
           </button>
@@ -1318,7 +1318,21 @@
         ownerName = ownerMatch[1].trim();
       }
 
-      const title = text.length > 75 ? `${text.slice(0, 72).trim()}...` : text;
+      // تنظيف مواصفات العقار من بيانات صاحب العقار ورقم الهاتف لضمان الخصوصية
+      let cleanDescription = text;
+      if (ownerPhone) {
+        cleanDescription = cleanDescription.replace(new RegExp(ownerPhone.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), ' ');
+      }
+      cleanDescription = cleanDescription
+        .replace(/(?:رقم\s*(?:صاحب\s*العقار|المالك|هاتف\s*المالك|هاتفه|الهاتف)|هاتف\s*(?:صاحب\s*العقار|المالك)|جوال\s*(?:صاحب\s*العقار|المالك))\s*[:\-]?\s*[\d٠-٩+]+/gi, ' ')
+        .replace(/(?:صاحب\s*العقار|المالك|اسمه|الاسم)\s*[:\-]?\s*[^\s،.]+(?:\s+[^\s،.]+)?/gi, ' ')
+        .replace(/(?:السعر|سعر|بمبلغ|مطلوب)\s*[:\-]?\s*[\d٠-٩,\.]+\s*(?:مليون|ألف|الف|دينار|د\.ل|\$|€)?/gi, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/^[،,\-\s]+|[،,\-\s]+$/g, '')
+        .trim();
+
+      const baseTitleText = cleanDescription || `${category} ل${dealType} في ${location}`;
+      const title = baseTitleText.length > 75 ? `${baseTitleText.slice(0, 72).trim()}...` : baseTitleText;
 
       return {
         title,
@@ -1330,11 +1344,34 @@
         phone: DEFAULT_CONTACT_PHONE,
         ownerName,
         ownerPhone,
-        description: text,
+        description: cleanDescription,
         closedStamp: '',
         images: [],
         createdAt: new Date().toISOString()
       };
+    }
+
+    function fillPropertyFormFromVoiceText() {
+      const inputEl = document.getElementById('voice-dictation-input');
+      const rawText = String(inputEl?.value || '').trim();
+      if (!rawText) {
+        showToast('يرجى إملاء أو كتابة بيانات العقار أولاً.', 'warning');
+        return;
+      }
+
+      const parsed = parseDictatedPropertyText(rawText);
+      if (!parsed) return;
+
+      openPropertyFormModal();
+      document.getElementById('prop-title').value = parsed.title;
+      document.getElementById('prop-deal').value = parsed.dealType;
+      document.getElementById('prop-category').value = parsed.category;
+      document.getElementById('prop-location').value = parsed.location;
+      document.getElementById('prop-price').value = parsed.price;
+      document.getElementById('prop-owner-name').value = parsed.ownerName;
+      document.getElementById('prop-owner-phone').value = parsed.ownerPhone;
+      document.getElementById('prop-description').value = parsed.description;
+      showToast('تم تعبئة الحقول واسم وهاتف صاحب العقار دون إظهار بيانات الخصوصية في المواصفات.', 'success');
     }
 
     async function addPropertyFromVoiceText() {
@@ -1616,11 +1653,11 @@
       document.querySelectorAll('.filter-btn').forEach((btn) => {
         const isActive = btn.getAttribute('data-filter') === currentFilter;
         btn.classList.toggle('ring-2', isActive);
-        btn.classList.toggle('ring-goldLuxury-400', isActive);
+        btn.classList.toggle('ring-goldLuxury-500', isActive);
         btn.classList.toggle('bg-goldLuxury-500', isActive);
-        btn.classList.toggle('text-emeraldLuxury-950', isActive);
-        btn.classList.toggle('bg-emeraldLuxury-800', !isActive);
-        btn.classList.toggle('text-white', !isActive);
+        btn.classList.toggle('text-emeraldLuxury-950', true);
+        btn.classList.toggle('bg-sandWarm-100', !isActive);
+        btn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       });
       renderProperties();
     }
@@ -1631,17 +1668,21 @@
       const priceBtn = document.getElementById('sort-price-asc-btn');
       if (newestBtn) {
         const active = mode === 'newest';
+        newestBtn.classList.toggle('ring-2', active);
+        newestBtn.classList.toggle('ring-goldLuxury-500', active);
         newestBtn.classList.toggle('bg-goldLuxury-500', active);
-        newestBtn.classList.toggle('text-emeraldLuxury-950', active);
-        newestBtn.classList.toggle('bg-emeraldLuxury-800', !active);
-        newestBtn.classList.toggle('text-white', !active);
+        newestBtn.classList.toggle('text-emeraldLuxury-950', true);
+        newestBtn.classList.toggle('bg-sandWarm-100', !active);
+        newestBtn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       }
       if (priceBtn) {
         const active = mode === 'price-asc';
+        priceBtn.classList.toggle('ring-2', active);
+        priceBtn.classList.toggle('ring-goldLuxury-500', active);
         priceBtn.classList.toggle('bg-goldLuxury-500', active);
-        priceBtn.classList.toggle('text-emeraldLuxury-950', active);
-        priceBtn.classList.toggle('bg-emeraldLuxury-800', !active);
-        priceBtn.classList.toggle('text-white', !active);
+        priceBtn.classList.toggle('text-emeraldLuxury-950', true);
+        priceBtn.classList.toggle('bg-sandWarm-100', !active);
+        priceBtn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       }
       renderProperties();
     }
