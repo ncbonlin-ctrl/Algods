@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -256,6 +256,53 @@
           </svg>
           <span>إضافة عقار</span>
         </button>
+      </div>
+
+      <!-- خانة الإملاء الصوتي وإضافة العقار تلقائياً داخل لوحة المشرف -->
+      <div class="w-full max-w-3xl bg-white/5 border border-goldLuxury-400/35 rounded-2xl p-4 text-right space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 class="text-xs sm:text-sm font-black text-goldLuxury-300">الإملاء الصوتي الفوري للعقارات</h4>
+            <p class="text-[11px] text-emeraldLuxury-100/80">تحدث بالصوت أو اكتب تفاصيل العقار وسيتم إدراجه تلقائياً في الصفحة ومزامنته على جميع المتصفحات.</p>
+          </div>
+          <span id="voice-dictation-status" class="px-2.5 py-1 rounded-xl bg-emeraldLuxury-900 text-emeraldLuxury-100 border border-white/15 text-[11px] font-bold">
+            جاهز للاستماع
+          </span>
+        </div>
+
+        <textarea
+          id="voice-dictation-input"
+          rows="2"
+          placeholder="مثال: شقة للبيع في الفرناج، الدور الثالث، تشطيب حديث، السعر 250000، صاحب العقار أحمد، هاتفه 0910000000"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-emeraldLuxury-900/80 text-white placeholder-emeraldLuxury-100/40 border border-white/15 focus:border-goldLuxury-400 focus:outline-none text-xs sm:text-sm resize-none"
+        ></textarea>
+
+        <div class="flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            id="voice-record-btn"
+            type="button"
+            onclick="toggleVoiceDictation()"
+            class="px-4 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+          >
+            <span>بدء الإملاء بالصوت</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="addPropertyFromVoiceText()"
+            class="btn-shine px-5 h-10 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 font-black text-xs border border-goldLuxury-500 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+          >
+            <span>إضافة ومزامنة تلقائياً</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="clearVoiceDictationBox()"
+            class="px-3.5 h-10 rounded-xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-100 border border-white/15 font-bold text-xs transition cursor-pointer"
+          >
+            مسح النص
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -910,11 +957,10 @@
     // مفاتيح التخزين المحلي ومزامنة التبويبات
     const STORAGE_KEY = 'althabi_real_estate_listings_v1';
     const DELETED_IDS_KEY = 'althabi_deleted_property_ids_v1';
-    const LIKED_IDS_KEY = 'althabi_liked_property_ids_v1';
     const SITE_SETTINGS_STORAGE_KEY = 'althabi_site_settings_v1';
     const SYNC_REVISION_KEY = 'althabi_sync_revision_v1';
     const SEED_VERSION_KEY = 'althabi_seed_version_v1';
-    const CURRENT_SEED_VERSION = '2026-11-28-v14-likes';
+    const CURRENT_SEED_VERSION = '2026-11-28-v15-voice-no-likes';
     const FB_CONFIG_STORAGE_KEY = 'althabi_firebase_config_v1';
     const GH_BRIDGE_STORAGE_KEY = 'althabi_github_bridge_v1';
     const ADMIN_SESSION_KEY = 'althabi_admin_session_v1';
@@ -1045,7 +1091,6 @@
     // الحالة العامة للتطبيق
     let properties = [];
     let deletedPropertyIds = new Set();
-    let likedPropertyIds = new Set();
     let currentFilter = 'all';
     let currentSortMode = 'newest';
     let isAdminLoggedIn = false;
@@ -1053,7 +1098,8 @@
     let db = null;
     let unsubscribeSnapshot = null;
     let currentSyncRevision = 0;
-
+    let voiceRecognition = null;
+    let isVoiceListening = false;
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1160,21 +1206,183 @@
         closedStamp: ['تم البيع', 'تم الإيجار', 'تم الاستبدال', ''].includes(raw?.closedStamp)
           ? String(raw?.closedStamp || '')
           : '',
-        likes: Math.max(0, Number(raw?.likes) || 0),
         images,
         createdAt
       };
     }
 
-    // إدارة الإعجابات المحلية لكل زائر
-    function loadLikedPropertyIds() {
+    // تحليل النص المملى صوتياً أو كتابياً وإضافة العقار تلقائياً ومزامنته
+    function parseDictatedPropertyText(rawText) {
+      const text = String(rawText || '').trim();
+      if (!text) return null;
+
+      let dealType = 'بيع';
+      if (/إيجار|للإيجار|ايجار|للايجار|شهري/.test(text)) {
+        dealType = 'إيجار';
+      } else if (/استبدال|للاستبدال|بدل/.test(text)) {
+        dealType = 'استبدال';
+      }
+
+      let category = 'شقة';
+      if (/فيلا/.test(text)) category = 'فيلا';
+      else if (/منزل|بيت|حوش/.test(text)) category = 'منزل';
+      else if (/شقة/.test(text)) category = 'شقة';
+      else if (/أرض|ارض|قطعة/.test(text)) category = 'أرض';
+      else if (/محل|تجاري/.test(text)) category = 'محل تجاري';
+      else if (/عمارة/.test(text)) category = 'عمارة';
+
+      const normalizedDigits = text.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+      const phoneMatch = normalizedDigits.match(/(?:\+?218|0)?(9[1-6]\d{7}|\d{8,10})/);
+      const ownerPhone = phoneMatch ? phoneMatch[0] : '';
+
+      let price = 0;
+      const millionMatch = normalizedDigits.match(/(\d+(?:\.\d+)?)\s*مليون/);
+      const thousandMatch = normalizedDigits.match(/(\d+(?:\.\d+)?)\s*(?:ألف|الف)/);
+      const priceKeywordMatch = normalizedDigits.match(/(?:السعر|سعر|بمبلغ|مطلوب)\s*[:\-]?\s*(\d[\d,\.]*)/);
+
+      if (millionMatch) {
+        price = Math.round(parseFloat(millionMatch[1]) * 1000000);
+      } else if (thousandMatch) {
+        price = Math.round(parseFloat(thousandMatch[1]) * 1000);
+      } else if (priceKeywordMatch) {
+        price = Number(priceKeywordMatch[1].replace(/,/g, '')) || 0;
+      } else {
+        const numberCandidates = (normalizedDigits.match(/\b\d{4,9}\b/g) || [])
+          .map((n) => Number(n))
+          .filter((n) => n >= 1000 && (!ownerPhone || String(n) !== ownerPhone.replace(/\D/g, '')));
+        if (numberCandidates.length > 0) {
+          price = numberCandidates[0];
+        }
+      }
+
+      let location = 'طرابلس';
+      const locMatch = text.match(/(?:في|بمنطقة|منطقة|حي)\s+([^\s،.]+(?:\s+[^\s،.]+){0,2})/);
+      if (locMatch && locMatch[1]) {
+        location = locMatch[1].trim();
+      }
+
+      let ownerName = '';
+      const ownerMatch = text.match(/(?:صاحب العقار|المالك|اسمه|الاسم)\s+([^\s،.]+(?:\s+[^\s،.]+)?)/);
+      if (ownerMatch && ownerMatch[1]) {
+        ownerName = ownerMatch[1].trim();
+      }
+
+      const title = text.length > 75 ? `${text.slice(0, 72).trim()}...` : text;
+
+      return {
+        title,
+        dealType,
+        category,
+        location,
+        price: price > 0 ? price : 100000,
+        currency: 'د.ل',
+        phone: DEFAULT_CONTACT_PHONE,
+        ownerName,
+        ownerPhone,
+        description: text,
+        closedStamp: '',
+        images: [],
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    async function addPropertyFromVoiceText() {
+      const inputEl = document.getElementById('voice-dictation-input');
+      const rawText = String(inputEl?.value || '').trim();
+      if (!rawText) {
+        showToast('يرجى إملاء أو كتابة بيانات العقار أولاً.', 'warning');
+        return;
+      }
+
+      const parsed = parseDictatedPropertyText(rawText);
+      if (!parsed) return;
+
+      const code = generateNextPropertyCode(properties);
+      const id = `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const savedProp = normalizeProperty({
+        ...parsed,
+        id,
+        code
+      });
+
+      properties = saveLocalProperties([savedProp, ...properties]);
+      renderProperties();
+      if (inputEl) inputEl.value = '';
+      showToast(`تمت إضافة العقار (${code}) تلقائياً ومزامنته مع جميع المتصفحات.`, 'success');
+      await syncSinglePropertyToCloud(savedProp);
+    }
+
+    function clearVoiceDictationBox() {
+      const inputEl = document.getElementById('voice-dictation-input');
+      if (inputEl) inputEl.value = '';
+      const statusEl = document.getElementById('voice-dictation-status');
+      if (statusEl) statusEl.textContent = 'جاهز للاستماع';
+    }
+
+    function toggleVoiceDictation() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const statusEl = document.getElementById('voice-dictation-status');
+      const btnEl = document.getElementById('voice-record-btn');
+      const inputEl = document.getElementById('voice-dictation-input');
+
+      if (!SpeechRecognition) {
+        showToast('الإملاء الصوتي غير مدعوم في هذا المتصفح، يمكنك الكتابة والإضافة التلقائية مباشرة.', 'warning');
+        return;
+      }
+
+      if (isVoiceListening && voiceRecognition) {
+        try {
+          voiceRecognition.stop();
+        } catch (e) {}
+        isVoiceListening = false;
+        if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
+        if (statusEl) statusEl.textContent = 'تم إيقاف الاستماع';
+        return;
+      }
+
       try {
-        const raw = localStorage.getItem(LIKED_IDS_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(arr)) return new Set();
-        return new Set(arr.map((x) => String(x || '').trim()).filter(Boolean));
+        voiceRecognition = new SpeechRecognition();
+        voiceRecognition.lang = 'ar-LY';
+        voiceRecognition.interimResults = true;
+        voiceRecognition.continuous = false;
+
+        voiceRecognition.onstart = () => {
+          isVoiceListening = true;
+          if (btnEl) btnEl.textContent = 'إيقاف الاستماع';
+          if (statusEl) statusEl.textContent = 'جاري الاستماع للصوت...';
+        };
+
+        voiceRecognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (inputEl && transcript.trim()) {
+            inputEl.value = transcript.trim();
+          }
+        };
+
+        voiceRecognition.onerror = () => {
+          isVoiceListening = false;
+          if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
+          if (statusEl) statusEl.textContent = 'تعذر التقاط الصوت';
+        };
+
+        voiceRecognition.onend = () => {
+          isVoiceListening = false;
+          if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
+          const finalText = String(inputEl?.value || '').trim();
+          if (finalText) {
+            if (statusEl) statusEl.textContent = 'جاري الإضافة التلقائية...';
+            addPropertyFromVoiceText();
+          } else if (statusEl) {
+            statusEl.textContent = 'جاهز للاستماع';
+          }
+        };
+
+        voiceRecognition.start();
       } catch (e) {
-        return new Set();
+        showToast('تعذر تشغيل الميكروفون، تأكد من صلاحيات المتصفح.', 'error');
       }
     }
 
@@ -1421,8 +1629,6 @@
           const { dateText, timeText } = formatPropertyDateTime(prop.createdAt);
           const hasClosedStamp = Boolean(prop.closedStamp);
           const expectedStamp = getClosedStampLabelForDeal(prop.dealType);
-          const isLiked = likedPropertyIds.has(String(prop.id));
-          const likesCount = Math.max(0, Number(prop.likes) || 0);
 
           return `
             <article class="bg-white rounded-3xl border border-sandWarm-200 shadow-luxury hover:shadow-luxury-hover transition-all overflow-hidden flex flex-col justify-between group animate-fade-up">
@@ -1447,21 +1653,6 @@
                       ${escapeHtml(prop.code)}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onclick="togglePropertyLike(event, '${escapeHtml(prop.id)}')"
-                    aria-label="إعجاب بالعقار"
-                    class="absolute bottom-3 left-3 z-30 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-md transition active:scale-90 cursor-pointer border ${
-                      isLiked
-                        ? 'bg-rose-600 text-white border-rose-300'
-                        : 'bg-white/95 hover:bg-white text-emeraldLuxury-950 border-sandWarm-200'
-                    }"
-                  >
-                    <svg class="w-4 h-4 ${isLiked ? 'text-white fill-current' : 'text-rose-600'}" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                    <span>${formatNumber(likesCount)}</span>
-                  </button>
                   ${
                     hasClosedStamp
                       ? `<div class="absolute inset-0 bg-emeraldLuxury-950/65 backdrop-blur-[1px] flex flex-col items-center justify-center z-20 pointer-events-none select-none">
@@ -1475,8 +1666,8 @@
                 </div>
 
                 <div class="p-5 space-y-3">
-                  <div class="flex items-start justify-between gap-2 text-[11px] text-gray-500 font-bold">
-                    <span class="truncate max-w-[60%] pt-0.5">${escapeHtml(prop.location)}</span>
+                  <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500 font-bold">
+                    <span class="truncate text-emeraldLuxury-900 font-extrabold">${escapeHtml(prop.location)}</span>
                     <div class="flex flex-col items-end text-left leading-tight shrink-0 text-emeraldLuxury-900" dir="ltr">
                       <span class="font-extrabold">${escapeHtml(dateText)}</span>
                       <span class="text-[10px] text-emeraldLuxury-700 font-extrabold mt-0.5">${escapeHtml(timeText)}</span>
@@ -2005,10 +2196,6 @@
             if (cloudItems.length > 0) {
               const mergedMap = new Map(properties.map((p) => [p.id, p]));
               cloudItems.forEach((cItem) => {
-                const localItem = mergedMap.get(cItem.id);
-                if (localItem) {
-                  cItem.likes = Math.max(Number(localItem.likes) || 0, Number(cItem.likes) || 0);
-                }
                 mergedMap.set(cItem.id, cItem);
               });
               properties = saveLocalProperties(Array.from(mergedMap.values()));
@@ -2134,7 +2321,6 @@
       } catch (e) {}
 
       deletedPropertyIds = loadDeletedPropertyIds();
-      likedPropertyIds = loadLikedPropertyIds();
       currentSyncRevision = loadSyncRevision();
       properties = loadLocalProperties();
       applyAdminUIState();
