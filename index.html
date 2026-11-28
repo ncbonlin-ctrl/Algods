@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2484,6 +2484,25 @@
         }
 
         githubSynced = await pushDirectToGitHubRepo(false);
+
+        if (cloudSynced || githubSynced) {
+          updateSyncIndicatorBadge(githubSynced ? 'GitHub' : 'Firestore');
+          showToast(
+            githubSynced
+              ? 'تمت المزامنة الفورية مع GitHub وجميع المتصفحات بنجاح.'
+              : 'تمت المزامنة السحابية بنجاح.',
+            'success'
+          );
+        } else {
+          await pullLatestAuthoritativeState();
+          showToast('تم تحديث البيانات من السحابة.', 'info');
+        }
+      } finally {
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
+        isSyncPushInProgress = false;
+      }
+    }
+
     // استنتاج إعدادات مستودع GitHub تلقائياً أو من الإعدادات المحفوظة بجميع مفاتيحها السابقة
     function getGitHubBridgeConfig() {
       let saved = {};
