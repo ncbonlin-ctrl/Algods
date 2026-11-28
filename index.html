@@ -289,14 +289,6 @@
 
           <button
             type="button"
-            onclick="addPropertyFromVoiceText()"
-            class="btn-shine px-5 h-10 rounded-xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 font-black text-xs border border-goldLuxury-500 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
-          >
-            <span>نشر ومزامنة العرض</span>
-          </button>
-
-          <button
-            type="button"
             onclick="clearVoiceDictationBox()"
             class="px-3.5 h-10 rounded-xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-100 border border-white/15 font-bold text-xs transition cursor-pointer"
           >
@@ -1480,7 +1472,8 @@
         } catch (e) {}
         isVoiceListening = false;
         if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
-        if (statusEl) statusEl.textContent = 'تم إنهاء الاستماع — راجع النص ثم اضغط إضافة ومزامنة';
+        if (statusEl) statusEl.textContent = 'تم إيقاف الصوت — جاري إضافة العقار فوراً...';
+        addPropertyFromVoiceText();
         return;
       }
 
@@ -1539,7 +1532,7 @@
           if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
           if (statusEl) {
             statusEl.textContent = voiceManualStopRequested
-              ? 'تم إيقاف الصوت — راجع النص أو عدّله ثم اضغط "نشر ومزامنة العرض"'
+              ? 'تمت إضافة العرض فوراً عند إيقاف الصوت'
               : 'جاهز للاستماع';
           }
         };
