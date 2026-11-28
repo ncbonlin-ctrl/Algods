@@ -247,6 +247,18 @@
         </button>
 
         <button
+          id="image-cloud-btn"
+          onclick="openImageCloudModal()"
+          title="إعدادات وحدة التخزين السحابية المستقلة للصور فقط"
+          class="w-44 h-11 rounded-2xl bg-white/10 hover:bg-white/15 text-emeraldLuxury-50 border border-white/15 text-xs font-extrabold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
+        >
+          <svg class="w-3.5 h-3.5 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 116.71-9h1.79a4.5 4.5 0 110 9z" />
+          </svg>
+          <span id="image-cloud-btn-label">سحابة الصور</span>
+        </button>
+
+        <button
           id="open-add-modal-btn"
           onclick="openPropertyFormModal()"
           class="btn-shine w-44 h-11 rounded-2xl bg-gradient-to-l from-goldLuxury-400 via-goldLuxury-300 to-goldLuxury-400 hover:from-goldLuxury-500 hover:to-goldLuxury-300 text-emeraldLuxury-950 border border-goldLuxury-500 text-xs font-black shadow-btn-gold transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
@@ -937,6 +949,81 @@
     </div>
   </div>
 
+  <!-- نافذة وحدة التخزين السحابية المستقلة للصور فقط -->
+  <div id="image-cloud-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl w-full max-w-lg border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
+      <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-goldLuxury-300">ذاكرة مستقلة للصور فقط</span>
+          <h3 class="text-lg font-extrabold">سحابة الصور المستقلة للعقارات</h3>
+        </div>
+        <button
+          onclick="closeImageCloudModal()"
+          aria-label="إغلاق"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="saveImageCloudConfig(event)" class="p-6 space-y-4">
+        <div class="p-3.5 rounded-2xl bg-emeraldLuxury-50 border border-emeraldLuxury-200 text-xs text-emeraldLuxury-900 leading-relaxed">
+          تُرفع صور العقارات إلى وحدة تخزين خارجية مستقلة (<strong>Cloudinary</strong> أو <strong>ImgBB</strong>) ويُحفظ رابط الصورة فقط مع الإعلان دون إثقال GitHub أو Firebase.
+        </div>
+
+        <div>
+          <label for="img-cloud-provider" class="block text-sm font-bold text-emeraldLuxury-900 mb-1.5">مزود التخزين السحابي المستقل</label>
+          <select
+            id="img-cloud-provider"
+            onchange="toggleImageCloudProviderFields()"
+            class="w-full px-4 py-2.5 rounded-xl bg-sandWarm-50 border border-sandWarm-200 focus:border-emeraldLuxury-600 focus:bg-white focus:outline-none text-sm font-bold text-emeraldLuxury-900 cursor-pointer"
+          >
+            <option value="none">تخزين محلي مضغوط (بدون خادم خارجي)</option>
+            <option value="cloudinary">Cloudinary (رفع مباشر Unsigned)</option>
+            <option value="imgbb">ImgBB (مفتاح API للصور)</option>
+          </select>
+        </div>
+
+        <div id="img-cloud-cloudinary-fields" class="hidden space-y-3 bg-sandWarm-50 p-4 rounded-2xl border border-sandWarm-200">
+          <div>
+            <label for="img-cloud-name" class="block text-xs font-bold text-emeraldLuxury-900 mb-1">Cloud Name *</label>
+            <input id="img-cloud-name" type="text" dir="ltr" placeholder="my-cloud-name" class="w-full px-3.5 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
+          </div>
+          <div>
+            <label for="img-cloud-preset" class="block text-xs font-bold text-emeraldLuxury-900 mb-1">Upload Preset (Unsigned) *</label>
+            <input id="img-cloud-preset" type="text" dir="ltr" placeholder="althabi_properties_preset" class="w-full px-3.5 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
+          </div>
+        </div>
+
+        <div id="img-cloud-imgbb-fields" class="hidden space-y-3 bg-sandWarm-50 p-4 rounded-2xl border border-sandWarm-200">
+          <div>
+            <label for="img-cloud-imgbb-key" class="block text-xs font-bold text-emeraldLuxury-900 mb-1">ImgBB API Key *</label>
+            <input id="img-cloud-imgbb-key" type="password" dir="ltr" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" class="w-full px-3.5 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-sandWarm-200">
+          <button
+            type="button"
+            onclick="closeImageCloudModal()"
+            class="px-4 py-2.5 rounded-xl bg-sandWarm-100 hover:bg-sandWarm-200 text-emeraldLuxury-900 font-bold text-xs transition cursor-pointer"
+          >
+            إلغاء
+          </button>
+          <button
+            type="submit"
+            class="btn-shine px-5 py-2.5 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-extrabold text-xs shadow-btn-emerald transition cursor-pointer"
+          >
+            حفظ إعدادات سحابة الصور
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- مكتبات Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" onerror="window.__fbLoadFailed = true;"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" onerror="window.__fbLoadFailed = true;"></script>
@@ -952,6 +1039,7 @@
     const CURRENT_SEED_VERSION = '2026-11-28-v15-voice-no-likes';
     const FB_CONFIG_STORAGE_KEY = 'althabi_firebase_config_v1';
     const GH_BRIDGE_STORAGE_KEY = 'althabi_github_bridge_v1';
+    const IMAGE_CLOUD_STORAGE_KEY = 'althabi_image_cloud_v1';
     const ADMIN_SESSION_KEY = 'althabi_admin_session_v1';
     const DEFAULT_CONTACT_PHONE = '0914664430';
 
@@ -1076,6 +1164,24 @@
         createdAt: '2026-11-27T23:41:00.000Z'
       }
     ];
+
+    // دالة دمج القائمة الافتراضية مع أي عقارات محفوظة دون فقدان أي بيانات
+    function mergeWithInitialSeed(existingList = []) {
+      const map = new Map();
+      (Array.isArray(existingList) ? existingList : []).forEach((item, idx) => {
+        const norm = normalizeProperty(item, idx);
+        if (norm && norm.id) {
+          map.set(String(norm.id), norm);
+        }
+      });
+      INITIAL_PROPERTIES.forEach((seedItem, idx) => {
+        const normSeed = normalizeProperty(seedItem, idx);
+        if (normSeed && normSeed.id && !map.has(String(normSeed.id))) {
+          map.set(String(normSeed.id), normSeed);
+        }
+      });
+      return Array.from(map.values());
+    }
 
     // الحالة العامة للتطبيق
     let properties = [];
@@ -1665,43 +1771,13 @@
     function broadcastLocalSyncState(reason = 'update') {
       if (isApplyingRemoteSync) return;
       try {
-        const cleanProps = (properties || [])
-          .map((item, idx) => normalizeProperty(item, idx))
-          .filter((item) => !deletedPropertyIds.has(String(item.id)));
-        const payload = {
-          type: 'AUTHORITATIVE_SYNC',
-          reason,
-          revision: currentSyncRevision || Date.now(),
-          deletedIds: Array.from(deletedPropertyIds),
-          properties: cleanProps,
-          sentAt: Date.now()
-        };
         if (syncBroadcastChannel && typeof syncBroadcastChannel.postMessage === 'function') {
           syncBroadcastChannel.postMessage(payload);
         }
       } catch (e) {}
     }
 
-    function mergeWithInitialSeed(list) {
-      const map = new Map();
-      (list || []).forEach((item, idx) => {
-        const norm = normalizeProperty(item, idx);
-        if (!deletedPropertyIds.has(norm.id)) {
-          map.set(norm.id, norm);
-        }
-      });
-
-      INITIAL_PROPERTIES.forEach((seedItem, idx) => {
-        const normSeed = normalizeProperty(seedItem, idx);
-        if (!deletedPropertyIds.has(normSeed.id) && !map.has(normSeed.id)) {
-          map.set(normSeed.id, normSeed);
-        }
-      });
-
-      return Array.from(map.values());
-    }
-
-    // تطبيق لقطة الحقيقة الواحدة (Single Source of Truth) على أي متصفح بدون دمج بيانات محلية متعارضة
+    // تطبيق لقطة الحقيقة الواحدة (Single Source of Truth) على أي متصفح مع الحفاظ على كافة العقارات المضافة
     function applyAuthoritativeRemoteSnapshot(rawProperties, rawDeletedIds = [], sourceLabel = 'cloud') {
       if (!Array.isArray(rawProperties)) return false;
 
@@ -1710,32 +1786,53 @@
         .map((item, idx) => normalizeProperty(item, idx))
         .filter((item) => !remoteDeletedSet.has(item.id));
 
-      // الحفاظ على الصور المحلية الأحدث فقط إذا كانت النسخة البعيدة لم تحمّل صوراً بعد ولم يقم المشرف بإزالتها عمداً
+      // الحفاظ على الصور المحلية الأحدث وأي عقارات محلية أحدث إذا لم تكن اللقطة البعيدة قد استوعبتها بعد
       const localMap = new Map((properties || []).map((p) => [String(p.id), p]));
-      const mergedProps = cleanRemoteProps.map((remoteProp) => {
+      const mergedMap = new Map();
+
+      cleanRemoteProps.forEach((remoteProp) => {
         const localProp = localMap.get(String(remoteProp.id));
         const remoteImgs = extractNormalizedImages(remoteProp);
         const localImgs = localProp ? extractNormalizedImages(localProp) : [];
         const localUpdatedAfterRemote =
           localProp &&
-          Date.parse(localProp.createdAt || 0) > Date.parse(remoteProp.createdAt || 0) &&
-          Date.now() - (currentSyncRevision || 0) < 4000;
+          Date.parse(localProp.createdAt || 0) > Date.parse(remoteProp.createdAt || 0);
 
         if (remoteImgs.length === 0 && localImgs.length > 0 && localUpdatedAfterRemote) {
-          return normalizeProperty({
-            ...remoteProp,
-            images: localImgs,
-            primaryImage: localImgs[0],
-            img: localImgs[0]
-          });
+          mergedMap.set(
+            String(remoteProp.id),
+            normalizeProperty({
+              ...remoteProp,
+              images: localImgs,
+              primaryImage: localImgs[0],
+              img: localImgs[0]
+            })
+          );
+          return;
         }
-        return normalizeProperty({
-          ...remoteProp,
-          images: remoteImgs,
-          primaryImage: remoteImgs[0] || '',
-          img: remoteImgs[0] || ''
-        });
+
+        mergedMap.set(
+          String(remoteProp.id),
+          normalizeProperty({
+            ...remoteProp,
+            images: remoteImgs,
+            primaryImage: remoteImgs[0] || '',
+            img: remoteImgs[0] || ''
+          })
+        );
       });
+
+      // في حال كان هذا المتصفح هو متصفح المشرف أو لديه عقارات أضيفت مؤخراً ولم تظهر في لقطة أقدم، نبقيها ولا نفقدها
+      if (isAdminLoggedIn || Date.now() - (currentSyncRevision || 0) < 15000) {
+        (properties || []).forEach((localProp, idx) => {
+          const normLocal = normalizeProperty(localProp, idx);
+          if (!remoteDeletedSet.has(normLocal.id) && !mergedMap.has(normLocal.id)) {
+            mergedMap.set(normLocal.id, normLocal);
+          }
+        });
+      }
+
+      const mergedProps = Array.from(mergedMap.values());
 
       const fingerprint = JSON.stringify({
         p: mergedProps,
@@ -1779,11 +1876,12 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : null;
         if (Array.isArray(parsed)) {
-          return parsed
-            .map((item, idx) => normalizeProperty(item, idx))
-            .filter((item) => !deletedPropertyIds.has(item.id));
+          const merged = mergeWithInitialSeed(parsed).filter((item) => !deletedPropertyIds.has(item.id));
+          if (merged.length > 0) {
+            return merged;
+          }
         }
-        const seeded = mergeWithInitialSeed([]);
+        const seeded = mergeWithInitialSeed([]).filter((item) => !deletedPropertyIds.has(item.id));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
         localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
         return seeded;
@@ -2299,10 +2397,12 @@
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, targetW, targetH);
               const compressed = canvas.toDataURL('image/jpeg', 0.68);
-              if (formImages.length < maxImages) {
-                formImages.push(compressed);
-                renderImagePreviewList();
-              }
+              uploadImageToIndependentCloud(compressed).then((finalSrc) => {
+                if (formImages.length < maxImages) {
+                  formImages.push(finalSrc);
+                  renderImagePreviewList();
+                }
+              });
             } catch (err) {}
           };
           img.src = e.target.result;
@@ -2311,6 +2411,128 @@
       });
 
       event.target.value = '';
+    }
+
+    // إدارة وحدة التخزين السحابية المستقلة للصور فقط (Cloudinary / ImgBB)
+    function getImageCloudConfig() {
+      try {
+        const raw = localStorage.getItem(IMAGE_CLOUD_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && typeof parsed === 'object') {
+          return {
+            provider: parsed.provider || 'none',
+            cloudName: String(parsed.cloudName || '').trim(),
+            uploadPreset: String(parsed.uploadPreset || '').trim(),
+            imgbbKey: String(parsed.imgbbKey || '').trim()
+          };
+        }
+      } catch (e) {}
+      return { provider: 'none', cloudName: '', uploadPreset: '', imgbbKey: '' };
+    }
+
+    function updateImageCloudButtonLabel() {
+      const cfg = getImageCloudConfig();
+      const labelEl = document.getElementById('image-cloud-btn-label');
+      if (!labelEl) return;
+      if (cfg.provider === 'cloudinary' && cfg.cloudName && cfg.uploadPreset) {
+        labelEl.textContent = 'سحابة الصور: Cloudinary';
+      } else if (cfg.provider === 'imgbb' && cfg.imgbbKey) {
+        labelEl.textContent = 'سحابة الصور: ImgBB';
+      } else {
+        labelEl.textContent = 'سحابة الصور';
+      }
+    }
+
+    function toggleImageCloudProviderFields() {
+      const provider = String(document.getElementById('img-cloud-provider')?.value || 'none');
+      const clBox = document.getElementById('img-cloud-cloudinary-fields');
+      const bbBox = document.getElementById('img-cloud-imgbb-fields');
+      if (clBox) clBox.classList.toggle('hidden', provider !== 'cloudinary');
+      if (bbBox) bbBox.classList.toggle('hidden', provider !== 'imgbb');
+    }
+
+    function openImageCloudModal() {
+      const cfg = getImageCloudConfig();
+      const providerEl = document.getElementById('img-cloud-provider');
+      const nameEl = document.getElementById('img-cloud-name');
+      const presetEl = document.getElementById('img-cloud-preset');
+      const bbEl = document.getElementById('img-cloud-imgbb-key');
+      if (providerEl) providerEl.value = cfg.provider;
+      if (nameEl) nameEl.value = cfg.cloudName;
+      if (presetEl) presetEl.value = cfg.uploadPreset;
+      if (bbEl) bbEl.value = cfg.imgbbKey;
+      toggleImageCloudProviderFields();
+      const modal = document.getElementById('image-cloud-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeImageCloudModal() {
+      const modal = document.getElementById('image-cloud-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveImageCloudConfig(event) {
+      event.preventDefault();
+      const provider = String(document.getElementById('img-cloud-provider')?.value || 'none');
+      const cloudName = String(document.getElementById('img-cloud-name')?.value || '').trim();
+      const uploadPreset = String(document.getElementById('img-cloud-preset')?.value || '').trim();
+      const imgbbKey = String(document.getElementById('img-cloud-imgbb-key')?.value || '').trim();
+
+      if (provider === 'cloudinary' && (!cloudName || !uploadPreset)) {
+        showToast('يرجى إدخال Cloud Name و Upload Preset لـ Cloudinary.', 'warning');
+        return;
+      }
+      if (provider === 'imgbb' && !imgbbKey) {
+        showToast('يرجى إدخال مفتاح ImgBB API Key.', 'warning');
+        return;
+      }
+
+      try {
+        localStorage.setItem(
+          IMAGE_CLOUD_STORAGE_KEY,
+          JSON.stringify({ provider, cloudName, uploadPreset, imgbbKey })
+        );
+      } catch (e) {}
+      updateImageCloudButtonLabel();
+      closeImageCloudModal();
+      showToast('تم حفظ إعدادات وحدة التخزين السحابية المستقلة للصور.', 'success');
+    }
+
+    async function uploadImageToIndependentCloud(dataUrl) {
+      const cfg = getImageCloudConfig();
+      if (!dataUrl || cfg.provider === 'none') return dataUrl;
+
+      try {
+        if (cfg.provider === 'cloudinary' && cfg.cloudName && cfg.uploadPreset) {
+          const formData = new FormData();
+          formData.append('file', dataUrl);
+          formData.append('upload_preset', cfg.uploadPreset);
+          formData.append('folder', 'althabi_real_estate');
+          const resp = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cfg.cloudName)}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.secure_url) return data.secure_url;
+          }
+        } else if (cfg.provider === 'imgbb' && cfg.imgbbKey) {
+          const base64Part = String(dataUrl).split(',')[1] || '';
+          const body = new URLSearchParams();
+          body.append('image', base64Part);
+          const resp = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(cfg.imgbbKey)}`, {
+            method: 'POST',
+            body
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.data && data.data.url) return data.data.url;
+          }
+        }
+      } catch (e) {
+        showToast('تعذر الرفع إلى السحابة المستقلة حالياً، تم الإبقاء على النسخة المضغوطة.', 'warning');
+      }
+      return dataUrl;
     }
 
     // فتح وإغلاق نافذة إضافة / تعديل عقار
@@ -2636,7 +2858,7 @@
       const syncIcon = document.getElementById('firebase-sync-icon');
       if (syncIcon) syncIcon.classList.add('animate-spin');
 
-      // توحيد القائمة الحالية للمشرف وتثبيتها كمصدر الحقيقة السائد فوراً
+      // توحيد القائمة الحالية (بما في ذلك جميع العقارات المضافة مثل الـ 23 عقاراً) وتثبيتها كمصدر الحقيقة السائد فوراً
       const unifiedList = (properties || [])
         .map((item, idx) => normalizeProperty(item, idx))
         .filter((item) => !deletedPropertyIds.has(String(item.id)));
@@ -2648,6 +2870,9 @@
       let githubSynced = false;
 
       try {
+        // دفع تلقائي فوري إلى ملف المزامنة على GitHub إذا كان متاحاً
+        githubSynced = await pushDirectToGitHubRepo(false);
+
         if (db) {
           try {
             cloudSynced = await pushUnifiedMasterState();
@@ -2665,8 +2890,6 @@
             }
           } catch (e) {}
         }
-
-        githubSynced = await pushDirectToGitHubRepo(false);
 
         // بث التحديث مرة إضافية بعد الدفع السحابي لضمان تطابق جميع المتصفحات في نفس اللحظة
         broadcastLocalSyncState('sync_all_completed');
@@ -3039,18 +3262,24 @@
       deletedPropertyIds = loadDeletedPropertyIds();
       currentSyncRevision = loadSyncRevision();
       properties = loadLocalProperties();
+      if (!Array.isArray(properties) || properties.length === 0) {
+        properties = mergeWithInitialSeed([]);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+      }
+      initFirebase();
       applyAdminUIState();
       setFilter('all');
       setSortMode('newest');
       updateGitHubBridgeStatusUI();
-      initFirebase();
-
-      // إذا كان المشرف مسجلاً ولديه رمز GitHub محفوظ، ادفع القائمة الحالية فوراً لضمان تحديث ملف المزامنة على GitHub
-      const initialGhCfg = getGitHubBridgeConfig();
-      if (isAdminLoggedIn && initialGhCfg.repo && initialGhCfg.token) {
-        pushDirectToGitHubRepo(false).then((pushed) => {
-          if (!pushed) pullLatestAuthoritativeState();
-        });
+      updateImageCloudButtonLabel();
+      // إذا كان المشرف مسجلاً، ادفع القائمة الحالية تلقائياً فور فتح المنظومة لضمان وصول العدد الحقيقي لباقي المتصفحات
+      if (isAdminLoggedIn) {
+        broadcastLocalSyncState('admin_bootstrap_push');
+        pushUnifiedMasterState();
+        const initialGhCfg = getGitHubBridgeConfig();
+        if (initialGhCfg.repo && initialGhCfg.token) {
+          pushDirectToGitHubRepo(false);
+        }
       } else {
         pullLatestAuthoritativeState();
       }
@@ -3092,6 +3321,13 @@
     }
 
     window.addEventListener('DOMContentLoaded', bootstrapApp);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(() => {
+        if (!Array.isArray(properties) || properties.length === 0) {
+          bootstrapApp();
+        }
+      }, 0);
+    }
   </script>
 </body>
 </html>
