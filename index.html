@@ -1235,13 +1235,13 @@
       const map = new Map();
       (Array.isArray(existingList) ? existingList : []).forEach((item, idx) => {
         const norm = normalizeProperty(item, idx);
-        if (norm && norm.id) {
+        if (norm && norm.id && !isPropertyMarkedDeleted(norm)) {
           map.set(String(norm.id), norm);
         }
       });
       INITIAL_PROPERTIES.forEach((seedItem, idx) => {
         const normSeed = normalizeProperty(seedItem, idx);
-        if (normSeed && normSeed.id && !map.has(String(normSeed.id))) {
+        if (normSeed && normSeed.id && !isPropertyMarkedDeleted(normSeed) && !map.has(String(normSeed.id))) {
           map.set(String(normSeed.id), normSeed);
         }
       });
@@ -1704,7 +1704,7 @@
       try {
         const raw = localStorage.getItem(DELETED_IDS_KEY);
         const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? new Set(arr.map(String)) : new Set();
+        return Array.isArray(arr) ? new Set(arr.map((x) => String(x).trim()).filter(Boolean)) : new Set();
       } catch (e) {
         return new Set();
       }
@@ -1712,8 +1712,40 @@
 
     function saveDeletedPropertyIds(setObj) {
       try {
-        localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(setObj || [])));
+        const cleanArr = Array.from(setObj || []).map((x) => String(x).trim()).filter(Boolean);
+        localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(cleanArr));
       } catch (e) {}
+    }
+
+    // التحقق مما إذا كان العقار محذوفاً سواء بمعرفه أو بترقيمه الخاص (مثل TAB-0018)
+    function isPropertyMarkedDeleted(propOrId) {
+      if (!deletedPropertyIds || deletedPropertyIds.size === 0) return false;
+      if (typeof propOrId === 'string' || typeof propOrId === 'number') {
+        const token = String(propOrId).trim();
+        return deletedPropertyIds.has(token) || deletedPropertyIds.has(token.toLowerCase());
+      }
+      if (propOrId && typeof propOrId === 'object') {
+        const idToken = String(propOrId.id || '').trim();
+        const codeToken = String(propOrId.code || '').trim();
+        return (
+          (idToken && (deletedPropertyIds.has(idToken) || deletedPropertyIds.has(idToken.toLowerCase()))) ||
+          (codeToken && (deletedPropertyIds.has(codeToken) || deletedPropertyIds.has(codeToken.toLowerCase())))
+        );
+      }
+      return false;
+    }
+
+    function markPropertyDeletedEverywhere(targetProp) {
+      if (!targetProp) return;
+      if (targetProp.id) {
+        deletedPropertyIds.add(String(targetProp.id).trim());
+        deletedPropertyIds.add(String(targetProp.id).trim().toLowerCase());
+      }
+      if (targetProp.code) {
+        deletedPropertyIds.add(String(targetProp.code).trim());
+        deletedPropertyIds.add(String(targetProp.code).trim().toLowerCase());
+      }
+      saveDeletedPropertyIds(deletedPropertyIds);
     }
 
     function loadSyncRevision() {
@@ -1749,13 +1781,13 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : null;
         if (Array.isArray(parsed)) {
-          const merged = mergeWithInitialSeed(parsed).filter((item) => !deletedPropertyIds.has(String(item.id)));
+          const merged = mergeWithInitialSeed(parsed).filter((item) => !isPropertyMarkedDeleted(item));
           if (merged.length > 0) {
             return merged;
           }
         }
       } catch (e) {}
-      const seeded = mergeWithInitialSeed([]).filter((item) => !deletedPropertyIds.has(String(item.id)));
+      const seeded = mergeWithInitialSeed([]).filter((item) => !isPropertyMarkedDeleted(item));
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
         localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
@@ -1766,7 +1798,7 @@
     function saveLocalProperties(list) {
       const normalized = (list || [])
         .map((item, idx) => normalizeProperty(item, idx))
-        .filter((item) => !deletedPropertyIds.has(String(item.id)));
+        .filter((item) => !isPropertyMarkedDeleted(item));
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
       } catch (e) {}
@@ -2552,15 +2584,21 @@
     }
 
     async function deleteProperty(propId) {
-      deletedPropertyIds.add(String(propId));
-      saveDeletedPropertyIds(deletedPropertyIds);
-      properties = saveLocalProperties(properties.filter((p) => String(p.id) !== String(propId)));
+      const targetProp = properties.find(
+        (p) => String(p.id) === String(propId) || String(p.code) === String(propId)
+      );
+      markPropertyDeletedEverywhere(targetProp || { id: propId });
+      properties = saveLocalProperties(
+        properties.filter((p) => !isPropertyMarkedDeleted(p) && String(p.id) !== String(propId))
+      );
       renderProperties();
-      showToast('تم حذف العقار ومزامنة التغيير على جميع المتصفحات.', 'warning');
+      showToast('تم حذف العقار نهائياً ومزامنة الحذف على جميع المتصفحات وقواعد البيانات.', 'warning');
       await pushUnifiedMasterState();
+      await pushDirectToGitHubRepo(false);
       if (db) {
         try {
-          await db.collection('althabi_real_estate_properties').doc(String(propId)).delete();
+          const docId = targetProp?.id || propId;
+          await db.collection('althabi_real_estate_properties').doc(String(docId)).delete();
         } catch (e) {}
       }
     }
@@ -2628,51 +2666,37 @@
     // تطبيق لقطة الحقيقة الواحدة مع الحفاظ على التعديلات والإضافات الأخيرة
     function applyAuthoritativeRemoteSnapshot(rawProperties, rawDeletedIds = [], sourceLabel = 'cloud') {
       if (!Array.isArray(rawProperties)) return false;
-      const remoteDeletedSet = new Set((Array.isArray(rawDeletedIds) ? rawDeletedIds : []).map(String));
+      const combinedDeleted = new Set([
+        ...Array.from(deletedPropertyIds || []),
+        ...(Array.isArray(rawDeletedIds) ? rawDeletedIds : []),
+      ]);
+      const remoteDeletedSet = new Set(
+        Array.from(combinedDeleted).map((x) => String(x).trim()).filter(Boolean)
+      );
       const cleanRemoteProps = rawProperties
         .map((item, idx) => normalizeProperty(item, idx))
-        .filter((item) => !remoteDeletedSet.has(String(item.id)));
-
-      const localMap = new Map((properties || []).map((p) => [String(p.id), p]));
-      const mergedMap = new Map();
-
-      cleanRemoteProps.forEach((remoteProp) => {
-        const localProp = localMap.get(String(remoteProp.id));
-        const remoteImgs = extractNormalizedImages(remoteProp);
-        const localImgs = localProp ? extractNormalizedImages(localProp) : [];
-        const localUpdatedAfterRemote =
-          localProp &&
-          Date.parse(localProp.createdAt || 0) > Date.parse(remoteProp.createdAt || 0);
-
-        if (remoteImgs.length === 0 && localImgs.length > 0 && localUpdatedAfterRemote) {
-          mergedMap.set(
-            String(remoteProp.id),
-            normalizeProperty({
-              ...remoteProp,
-              images: localImgs,
-              primaryImage: localImgs[0],
-              img: localImgs[0],
-            })
+        .filter((item) => {
+          const idKey = String(item.id || '').trim();
+          const codeKey = String(item.code || '').trim();
+          return (
+            !remoteDeletedSet.has(idKey) &&
+            !remoteDeletedSet.has(idKey.toLowerCase()) &&
+            !remoteDeletedSet.has(codeKey) &&
+            !remoteDeletedSet.has(codeKey.toLowerCase())
           );
-          return;
-        }
-
-        mergedMap.set(
-          String(remoteProp.id),
-          normalizeProperty({
-            ...remoteProp,
-            images: remoteImgs,
-            primaryImage: remoteImgs[0] || '',
-            img: remoteImgs[0] || '',
-          })
-        );
-      });
-
+        });
       // الحفاظ على أي إضافات أو تعديلات محلية حديثة لم تُستكمل في اللقطة البعيدة بعد
       if (isAdminLoggedIn || Date.now() - (currentSyncRevision || 0) < 20000) {
         (properties || []).forEach((localProp, idx) => {
           const normLocal = normalizeProperty(localProp, idx);
-          if (!remoteDeletedSet.has(String(normLocal.id)) && !mergedMap.has(String(normLocal.id))) {
+          const idKey = String(normLocal.id || '').trim();
+          const codeKey = String(normLocal.code || '').trim();
+          const isDel =
+            remoteDeletedSet.has(idKey) ||
+            remoteDeletedSet.has(idKey.toLowerCase()) ||
+            remoteDeletedSet.has(codeKey) ||
+            remoteDeletedSet.has(codeKey.toLowerCase());
+          if (!isDel && !mergedMap.has(String(normLocal.id))) {
             mergedMap.set(String(normLocal.id), normLocal);
           }
         });
