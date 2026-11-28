@@ -746,14 +746,9 @@
         </div>
 
         <div class="bg-sandWarm-50 rounded-2xl p-4 sm:p-5 border border-sandWarm-200 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h4 class="text-xs sm:text-sm font-black text-goldLuxury-300">الإملاء الصوتي الفوري للعقارات</h4>
-              <p class="text-[11px] text-emeraldLuxury-100/80">تحدث بالصوت بحرية حتى تكمل إملاءك، ثم اضغط «إيقاف الاستماع» أو «إضافة ومزامنة تلقائياً».</p>
-            </div>
-            <span id="modal-voice-dictation-status" class="px-2.5 py-1 rounded-xl bg-emeraldLuxury-900 text-emeraldLuxury-100 border border-white/15 text-[11px] font-bold">
-              جاهز للاستماع
-            </span>
+          <div class="flex items-center justify-between">
+            <label class="block text-sm font-bold text-emeraldLuxury-900">صور العقار (حتى 10 صور)</label>
+            <span id="photo-counter" class="text-xs font-extrabold text-emeraldLuxury-700 bg-emeraldLuxury-50 px-2.5 py-1 rounded-lg border border-emeraldLuxury-100">0 / 10 صور</span>
           </div>
 
           <label class="flex flex-col items-center justify-center border-2 border-dashed border-emeraldLuxury-700/35 hover:border-goldLuxury-500 bg-white rounded-2xl p-5 cursor-pointer transition group">
@@ -763,7 +758,7 @@
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <span class="text-sm font-bold text-emeraldLuxury-900">اضغط لاختيار صور العقار من جهازك</span>
-            <span class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — يتم تقليص حجم الصورة إلى النصف تلقائياً عند التحميل (حتى 10 صور)</span>
+            <span class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — يتم تقليص حجم الصورة مباشرة عند التحميل ومزامنتها</span>
             <input
               id="prop-images-input"
               type="file"
@@ -2183,13 +2178,20 @@
           img.onload = () => {
             try {
               const canvas = document.createElement('canvas');
-              const targetW = Math.max(120, Math.round(img.width * 0.5));
-              const targetH = Math.max(120, Math.round(img.height * 0.5));
+              // تقليص أبعاد الصورة تلقائياً لتكون ضمن نطاق 300px مع الحفاظ على التناسب
+              const maxSide = 300;
+              let targetW = img.width || maxSide;
+              let targetH = img.height || maxSide;
+              if (targetW > maxSide || targetH > maxSide) {
+                const scale = Math.min(maxSide / targetW, maxSide / targetH);
+                targetW = Math.max(120, Math.round(targetW * scale));
+                targetH = Math.max(120, Math.round(targetH * scale));
+              }
               canvas.width = targetW;
               canvas.height = targetH;
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, targetW, targetH);
-              const compressed = canvas.toDataURL('image/jpeg', 0.72);
+              const compressed = canvas.toDataURL('image/jpeg', 0.68);
               if (formImages.length < maxImages) {
                 formImages.push(compressed);
                 renderImagePreviewList();
