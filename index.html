@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1095,6 +1095,7 @@
     let formImages = [];
     let db = null;
     let unsubscribeSnapshot = null;
+    let unsubscribeUnifiedState = null;
     let currentSyncRevision = 0;
     let voiceRecognition = null;
     let isVoiceListening = false;
@@ -1399,6 +1400,7 @@
       if (inputEl) inputEl.value = '';
       showToast(`تمت إضافة العقار (${code}) تلقائياً ومزامنته مع جميع المتصفحات.`, 'success');
       await syncSinglePropertyToCloud(savedProp);
+      await pushUnifiedMasterState();
     }
 
     function clearVoiceDictationBox() {
@@ -2201,6 +2203,7 @@
       closePropertyFormModal();
       showToast(existingProp ? `تم تحديث العقار (${code}) ومزامنته.` : `تمت إضافة العقار (${code}) ومزامنته.`, 'success');
       await syncSinglePropertyToCloud(savedProp);
+      await pushUnifiedMasterState();
       await syncAllPropertiesNow();
     }
 
@@ -2216,6 +2219,7 @@
       renderProperties();
       showToast(nextStamp ? `تم وضع ختم (${nextStamp}) على العقار.` : 'تمت إزالة ختم الحالة.', 'info');
       await syncSinglePropertyToCloud(updated);
+      await pushUnifiedMasterState();
       await syncAllPropertiesNow();
     }
 
@@ -2224,8 +2228,9 @@
       saveDeletedPropertyIds(deletedPropertyIds);
       properties = saveLocalProperties(properties.filter((p) => p.id !== propId));
       renderProperties();
-      showToast('تم حذف العقار ومزامنة التغيير.', 'warning');
+      showToast('تم حذف العقار ومزامنة التغيير على جميع المتصفحات.', 'warning');
 
+      await pushUnifiedMasterState();
       if (db) {
         try {
           await db.collection('althabi_real_estate_properties').doc(String(propId)).delete();
@@ -2324,6 +2329,35 @@
         }
 
         if (unsubscribeSnapshot) unsubscribeSnapshot();
+        if (unsubscribeUnifiedState) unsubscribeUnifiedState();
+
+        // مستمع الحالة الموحدة لضمان تطابق 100% بين جوجل كروم وفايرفوكس وجميع المتصفحات
+        unsubscribeUnifiedState = db
+          .collection('althabi_real_estate_meta')
+          .doc('unified_master_state')
+          .onSnapshot(
+            (docSnap) => {
+              if (!docSnap || !docSnap.exists) return;
+              const stateData = docSnap.data() || {};
+              const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds.map(String) : [];
+              const remoteProps = Array.isArray(stateData.properties) ? stateData.properties : null;
+
+              isApplyingRemoteSync = true;
+              remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
+              saveDeletedPropertyIds(deletedPropertyIds);
+
+              if (remoteProps) {
+                const exactMirror = remoteProps
+                  .map((item, idx) => normalizeProperty(item, idx))
+                  .filter((item) => !deletedPropertyIds.has(item.id));
+                properties = saveLocalProperties(exactMirror);
+                renderProperties();
+              }
+              isApplyingRemoteSync = false;
+            },
+            () => {}
+          );
+
         unsubscribeSnapshot = db.collection('althabi_real_estate_properties').onSnapshot(
           (snapshot) => {
             if (!snapshot) return;
@@ -2350,21 +2384,17 @@
       } catch (e) {}
     }
 
-    async function syncSinglePropertyToCloud(prop) {
-      if (!db || !prop) return;
+    async function pushUnifiedMasterState() {
+      if (!db) return;
       try {
-        await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
-      } catch (e) {}
-    }
-
-    async function syncAllPropertiesNow() {
-      if (!db) {
-        return;
-      }
-      try {
-        for (const prop of properties) {
-          await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
-        }
+        await db.collection('althabi_real_estate_meta').doc('unified_master_state').set(
+          {
+            properties: properties.filter((p) => !deletedPropertyIds.has(String(p.id))),
+            deletedIds: Array.from(deletedPropertyIds),
+            updatedAt: new Date().toISOString()
+          },
+          { merge: false }
+        );
       } catch (e) {}
     }
 
@@ -2381,10 +2411,16 @@
         return;
       }
       try {
+        await pushUnifiedMasterState();
         for (const prop of properties) {
-          await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+          if (!deletedPropertyIds.has(String(prop.id))) {
+            await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+          }
         }
-        showToast('تمت مزامنة جميع العقارات والإعجابات مع السحابة.', 'success');
+        for (const delId of deletedPropertyIds) {
+          await db.collection('althabi_real_estate_properties').doc(String(delId)).delete();
+        }
+        showToast('تمت مزامنة وتوحيد جميع العقارات والمحذوفات مع كافة المتصفحات.', 'success');
       } catch (e) {
         showToast('تم الحفظ محلياً؛ تعذر الوصول للسحابة حالياً.', 'warning');
       }
@@ -2488,6 +2524,32 @@
       setFilter('all');
       setSortMode('newest');
       initFirebase();
+
+      // تحديث دوري خفيف كل 8 ثوانٍ لضمان تطابق فايرفوكس وجوجل كروم وأي متصفح آخر لحظياً
+      setInterval(async () => {
+        if (!db || isApplyingRemoteSync) return;
+        try {
+          const snap = await db.collection('althabi_real_estate_meta').doc('unified_master_state').get();
+          if (snap && snap.exists) {
+            const stateData = snap.data() || {};
+            const remoteDeleted = Array.isArray(stateData.deletedIds) ? stateData.deletedIds.map(String) : [];
+            const remoteProps = Array.isArray(stateData.properties) ? stateData.properties : null;
+            isApplyingRemoteSync = true;
+            remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
+            saveDeletedPropertyIds(deletedPropertyIds);
+            if (remoteProps) {
+              const exactMirror = remoteProps
+                .map((item, idx) => normalizeProperty(item, idx))
+                .filter((item) => !deletedPropertyIds.has(item.id));
+              if (JSON.stringify(exactMirror) !== JSON.stringify(properties)) {
+                properties = saveLocalProperties(exactMirror);
+                renderProperties();
+              }
+            }
+            isApplyingRemoteSync = false;
+          }
+        } catch (e) {}
+      }, 8000);
 
       // مزامنة فورية بين التبويبات والمتصفحات عبر التخزين المشترك
       window.addEventListener('storage', (event) => {
