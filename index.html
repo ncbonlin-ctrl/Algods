@@ -1781,6 +1781,24 @@
       return normalized;
     }
 
+    // بث التحديثات الفورية عبر قناة البث المحلية بين التبويبات
+    function broadcastLocalSyncState(reason = 'update') {
+      try {
+        if (!syncBroadcastChannel && typeof BroadcastChannel !== 'undefined') {
+          syncBroadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        }
+        if (syncBroadcastChannel) {
+          syncBroadcastChannel.postMessage({
+            type: 'AUTHORITATIVE_SYNC',
+            reason,
+            revision: currentSyncRevision || Date.now(),
+            deletedIds: Array.from(deletedPropertyIds || []),
+            properties: Array.isArray(properties) ? properties : [],
+          });
+        }
+      } catch (e) {}
+    }
+
     function updateStatistics() {
       const total = properties.length;
       const sale = properties.filter((p) => p.dealType === 'بيع').length;
@@ -1878,7 +1896,12 @@
         if (currentSortMode === 'price-asc') {
           return (Number(a.price) || 0) - (Number(b.price) || 0);
         }
-        return Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0);
+        const timeA = Date.parse(a.createdAt || 0) || 0;
+        const timeB = Date.parse(b.createdAt || 0) || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        const numA = parseInt(String(a.code || '').replace(/\D+/g, ''), 10) || 0;
+        const numB = parseInt(String(b.code || '').replace(/\D+/g, ''), 10) || 0;
+        return numB - numA;
       });
 
       if (resultsCount) {
@@ -2429,69 +2452,90 @@
 
     async function handleSaveProperty(event) {
       event.preventDefault();
-      const editId = String(document.getElementById('prop-edit-id')?.value || '').trim();
-      const existingProp = editId ? properties.find((p) => String(p.id) === editId) : null;
-      const title = String(document.getElementById('prop-title')?.value || '').trim();
-      const dealType = String(document.getElementById('prop-deal')?.value || 'بيع').trim();
-      const category = String(document.getElementById('prop-category')?.value || 'شقة').trim();
-      const location = String(document.getElementById('prop-location')?.value || '').trim();
-      const price = Number(document.getElementById('prop-price')?.value || 0);
-      const currency = String(document.getElementById('prop-currency')?.value || 'د.ل').trim();
-      const phone = String(document.getElementById('prop-phone')?.value || DEFAULT_CONTACT_PHONE).trim();
-      const ownerName = String(document.getElementById('prop-owner-name')?.value || '').trim();
-      const ownerPhone = String(document.getElementById('prop-owner-phone')?.value || '').trim();
-      const description = String(document.getElementById('prop-description')?.value || '').trim();
-
-      if (!title || !location || price <= 0) {
-        showToast('يرجى إدخال عنوان العقار والموقع والسعر بشكل صحيح.', 'error');
-        return;
+      const submitBtn = document.getElementById('save-property-submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-70');
       }
 
-      const code = existingProp ? existingProp.code : generateNextPropertyCode(properties);
-      const id = existingProp ? existingProp.id : `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const closedStamp = existingProp ? existingProp.closedStamp || '' : '';
+      try {
+        const editId = String(document.getElementById('prop-edit-id')?.value || '').trim();
+        const existingProp = editId
+          ? properties.find((p) => String(p.id) === editId || String(p.code) === editId)
+          : null;
+        const title = String(document.getElementById('prop-title')?.value || '').trim();
+        const dealType = String(document.getElementById('prop-deal')?.value || 'بيع').trim();
+        const category = String(document.getElementById('prop-category')?.value || 'شقة').trim();
+        const location = String(document.getElementById('prop-location')?.value || '').trim();
+        const price = Number(document.getElementById('prop-price')?.value || 0);
+        const currency = String(document.getElementById('prop-currency')?.value || 'د.ل').trim();
+        const phone = String(document.getElementById('prop-phone')?.value || DEFAULT_CONTACT_PHONE).trim();
+        const ownerName = String(document.getElementById('prop-owner-name')?.value || '').trim();
+        const ownerPhone = String(document.getElementById('prop-owner-phone')?.value || '').trim();
+        const description = String(document.getElementById('prop-description')?.value || '').trim();
 
-      const savedProp = normalizeProperty({
-        id,
-        code,
-        title,
-        dealType,
-        category,
-        location,
-        price,
-        currency,
-        phone,
-        ownerName,
-        ownerPhone,
-        description,
-        closedStamp,
-        likes: existingProp ? existingProp.likes || 0 : 0,
-        images: formImages,
-        primaryImage: formImages[0] || '',
-        img: formImages[0] || '',
-        createdAt: new Date().toISOString(),
-      });
+        if (!title || !location || price <= 0) {
+          showToast('يرجى إدخال عنوان العقار والموقع والسعر بشكل صحيح.', 'error');
+          return;
+        }
 
-      deletedPropertyIds.delete(String(savedProp.id));
-      saveDeletedPropertyIds(deletedPropertyIds);
+        const code = existingProp ? existingProp.code : generateNextPropertyCode(properties);
+        const id = existingProp ? existingProp.id : `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const closedStamp = existingProp ? existingProp.closedStamp || '' : '';
+        const cleanImgs = Array.isArray(formImages) ? formImages.filter(isRealPropertyImage).slice(0, 10) : [];
 
-      const updatedList = existingProp
-        ? properties.map((p) => (String(p.id) === String(existingProp.id) ? savedProp : p))
-        : [savedProp, ...properties];
+        const savedProp = normalizeProperty({
+          id,
+          code,
+          title,
+          dealType,
+          category,
+          location,
+          price,
+          currency,
+          phone,
+          ownerName,
+          ownerPhone,
+          description,
+          closedStamp,
+          likes: existingProp ? existingProp.likes || 0 : 0,
+          images: cleanImgs,
+          primaryImage: cleanImgs[0] || '',
+          img: cleanImgs[0] || '',
+          createdAt: existingProp?.createdAt || new Date().toISOString(),
+        });
 
-      properties = saveLocalProperties(updatedList);
-      renderProperties();
-      closePropertyFormModal();
-      showToast(
-        existingProp
-          ? `تم تحديث العقار (${code}) وصوره ومزامنته على جميع المتصفحات.`
-          : `تمت إضافة العقار (${code}) وصوره ومزامنته على جميع المتصفحات.`,
-        'success'
-      );
+        deletedPropertyIds.delete(String(savedProp.id));
+        saveDeletedPropertyIds(deletedPropertyIds);
 
-      await syncSinglePropertyToCloud(savedProp);
-      await pushUnifiedMasterState();
-      await pushDirectToGitHubRepo(false);
+        const updatedList = existingProp
+          ? properties.map((p) => (String(p.id) === String(existingProp.id) ? savedProp : p))
+          : [savedProp, ...properties];
+
+        properties = saveLocalProperties(updatedList);
+        currentSortMode = 'newest';
+        setSortMode('newest');
+        renderProperties();
+        closePropertyFormModal();
+
+        showToast(
+          existingProp
+            ? `تم التعديل بنجاح — تم حفظ ومزامنة العقار (${code})`
+            : `تمت الإضافة بنجاح — تم حفظ ومزامنة العقار (${code})`,
+          'success'
+        );
+
+        await syncSinglePropertyToCloud(savedProp);
+        await pushUnifiedMasterState();
+        await pushDirectToGitHubRepo(false);
+      } catch (err) {
+        showToast('حدث خطأ أثناء حفظ التعديل، يرجى المحاولة مرة أخرى.', 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-70');
+        }
+      }
     }
 
     async function togglePropertyClosedStamp(propId) {
