@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-28T17:18:44.776Z",
-  "revision": 1795886318411,
+  "updatedAt": "2026-11-28T17:19:08.366Z",
+  "revision": 1795886344388,
   "deletedIds": [
     "prop-tab-0001",
     "tab-0001",
@@ -387,10 +387,17 @@
       "ownerPhone": "0915522341",
       "description": "ملحق من فين للايجار في منطقه الفرناج تتكون من غرفتين وحمام ومطبخ خارجي الملحق مستقل ولكن المدخل الرئيسي مشترك اسم",
       "closedStamp": "",
-      "images": [],
-      "primaryImage": "",
-      "img": "",
-      "createdAt": "2026-11-28T17:18:38.335Z"
+      "images": [
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/mtqqdsdu1tycr8mx6cjf.jpg",
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/fq27jm0dgvm25ps78ko9.jpg",
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/pfrnxkgaszqyflixip0k.jpg",
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886341/althabi_real_estate/cg02hhaoz1knjfc2skrl.jpg",
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886341/althabi_real_estate/kjrlougu4lpxaoxemcnu.jpg",
+        "https://res.cloudinary.com/gccyljpr/image/upload/v1795886341/althabi_real_estate/pwxh78xrevo6po7g1tgu.jpg"
+      ],
+      "primaryImage": "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/mtqqdsdu1tycr8mx6cjf.jpg",
+      "img": "https://res.cloudinary.com/gccyljpr/image/upload/v1795886340/althabi_real_estate/mtqqdsdu1tycr8mx6cjf.jpg",
+      "createdAt": "2026-11-28T17:19:04.347Z"
     },
     {
       "id": "prop-tab-0009",
