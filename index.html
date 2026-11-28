@@ -1106,6 +1106,8 @@
     let isSyncPushInProgress = false;
     let likedPropertyIds = new Set();
     const LIKED_IDS_KEY = 'althabi_liked_property_ids_v1';
+    const BROADCAST_CHANNEL_NAME = 'althabi_real_estate_sync_channel_v1';
+    let syncBroadcastChannel = null;
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1600,7 +1602,29 @@
       try {
         localStorage.setItem(SYNC_REVISION_KEY, String(currentSyncRevision));
       } catch (e) {}
+      broadcastLocalSyncState('revision_bump');
       return currentSyncRevision;
+    }
+
+    // بث فوري لأي تغيير يقوم به المشرف إلى جميع التبويبات والصفحات المفتوحة في المتصفح
+    function broadcastLocalSyncState(reason = 'update') {
+      if (isApplyingRemoteSync) return;
+      try {
+        const cleanProps = (properties || [])
+          .map((item, idx) => normalizeProperty(item, idx))
+          .filter((item) => !deletedPropertyIds.has(String(item.id)));
+        const payload = {
+          type: 'AUTHORITATIVE_SYNC',
+          reason,
+          revision: currentSyncRevision || Date.now(),
+          deletedIds: Array.from(deletedPropertyIds),
+          properties: cleanProps,
+          sentAt: Date.now()
+        };
+        if (syncBroadcastChannel && typeof syncBroadcastChannel.postMessage === 'function') {
+          syncBroadcastChannel.postMessage(payload);
+        }
+      } catch (e) {}
     }
 
     function mergeWithInitialSeed(list) {
@@ -1699,6 +1723,7 @@
       });
       if (!isApplyingRemoteSync) {
         bumpSyncRevision();
+        broadcastLocalSyncState('save_properties');
       }
       return normalized;
     }
@@ -2470,15 +2495,32 @@
     }
 
     async function pushUnifiedMasterState() {
-      if (!db) return false;
+      const cleanProps = (properties || [])
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((item) => !deletedPropertyIds.has(String(item.id)));
+      const cleanDeleted = Array.from(deletedPropertyIds);
+      const rev = currentSyncRevision || Date.now();
+
+      // حفظ وتثبيت الحالة السائدة محلياً وبثها فوراً لجميع التبويبات
       try {
-        const cleanProps = properties.filter((p) => !deletedPropertyIds.has(String(p.id)));
-        const cleanDeleted = Array.from(deletedPropertyIds);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanProps));
+        localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(cleanDeleted));
+        localStorage.setItem(SYNC_REVISION_KEY, String(rev));
+      } catch (e) {}
+      lastAppliedCloudFingerprint = JSON.stringify({
+        p: cleanProps,
+        d: cleanDeleted.slice().sort()
+      });
+      broadcastLocalSyncState('master_state');
+
+      if (!db) return true;
+      try {
         await db.collection('althabi_real_estate_meta').doc('unified_master_state').set(
           {
             properties: cleanProps,
             deletedIds: cleanDeleted,
-            revision: currentSyncRevision || Date.now(),
+            revision: rev,
+            adminAuthoritative: true,
             updatedAt: new Date().toISOString()
           },
           { merge: false }
@@ -2501,6 +2543,14 @@
       isSyncPushInProgress = true;
       const syncIcon = document.getElementById('firebase-sync-icon');
       if (syncIcon) syncIcon.classList.add('animate-spin');
+
+      // توحيد القائمة الحالية للمشرف وتثبيتها كمصدر الحقيقة السائد فوراً
+      const unifiedList = (properties || [])
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((item) => !deletedPropertyIds.has(String(item.id)));
+      properties = saveLocalProperties(unifiedList);
+      renderProperties();
+      broadcastLocalSyncState('sync_all_now');
 
       let cloudSynced = false;
       let githubSynced = false;
@@ -2526,17 +2576,20 @@
 
         githubSynced = await pushDirectToGitHubRepo(false);
 
+        // بث التحديث مرة إضافية بعد الدفع السحابي لضمان تطابق جميع المتصفحات في نفس اللحظة
+        broadcastLocalSyncState('sync_all_completed');
+
         if (cloudSynced || githubSynced) {
           updateSyncIndicatorBadge(githubSynced ? 'GitHub' : 'Firestore');
           showToast(
             githubSynced
-              ? 'تمت المزامنة الفورية مع GitHub وجميع المتصفحات بنجاح.'
-              : 'تمت المزامنة السحابية بنجاح.',
+              ? `تمت المزامنة الموحدة (${formatNumber(properties.length)} عقار) ودفعها إلى GitHub وجميع المتصفحات.`
+              : `تمت المزامنة الموحدة (${formatNumber(properties.length)} عقار) على جميع المتصفحات.`,
             'success'
           );
         } else {
-          await pullLatestAuthoritativeState();
-          showToast('تم تحديث البيانات من السحابة.', 'info');
+          updateSyncIndicatorBadge('موحد');
+          showToast(`تم توحيد ونشر (${formatNumber(properties.length)} عقار) على المتصفحات بنجاح.`, 'success');
         }
       } finally {
         if (syncIcon) syncIcon.classList.remove('animate-spin');
@@ -2858,6 +2911,18 @@
       const yearEl = document.getElementById('current-year');
       if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
+      // تهيئة قناة البث الفوري بين التبويبات
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          syncBroadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+          syncBroadcastChannel.onmessage = (event) => {
+            const msg = event && event.data;
+            if (!msg || msg.type !== 'AUTHORITATIVE_SYNC' || !Array.isArray(msg.properties)) return;
+            applyAuthoritativeRemoteSnapshot(msg.properties, msg.deletedIds || [], 'مزامنة فورية');
+          };
+        }
+      } catch (e) {}
+
       try {
         const savedSession = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || 'null');
         if (savedSession && savedSession.loggedIn) {
@@ -2911,8 +2976,13 @@
           isApplyingRemoteSync = true;
           deletedPropertyIds = loadDeletedPropertyIds();
           properties = loadLocalProperties();
+          lastAppliedCloudFingerprint = JSON.stringify({
+            p: properties,
+            d: Array.from(deletedPropertyIds).sort()
+          });
           isApplyingRemoteSync = false;
           renderProperties();
+          updateSyncIndicatorBadge('مزامنة فورية');
         }
       });
     }
