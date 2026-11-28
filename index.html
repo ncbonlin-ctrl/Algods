@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -834,15 +834,15 @@
         </div>
 
         <form onsubmit="saveGitHubTokenConfig(event)" class="space-y-3 bg-sandWarm-50 p-4 rounded-2xl border border-sandWarm-200">
-          <h4 class="text-xs font-black text-emeraldLuxury-900">ربط التحديث التلقائي لملف المستودع على GitHub (اختياري للتحديث الصامت)</h4>
+          <h4 class="text-xs font-black text-emeraldLuxury-900">ربط التحديث التلقائي المباشر مع مستودع GitHub</h4>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">اسم المستودع (Repo)</label>
               <input id="gh-repo-name" type="text" dir="ltr" placeholder="username/repo" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">مسار الملف (File Path)</label>
-              <input id="gh-file-path" type="text" dir="ltr" value="index.html" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
+              <label class="block text-[11px] font-bold text-emeraldLuxury-900 mb-1">ملف المزامنة المشترك (Sync File)</label>
+              <input id="gh-file-path" type="text" dir="ltr" value="properties-sync.json" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
             </div>
           </div>
           <div>
@@ -850,7 +850,7 @@
             <input id="gh-pat-token" type="password" dir="ltr" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 rounded-xl bg-white border border-sandWarm-200 text-xs font-mono" />
           </div>
           <div id="gh-bridge-status-note" class="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
-            بانتظار حفظ رمز الوصول (Token) لتفعيل الدفع التلقائي المباشر إلى المستودع.
+            يتم استنتاج المستودع تلقائياً من رابط GitHub Pages؛ أدخل Token للمشرف لتفعيل الدفع الفوري لملف المزامنة.
           </div>
           <div class="flex items-center justify-between gap-2 pt-1">
             <button type="button" onclick="pushDirectToGitHubRepo(true)" class="px-4 py-2 rounded-xl bg-goldLuxury-500 hover:bg-goldLuxury-600 text-emeraldLuxury-950 font-black text-xs transition cursor-pointer">
@@ -2406,23 +2406,85 @@
     }
 
     async function syncAllPropertiesNow() {
-      if (!db) {
-        showToast('تم حفظ البيانات محلياً بنجاح.', 'info');
-        return;
-      }
-      try {
-        await pushUnifiedMasterState();
-        for (const prop of properties) {
-          if (!deletedPropertyIds.has(String(prop.id))) {
-            await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+      const syncIcon = document.getElementById('firebase-sync-icon');
+      if (syncIcon) syncIcon.classList.add('animate-spin');
+
+      let cloudSynced = false;
+      let githubSynced = false;
+
+      if (db) {
+        try {
+          await pushUnifiedMasterState();
+          for (const prop of properties) {
+            if (!deletedPropertyIds.has(String(prop.id))) {
+              await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+            }
           }
-        }
-        for (const delId of deletedPropertyIds) {
-          await db.collection('althabi_real_estate_properties').doc(String(delId)).delete();
-        }
+          for (const delId of deletedPropertyIds) {
+            await db.collection('althabi_real_estate_properties').doc(String(delId)).delete();
+          }
+          cloudSynced = true;
+        } catch (e) {}
+      }
+
+      githubSynced = await pushDirectToGitHubRepo(false);
+
+      if (syncIcon) {
+        setTimeout(() => syncIcon.classList.remove('animate-spin'), 450);
+      }
+
+      if (githubSynced && cloudSynced) {
+        showToast('تمت مزامنة الكل مباشرة مع GitHub والسحابة وتوحيد البيانات على جميع المتصفحات.', 'success');
+      } else if (githubSynced) {
+        showToast('تم دفع وتحديث جميع التغييرات مباشرة على GitHub لجميع المتصفحات.', 'success');
+      } else if (cloudSynced) {
         showToast('تمت مزامنة وتوحيد جميع العقارات والمحذوفات مع كافة المتصفحات.', 'success');
-      } catch (e) {
-        showToast('تم الحفظ محلياً؛ تعذر الوصول للسحابة حالياً.', 'warning');
+      } else {
+        showToast('تم الحفظ محلياً؛ فعّل جسر GitHub من لوحة المشرف لمزامنة المتصفحات الخارجية.', 'warning');
+      }
+    }
+
+    // استنتاج إعدادات مستودع GitHub تلقائياً أو من الإعدادات المحفوظة
+    function getGitHubBridgeConfig() {
+      let saved = {};
+      try {
+        saved = JSON.parse(localStorage.getItem(GH_BRIDGE_STORAGE_KEY) || '{}') || {};
+      } catch (e) {}
+
+      let inferredRepo = String(saved.repo || '').trim();
+      if (!inferredRepo && window.location.hostname.endsWith('.github.io')) {
+        const owner = window.location.hostname.replace('.github.io', '').trim();
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const repoName = pathParts[0] || `${owner}.github.io`;
+        if (owner && repoName) {
+          inferredRepo = `${owner}/${repoName}`;
+        }
+      }
+
+      const filePath = String(saved.path || 'properties-sync.json').trim() || 'properties-sync.json';
+      const token = String(saved.token || '').trim();
+      return { repo: inferredRepo, path: filePath, token };
+    }
+
+    function updateGitHubBridgeStatusUI() {
+      const cfg = getGitHubBridgeConfig();
+      const repoInput = document.getElementById('gh-repo-name');
+      const pathInput = document.getElementById('gh-file-path');
+      const tokenInput = document.getElementById('gh-pat-token');
+      const noteEl = document.getElementById('gh-bridge-status-note');
+
+      if (repoInput && !repoInput.value) repoInput.value = cfg.repo;
+      if (pathInput && !pathInput.value) pathInput.value = cfg.path;
+      if (tokenInput && cfg.token && !tokenInput.value) tokenInput.value = cfg.token;
+
+      if (noteEl) {
+        if (cfg.repo && cfg.token) {
+          noteEl.className = 'text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl';
+          noteEl.textContent = `جسر GitHub نشط ومربوط بالمستودع (${cfg.repo}) على الملف (${cfg.path}).`;
+        } else if (cfg.repo) {
+          noteEl.className = 'text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl';
+          noteEl.textContent = `تم التعرف على المستودع (${cfg.repo})؛ أدخل رمز الوصول (Token) لتفعيل الدفع الفوري.`;
+        }
       }
     }
 
@@ -2460,6 +2522,7 @@
     }
 
     function openGitHubBridgeModal() {
+      updateGitHubBridgeStatusUI();
       const modal = document.getElementById('github-bridge-modal');
       if (modal) modal.classList.remove('hidden');
     }
@@ -2469,21 +2532,150 @@
       if (modal) modal.classList.add('hidden');
     }
 
-    function saveGitHubTokenConfig(event) {
+    async function saveGitHubTokenConfig(event) {
       event.preventDefault();
       const repo = String(document.getElementById('gh-repo-name')?.value || '').trim();
-      const path = String(document.getElementById('gh-file-path')?.value || 'index.html').trim();
+      const path = String(document.getElementById('gh-file-path')?.value || 'properties-sync.json').trim() || 'properties-sync.json';
       const token = String(document.getElementById('gh-pat-token')?.value || '').trim();
       try {
         localStorage.setItem(GH_BRIDGE_STORAGE_KEY, JSON.stringify({ repo, path, token }));
       } catch (e) {}
-      showToast('تم حفظ إعدادات جسر GitHub.', 'success');
+      updateGitHubBridgeStatusUI();
+      showToast('تم حفظ إعدادات جسر GitHub وجاري دفع المزامنة...', 'success');
+      await pushDirectToGitHubRepo(true);
     }
 
-    function pushDirectToGitHubRepo(manual = false) {
-      if (manual) {
-        showToast('تمت مزامنة البيانات عبر الجسر السحابي المباشر.', 'success');
+    function encodeUtf8Base64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
+      return btoa(binary);
+    }
+
+    function decodeUtf8Base64(b64) {
+      const binary = atob(String(b64 || '').replace(/\s+/g, ''));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    }
+
+    async function pushDirectToGitHubRepo(manual = false) {
+      const cfg = getGitHubBridgeConfig();
+      if (!cfg.repo || !cfg.token) {
+        if (manual) {
+          showToast('يرجى إدخال اسم المستودع ورمز الوصول (Token) في إعدادات جسر GitHub.', 'warning');
+          openGitHubBridgeModal();
+        }
+        return false;
+      }
+
+      const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}`;
+      const headers = {
+        Authorization: `Bearer ${cfg.token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      };
+
+      try {
+        let existingSha = '';
+        const getResp = await fetch(`${apiUrl}?t=${Date.now()}`, { headers });
+        if (getResp.ok) {
+          const existingData = await getResp.json();
+          existingSha = existingData.sha || '';
+        }
+
+        const payload = {
+          updatedAt: new Date().toISOString(),
+          revision: currentSyncRevision || Date.now(),
+          deletedIds: Array.from(deletedPropertyIds),
+          properties: properties.filter((p) => !deletedPropertyIds.has(String(p.id)))
+        };
+
+        const body = {
+          message: `Sync real estate listings (${new Date().toISOString()})`,
+          content: encodeUtf8Base64(JSON.stringify(payload, null, 2))
+        };
+        if (existingSha) body.sha = existingSha;
+
+        const putResp = await fetch(apiUrl, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(body)
+        });
+
+        if (putResp.ok) {
+          if (manual) {
+            showToast('تم دفع وتحديث جميع البيانات مباشرة على مستودع GitHub بنجاح.', 'success');
+          }
+          return true;
+        } else if (manual) {
+          showToast('تعذر التحديث على GitHub، تأكد من صلاحية Token واسم المستودع.', 'error');
+        }
+      } catch (e) {
+        if (manual) {
+          showToast('حدث خطأ في الاتصال مع GitHub API.', 'error');
+        }
+      }
+      return false;
+    }
+
+    async function pullDirectFromGitHubRepo() {
+      const cfg = getGitHubBridgeConfig();
+      if (!cfg.repo) return false;
+
+      try {
+        let parsedPayload = null;
+
+        // القراءة عبر API إذا توفر Token لتفادي الكاش، أو عبر الرابط العام لصفحة GitHub Pages
+        if (cfg.token) {
+          const apiResp = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}?t=${Date.now()}`, {
+            headers: {
+              Authorization: `Bearer ${cfg.token}`,
+              Accept: 'application/vnd.github+json'
+            },
+            cache: 'no-store'
+          });
+          if (apiResp.ok) {
+            const fileObj = await apiResp.json();
+            if (fileObj && fileObj.content) {
+              parsedPayload = JSON.parse(decodeUtf8Base64(fileObj.content));
+            }
+          }
+        }
+
+        if (!parsedPayload) {
+          const publicUrl = `${cfg.path}?t=${Date.now()}`;
+          const pubResp = await fetch(publicUrl, { cache: 'no-store' });
+          if (pubResp.ok) {
+            parsedPayload = await pubResp.json();
+          }
+        }
+
+        if (parsedPayload && Array.isArray(parsedPayload.properties)) {
+          isApplyingRemoteSync = true;
+          const remoteDeleted = Array.isArray(parsedPayload.deletedIds) ? parsedPayload.deletedIds.map(String) : [];
+          remoteDeleted.forEach((id) => deletedPropertyIds.add(id));
+          saveDeletedPropertyIds(deletedPropertyIds);
+
+          const exactMirror = parsedPayload.properties
+            .map((item, idx) => normalizeProperty(item, idx))
+            .filter((item) => !deletedPropertyIds.has(item.id));
+
+          if (JSON.stringify(exactMirror) !== JSON.stringify(properties)) {
+            properties = saveLocalProperties(exactMirror);
+            renderProperties();
+          }
+          isApplyingRemoteSync = false;
+          return true;
+        }
+      } catch (e) {
+        isApplyingRemoteSync = false;
+      }
+      return false;
     }
 
     async function purgeTakafulAndIsolateRealEstate() {
@@ -2523,10 +2715,14 @@
       applyAdminUIState();
       setFilter('all');
       setSortMode('newest');
+      updateGitHubBridgeStatusUI();
       initFirebase();
+      pullDirectFromGitHubRepo();
 
       // تحديث دوري خفيف كل 8 ثوانٍ لضمان تطابق فايرفوكس وجوجل كروم وأي متصفح آخر لحظياً
       setInterval(async () => {
+        if (isApplyingRemoteSync) return;
+        await pullDirectFromGitHubRepo();
         if (!db || isApplyingRemoteSync) return;
         try {
           const snap = await db.collection('althabi_real_estate_meta').doc('unified_master_state').get();
