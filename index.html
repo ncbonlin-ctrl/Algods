@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -748,13 +748,11 @@
         <div class="bg-sandWarm-50 rounded-2xl p-4 sm:p-5 border border-sandWarm-200 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h4 class="text-sm font-extrabold text-emeraldLuxury-900">صور العقار الخاصة بالمكتب (أقصى شيء 5 صور)</h4>
-              <p class="text-xs text-emeraldLuxury-700 mt-0.5">
-                يتم تلقائياً تقليص أبعاد كل صورة إلى النصف (50% عرض × 50% ارتفاع) عند التحميل.
-              </p>
+              <h4 class="text-xs sm:text-sm font-black text-goldLuxury-300">الإملاء الصوتي الفوري للعقارات</h4>
+              <p class="text-[11px] text-emeraldLuxury-100/80">تحدث بالصوت بحرية حتى تكمل إملاءك، ثم اضغط «إيقاف الاستماع» أو «إضافة ومزامنة تلقائياً».</p>
             </div>
-            <span id="photo-counter" class="text-xs font-extrabold px-3 py-1 rounded-full bg-white text-emeraldLuxury-800 border border-sandWarm-200">
-              0 / 5 صور
+            <span id="voice-dictation-status" class="px-2.5 py-1 rounded-xl bg-emeraldLuxury-900 text-emeraldLuxury-100 border border-white/15 text-[11px] font-bold">
+              جاهز للاستماع
             </span>
           </div>
 
@@ -1100,6 +1098,8 @@
     let currentSyncRevision = 0;
     let voiceRecognition = null;
     let isVoiceListening = false;
+    let voiceCommittedTranscript = '';
+    let voiceManualStopRequested = false;
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1315,6 +1315,7 @@
     function clearVoiceDictationBox() {
       const inputEl = document.getElementById('voice-dictation-input');
       if (inputEl) inputEl.value = '';
+      voiceCommittedTranscript = '';
       const statusEl = document.getElementById('voice-dictation-status');
       if (statusEl) statusEl.textContent = 'جاهز للاستماع';
     }
@@ -1331,52 +1332,74 @@
       }
 
       if (isVoiceListening && voiceRecognition) {
+        voiceManualStopRequested = true;
         try {
           voiceRecognition.stop();
         } catch (e) {}
         isVoiceListening = false;
         if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
-        if (statusEl) statusEl.textContent = 'تم إيقاف الاستماع';
+        if (statusEl) statusEl.textContent = 'تم إنهاء الاستماع — راجع النص ثم اضغط إضافة ومزامنة';
         return;
       }
 
       try {
+        voiceManualStopRequested = false;
+        voiceCommittedTranscript = String(inputEl?.value || '').trim();
         voiceRecognition = new SpeechRecognition();
         voiceRecognition.lang = 'ar-LY';
         voiceRecognition.interimResults = true;
-        voiceRecognition.continuous = false;
+        voiceRecognition.continuous = true;
 
         voiceRecognition.onstart = () => {
           isVoiceListening = true;
           if (btnEl) btnEl.textContent = 'إيقاف الاستماع';
-          if (statusEl) statusEl.textContent = 'جاري الاستماع للصوت...';
+          if (statusEl) statusEl.textContent = 'جاري الاستماع... خذ راحتك في الحديث ولن يُضاف حتى تنهي';
         };
 
         voiceRecognition.onresult = (event) => {
-          let transcript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
+          let finalChunk = '';
+          let interimChunk = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const part = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalChunk += part + ' ';
+            } else {
+              interimChunk += part;
+            }
           }
-          if (inputEl && transcript.trim()) {
-            inputEl.value = transcript.trim();
+          if (finalChunk.trim()) {
+            voiceCommittedTranscript = `${voiceCommittedTranscript} ${finalChunk.trim()}`.trim();
+          }
+          const combined = `${voiceCommittedTranscript} ${interimChunk.trim()}`.trim();
+          if (inputEl && combined) {
+            inputEl.value = combined;
           }
         };
 
-        voiceRecognition.onerror = () => {
+        voiceRecognition.onerror = (e) => {
+          if (e && e.error === 'no-speech' && !voiceManualStopRequested) {
+            return;
+          }
           isVoiceListening = false;
           if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
-          if (statusEl) statusEl.textContent = 'تعذر التقاط الصوت';
+          if (statusEl) statusEl.textContent = 'تم إيقاف الاستماع';
         };
 
         voiceRecognition.onend = () => {
+          // إذا لم يطلب المستخدم الإيقاف، نعيد تشغيل الاستماع تلقائياً كي لا يقطع الكلام عند أخذ نفس أو توقف قصير
+          if (isVoiceListening && !voiceManualStopRequested) {
+            try {
+              voiceRecognition.start();
+              return;
+            } catch (err) {}
+          }
           isVoiceListening = false;
           if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
           const finalText = String(inputEl?.value || '').trim();
-          if (finalText) {
-            if (statusEl) statusEl.textContent = 'جاري الإضافة التلقائية...';
-            addPropertyFromVoiceText();
-          } else if (statusEl) {
-            statusEl.textContent = 'جاهز للاستماع';
+          if (statusEl) {
+            statusEl.textContent = finalText
+              ? 'اكتمل الإملاء — اضغط «إضافة ومزامنة تلقائياً» لاعتماد العقار'
+              : 'جاهز للاستماع';
           }
         };
 
