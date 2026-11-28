@@ -1,7 +1,7 @@
 {
   "type": "AUTHORITATIVE_SYNC",
   "revision": 1795890753402,
-  "updatedAt": "2026-11-28T18:32:36.306Z",
+  "updatedAt": "2026-11-28T18:34:03.166Z",
   "deletedIds": [
     "prop-tab-0001",
     "tab-0001",
@@ -196,7 +196,7 @@
       "images": [
         "https://placehold.co/800x520/072e24/efd085?text=%D9%85%D9%83%D8%AA%D8%A8%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%20%7C%20TAB-0008"
       ],
-      "likes": 0,
+      "likes": 1,
       "closedStamp": "",
       "createdAt": "2026-11-28T11:32:34.017Z"
     },
