@@ -763,7 +763,7 @@
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <span class="text-sm font-bold text-emeraldLuxury-900">اضغط لاختيار صور العقار من جهازك</span>
-            <span class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — الحد الأقصى 5 صور</span>
+            <span class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — يتم تقليص حجم الصورة إلى النصف تلقائياً عند التحميل (حتى 10 صور)</span>
             <input
               id="prop-images-input"
               type="file"
@@ -1247,7 +1247,7 @@
 
     function normalizeProperty(raw, idx = 0) {
       const code = String(raw?.code || `TAB-${String(idx + 1).padStart(4, '0')}`).trim();
-      const images = Array.isArray(raw?.images) ? raw.images.filter(isRealPropertyImage).slice(0, 5) : [];
+      const images = Array.isArray(raw?.images) ? raw.images.filter(isRealPropertyImage).slice(0, 10) : [];
       const createdAt = raw?.createdAt && !Number.isNaN(Date.parse(raw.createdAt))
         ? new Date(raw.createdAt).toISOString()
         : new Date().toISOString();
@@ -2114,14 +2114,27 @@
     function renderImagePreviewList() {
       const container = document.getElementById('image-preview-list');
       const counter = document.getElementById('photo-counter');
-      if (counter) counter.textContent = `${formImages.length} / 5 صور`;
+      if (counter) counter.textContent = `${formImages.length} / 10 صور`;
       if (!container) return;
 
       container.innerHTML = formImages
         .map(
           (src, idx) => `
-          <div class="relative rounded-xl overflow-hidden border border-sandWarm-200 bg-white aspect-square group">
+          <div class="relative rounded-xl overflow-hidden border-2 ${idx === 0 ? 'border-goldLuxury-500 ring-2 ring-goldLuxury-300' : 'border-sandWarm-200'} bg-white aspect-square group">
             <img src="${escapeHtml(src)}" alt="صورة ${idx + 1}" class="w-full h-full object-cover" />
+            <div class="absolute bottom-1.5 right-1.5 left-1.5 flex items-center justify-between gap-1">
+              <button
+                type="button"
+                onclick="setPrimaryFormImage(${idx})"
+                class="px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer shadow ${
+                  idx === 0
+                    ? 'bg-goldLuxury-400 text-emeraldLuxury-950'
+                    : 'bg-emeraldLuxury-950/85 text-white hover:bg-goldLuxury-400 hover:text-emeraldLuxury-950'
+                }"
+              >
+                ${idx === 0 ? 'رئيسية' : 'تعيين رئيسية'}
+              </button>
+            </div>
             <button
               type="button"
               onclick="removeFormImage(${idx})"
@@ -2136,6 +2149,15 @@
         .join('');
     }
 
+    function setPrimaryFormImage(idx) {
+      if (idx <= 0 || idx >= formImages.length) return;
+      const chosen = formImages[idx];
+      const remaining = formImages.filter((_, i) => i !== idx);
+      formImages = [chosen, ...remaining];
+      renderImagePreviewList();
+      showToast('تم تعيين الصورة المختارة كصورة رئيسية للإعلان.', 'success');
+    }
+
     function removeFormImage(idx) {
       formImages = formImages.filter((_, i) => i !== idx);
       renderImagePreviewList();
@@ -2145,9 +2167,10 @@
       const files = Array.from(event.target?.files || []);
       if (!files.length) return;
 
-      const availableSlots = Math.max(0, 5 - formImages.length);
+      const maxImages = 10;
+      const availableSlots = Math.max(0, maxImages - formImages.length);
       if (availableSlots === 0) {
-        showToast('الحد الأقصى 5 صور لكل عقار.', 'warning');
+        showToast('الحد الأقصى 10 صور لكل عقار.', 'warning');
         event.target.value = '';
         return;
       }
@@ -2167,7 +2190,7 @@
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, targetW, targetH);
               const compressed = canvas.toDataURL('image/jpeg', 0.72);
-              if (formImages.length < 5) {
+              if (formImages.length < maxImages) {
                 formImages.push(compressed);
                 renderImagePreviewList();
               }
@@ -2206,7 +2229,7 @@
           document.getElementById('prop-owner-name').value = existing.ownerName || '';
           document.getElementById('prop-owner-phone').value = existing.ownerPhone || '';
           document.getElementById('prop-description').value = existing.description || '';
-          formImages = Array.isArray(existing.images) ? existing.images.filter(isRealPropertyImage).slice(0, 5) : [];
+          formImages = Array.isArray(existing.images) ? existing.images.filter(isRealPropertyImage).slice(0, 10) : [];
         }
       } else {
         if (titleEl) titleEl.textContent = 'إضافة عرض عقاري جديد';
