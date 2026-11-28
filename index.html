@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1100,6 +1100,7 @@
     let isVoiceListening = false;
     let voiceCommittedTranscript = '';
     let voiceManualStopRequested = false;
+    let isApplyingRemoteSync = false;
     // دوال مساعدة للنصوص والأرقام والصور
     function escapeHtml(str) {
       return String(str ?? '')
@@ -1626,8 +1627,19 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
       } catch (e) {}
-      bumpSyncRevision();
+      if (!isApplyingRemoteSync) {
+        bumpSyncRevision();
+      }
       return normalized;
+    }
+
+    function applyUnifiedPropertiesList(incomingList, pushToCloud = false) {
+      const merged = mergeWithInitialSeed(incomingList || []);
+      properties = saveLocalProperties(merged);
+      renderProperties();
+      if (pushToCloud && !isApplyingRemoteSync) {
+        syncAllPropertiesNow();
+      }
     }
 
     // تحديث الإحصائيات والبطاقات
@@ -1655,8 +1667,10 @@
         btn.classList.toggle('ring-2', isActive);
         btn.classList.toggle('ring-goldLuxury-500', isActive);
         btn.classList.toggle('bg-goldLuxury-500', isActive);
+        btn.classList.toggle('border-goldLuxury-600', isActive);
         btn.classList.toggle('text-emeraldLuxury-950', true);
         btn.classList.toggle('bg-sandWarm-100', !isActive);
+        btn.classList.toggle('border-goldLuxury-400/60', !isActive);
         btn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       });
       renderProperties();
@@ -1671,8 +1685,10 @@
         newestBtn.classList.toggle('ring-2', active);
         newestBtn.classList.toggle('ring-goldLuxury-500', active);
         newestBtn.classList.toggle('bg-goldLuxury-500', active);
+        newestBtn.classList.toggle('border-goldLuxury-600', active);
         newestBtn.classList.toggle('text-emeraldLuxury-950', true);
         newestBtn.classList.toggle('bg-sandWarm-100', !active);
+        newestBtn.classList.toggle('border-goldLuxury-400/60', !active);
         newestBtn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       }
       if (priceBtn) {
@@ -1680,8 +1696,10 @@
         priceBtn.classList.toggle('ring-2', active);
         priceBtn.classList.toggle('ring-goldLuxury-500', active);
         priceBtn.classList.toggle('bg-goldLuxury-500', active);
+        priceBtn.classList.toggle('border-goldLuxury-600', active);
         priceBtn.classList.toggle('text-emeraldLuxury-950', true);
         priceBtn.classList.toggle('bg-sandWarm-100', !active);
+        priceBtn.classList.toggle('border-goldLuxury-400/60', !active);
         priceBtn.classList.remove('bg-emeraldLuxury-800', 'text-white');
       }
       renderProperties();
@@ -2181,8 +2199,9 @@
       properties = saveLocalProperties(updatedList);
       renderProperties();
       closePropertyFormModal();
-      showToast(existingProp ? `تم تحديث العقار (${code}) بنجاح.` : `تمت إضافة العقار (${code}) ومزامنته.`, 'success');
+      showToast(existingProp ? `تم تحديث العقار (${code}) ومزامنته.` : `تمت إضافة العقار (${code}) ومزامنته.`, 'success');
       await syncSinglePropertyToCloud(savedProp);
+      await syncAllPropertiesNow();
     }
 
     async function togglePropertyClosedStamp(propId) {
@@ -2197,6 +2216,7 @@
       renderProperties();
       showToast(nextStamp ? `تم وضع ختم (${nextStamp}) على العقار.` : 'تمت إزالة ختم الحالة.', 'info');
       await syncSinglePropertyToCloud(updated);
+      await syncAllPropertiesNow();
     }
 
     async function deleteProperty(propId) {
@@ -2204,11 +2224,12 @@
       saveDeletedPropertyIds(deletedPropertyIds);
       properties = saveLocalProperties(properties.filter((p) => p.id !== propId));
       renderProperties();
-      showToast('تم حذف العقار من القائمة.', 'warning');
+      showToast('تم حذف العقار ومزامنة التغيير.', 'warning');
 
       if (db) {
         try {
           await db.collection('althabi_real_estate_properties').doc(String(propId)).delete();
+          await syncAllPropertiesNow();
         } catch (e) {}
       }
     }
@@ -2305,7 +2326,7 @@
         if (unsubscribeSnapshot) unsubscribeSnapshot();
         unsubscribeSnapshot = db.collection('althabi_real_estate_properties').onSnapshot(
           (snapshot) => {
-            if (!snapshot || snapshot.empty) return;
+            if (!snapshot) return;
             const cloudItems = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
@@ -2314,16 +2335,36 @@
               }
             });
             if (cloudItems.length > 0) {
+              isApplyingRemoteSync = true;
               const mergedMap = new Map(properties.map((p) => [p.id, p]));
               cloudItems.forEach((cItem) => {
                 mergedMap.set(cItem.id, cItem);
               });
               properties = saveLocalProperties(Array.from(mergedMap.values()));
+              isApplyingRemoteSync = false;
               renderProperties();
             }
           },
           () => {}
         );
+      } catch (e) {}
+    }
+
+    async function syncSinglePropertyToCloud(prop) {
+      if (!db || !prop) return;
+      try {
+        await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+      } catch (e) {}
+    }
+
+    async function syncAllPropertiesNow() {
+      if (!db) {
+        return;
+      }
+      try {
+        for (const prop of properties) {
+          await db.collection('althabi_real_estate_properties').doc(String(prop.id)).set(prop, { merge: true });
+        }
       } catch (e) {}
     }
 
@@ -2447,6 +2488,21 @@
       setFilter('all');
       setSortMode('newest');
       initFirebase();
+
+      // مزامنة فورية بين التبويبات والمتصفحات عبر التخزين المشترك
+      window.addEventListener('storage', (event) => {
+        if (!event || !event.key) return;
+        if (event.key === DELETED_IDS_KEY) {
+          deletedPropertyIds = loadDeletedPropertyIds();
+          applyUnifiedPropertiesList(properties, false);
+        } else if (event.key === STORAGE_KEY || event.key === SYNC_REVISION_KEY) {
+          isApplyingRemoteSync = true;
+          deletedPropertyIds = loadDeletedPropertyIds();
+          properties = loadLocalProperties();
+          isApplyingRemoteSync = false;
+          renderProperties();
+        }
+      });
     }
 
     window.addEventListener('DOMContentLoaded', bootstrapApp);
