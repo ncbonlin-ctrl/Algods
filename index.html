@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1399,12 +1399,19 @@
         return;
       }
 
+      // إيقاف الاستماع الصوتي إن كان ما زال نشطاً لضمان نظافة الحالة
+      if (isVoiceListening && voiceRecognition) {
+        voiceManualStopRequested = true;
+        try {
+          voiceRecognition.stop();
+        } catch (e) {}
+        isVoiceListening = false;
+        const btnEl = document.getElementById('voice-record-btn');
+        if (btnEl) btnEl.textContent = 'بدء الإملاء بالصوت';
+      }
+
       const parsed = parseDictatedPropertyText(rawText);
       if (!parsed) return;
-
-      // تصفير الفلاتر والبحث وضبط الفرز على الأحدث ظهوراً ليظهر العقار المملى صوتياً فوراً في الصفحة
-      resetFilters();
-      setSortMode('newest');
 
       const code = generateNextPropertyCode(properties);
       const id = `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -1415,14 +1422,36 @@
         createdAt: new Date().toISOString()
       });
 
+      // تحديث القائمة محلياً وتصفير الفلاتر وضبط الترتيب على الأحدث ظهوراً مباشرة
+      deletedPropertyIds.delete(String(savedProp.id));
+      saveDeletedPropertyIds(deletedPropertyIds);
       properties = saveLocalProperties([savedProp, ...properties]);
+
+      currentFilter = 'all';
+      currentSortMode = 'newest';
+      const searchInput = document.getElementById('search-input');
+      const catSelect = document.getElementById('category-filter');
+      if (searchInput) searchInput.value = '';
+      if (catSelect) catSelect.value = 'all';
+      setFilter('all');
+      setSortMode('newest');
       renderProperties();
+
       if (inputEl) inputEl.value = '';
       voiceCommittedTranscript = '';
-      showToast(`تمت إضافة العقار (${code}) وإدراجه فوراً في الصفحة، وجاري النشر والمزامنة...`, 'success');
+      const statusEl = document.getElementById('voice-dictation-status');
+      if (statusEl) statusEl.textContent = `تم نشر العرض (${code}) ومزامنته على الصفحة`;
+
+      // التمرير المباشر إلى قسم العقارات المتاحة حالياً ليرى المشرف الإعلان فوراً
+      const listingsSection = document.getElementById('listings-section');
+      if (listingsSection && typeof listingsSection.scrollIntoView === 'function') {
+        listingsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      showToast(`تم إدراج ونشر العقار (${code}) مباشرة على الصفحة، وجاري المزامنة...`, 'success');
       await syncSinglePropertyToCloud(savedProp);
       await pushUnifiedMasterState();
-      await syncAllPropertiesNow();
+      await pushDirectToGitHubRepo(false);
     }
 
     function clearVoiceDictationBox() {
@@ -2996,3 +3025,4 @@
   </script>
 </body>
 </html>
+```
