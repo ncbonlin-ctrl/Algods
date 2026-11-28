@@ -277,6 +277,20 @@
           </svg>
           <span>إضافة عقار</span>
         </button>
+
+        <button
+          id="open-backup-modal-btn"
+          onclick="openBackupRecoveryModal()"
+          title="حفظ نسخة احتياطية واستعادة أحدث نسخة عند الطوارئ"
+          class="w-44 h-11 rounded-2xl bg-goldLuxury-500/20 hover:bg-goldLuxury-500/30 text-goldLuxury-200 border border-goldLuxury-400/50 text-xs font-black transition cursor-pointer inline-flex items-center justify-center gap-1.5 text-center whitespace-nowrap"
+        >
+          <svg class="w-4 h-4 text-goldLuxury-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>نسخ احتياطي واستعادة</span>
+        </button>
       </div>
 
       <!-- خانة الإملاء الصوتي وإضافة العقار تلقائياً داخل لوحة المشرف -->
@@ -1072,6 +1086,99 @@
     </div>
   </div>
 
+  <!-- نافذة النسخ الاحتياطي والاستعادة الأحدث للمشرف -->
+  <div id="backup-recovery-modal" class="fixed inset-0 z-50 hidden bg-emeraldLuxury-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl w-full max-w-2xl border border-sandWarm-200 shadow-2xl overflow-hidden my-auto animate-fade-up">
+      <div class="luxury-pattern px-6 py-5 text-white flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-goldLuxury-300">حماية ضد الأعطال وفقدان البيانات</span>
+          <h3 class="text-lg sm:text-xl font-extrabold">النسخ الاحتياطي واستعادة أحدث نسخة</h3>
+        </div>
+        <button
+          onclick="closeBackupRecoveryModal()"
+          aria-label="إغلاق نافذة النسخ الاحتياطي"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+        <!-- بطاقة أحدث نسخة محفوظة -->
+        <div class="p-4 rounded-2xl bg-emeraldLuxury-50 border border-emeraldLuxury-200 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs sm:text-sm font-black text-emeraldLuxury-950">أحدث نسخة احتياطية متوفرة:</span>
+            <span id="latest-backup-badge" class="px-3 py-1 rounded-full text-[11px] font-black bg-emerald-600 text-white">
+              لا توجد نسخة بعد
+            </span>
+          </div>
+          <p id="latest-backup-details" class="text-xs text-emeraldLuxury-800 leading-relaxed">
+            يتم حفظ نسخة تلقائية عند كل إضافة أو تعديل أو حذف، ويمكنك إنشاء نسخة فورية أو استعادة أحدث نسخة أو تصدير/استيراد ملف JSON في أي وقت.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <button
+              type="button"
+              onclick="createManualBackupSnapshot(true)"
+              class="btn-shine h-11 px-4 rounded-xl bg-emeraldLuxury-800 hover:bg-emeraldLuxury-900 text-white font-black text-xs transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <span>حفظ نسخة احتياطية الآن</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="restoreLatestBackupSnapshot()"
+              class="btn-shine h-11 px-4 rounded-xl bg-gradient-to-l from-goldLuxury-500 to-goldLuxury-400 hover:from-goldLuxury-600 hover:to-goldLuxury-500 text-emeraldLuxury-950 font-black text-xs border border-goldLuxury-500 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <span>استعادة أحدث نسخة فوراً</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- تصدير واستيراد ملف نسخة احتياطية خارج الجهاز -->
+        <div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200 space-y-3">
+          <h4 class="text-xs sm:text-sm font-black text-emeraldLuxury-950">نقل النسخة بين الأجهزة (تصدير / استيراد ملف JSON)</h4>
+          <p class="text-[11px] text-gray-600 leading-relaxed">
+            إذا تعطل هاتفك أو حاسوبك، يمكنك تحميل ملف النسخة الاحتياطية على جهاز آخر أو سحابة شخصية ثم استيراده هنا لاستعادة جميع العقارات والإعدادات.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onclick="exportBackupJsonFile()"
+              class="h-10 px-4 rounded-xl bg-white hover:bg-emeraldLuxury-50 text-emeraldLuxury-950 border border-sandWarm-200 font-extrabold text-xs transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <span>تحميل ملف نسخة (JSON)</span>
+            </button>
+
+            <label class="h-10 px-4 rounded-xl bg-white hover:bg-goldLuxury-50 text-emeraldLuxury-950 border border-goldLuxury-400/60 font-extrabold text-xs transition cursor-pointer inline-flex items-center justify-center gap-1.5">
+              <span>استيراد ملف نسخة (JSON)</span>
+              <input
+                id="import-backup-file-input"
+                type="file"
+                accept="application/json,.json"
+                onchange="importBackupJsonFile(event)"
+                class="hidden"
+              />
+            </label>
+          </div>
+        </div>
+
+        <!-- سجل آخر النسخ المحفوظة -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs sm:text-sm font-black text-emeraldLuxury-950">سجل النسخ المحفوظة (الأحدث أولاً)</h4>
+            <span id="backup-history-count" class="text-[11px] font-bold text-gray-500">0 نسخة</span>
+          </div>
+          <div id="backup-snapshots-list" class="space-y-2 max-h-52 overflow-y-auto pr-0.5"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- مكتبات Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" onerror="window._fbLoadFailed = true;"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" onerror="window._fbLoadFailed = true;"></script>
@@ -1089,6 +1196,8 @@
     const GH_BRIDGE_STORAGE_KEY = 'althabi_github_bridge_v1';
     const IMAGE_CLOUD_STORAGE_KEY = 'althabi_image_cloud_v1';
     const ADMIN_SESSION_KEY = 'althabi_admin_session_v1';
+    const BACKUP_SNAPSHOTS_KEY = 'althabi_backup_snapshots_v1';
+    const MAX_BACKUP_SNAPSHOTS = 10;
     const DEFAULT_CONTACT_PHONE = '0914664430';
 
     // إعدادات Firebase الافتراضية للمزامنة السحابية الموحدة
@@ -1809,8 +1918,279 @@
       if (!isApplyingRemoteSync) {
         bumpSyncRevision();
         broadcastLocalSyncState('save_properties');
+        recordAutomaticBackupSnapshot('تحديث تلقائي');
       }
       return normalized;
+    }
+
+    // بناء لقطة نسخة احتياطية كاملة للمنصة
+    function buildBackupSnapshotObject(label = 'نسخة احتياطية') {
+      const cleanProps = (Array.isArray(properties) ? properties : [])
+        .map((item, idx) => normalizeProperty(item, idx))
+        .filter((item) => !isPropertyMarkedDeleted(item));
+      return {
+        id: `bkp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        label,
+        createdAt: new Date().toISOString(),
+        revision: currentSyncRevision || Date.now(),
+        propertyCount: cleanProps.length,
+        properties: cleanProps,
+        deletedIds: Array.from(deletedPropertyIds || []),
+      };
+    }
+
+    function loadBackupSnapshots() {
+      try {
+        const raw = localStorage.getItem(BACKUP_SNAPSHOTS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveBackupSnapshotsList(list) {
+      try {
+        const trimmed = (Array.isArray(list) ? list : []).slice(0, MAX_BACKUP_SNAPSHOTS);
+        localStorage.setItem(BACKUP_SNAPSHOTS_KEY, JSON.stringify(trimmed));
+        return trimmed;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // حفظ نسخة تلقائية دون تكرار مفرط خلال ثانيتين
+    let lastAutoBackupTime = 0;
+    function recordAutomaticBackupSnapshot(label = 'حفظ تلقائي') {
+      if (isApplyingRemoteSync) return;
+      const now = Date.now();
+      if (now - lastAutoBackupTime < 1500) return;
+      lastAutoBackupTime = now;
+      const snap = buildBackupSnapshotObject(label);
+      const existing = loadBackupSnapshots();
+      saveBackupSnapshotsList([snap, ...existing]);
+      renderBackupRecoveryUI();
+    }
+
+    // إنشاء نسخة احتياطية يدوية فورية ومزامنتها في السحابة إن أمكن
+    async function createManualBackupSnapshot(notifyUser = true) {
+      const snap = buildBackupSnapshotObject('نسخة يدوية للمشرف');
+      const existing = loadBackupSnapshots();
+      saveBackupSnapshotsList([snap, ...existing]);
+      renderBackupRecoveryUI();
+
+      if (db) {
+        try {
+          await db
+            .collection('althabi_real_estate_meta')
+            .doc('latest_admin_backup')
+            .set(snap, { merge: false });
+        } catch (e) {}
+      }
+
+      if (notifyUser) {
+        showToast(`تم حفظ نسخة احتياطية جديدة (${formatNumber(snap.propertyCount)} عقار).`, 'success');
+      }
+    }
+
+    // استعادة أحدث نسخة متاحة (سحابية أو محلية)
+    async function restoreLatestBackupSnapshot() {
+      let latestSnap = null;
+      const localSnaps = loadBackupSnapshots();
+      if (localSnaps.length > 0) {
+        latestSnap = localSnaps[0];
+      }
+
+      if (db) {
+        try {
+          const cloudDoc = await db
+            .collection('althabi_real_estate_meta')
+            .doc('latest_admin_backup')
+            .get({ source: 'server' });
+          if (cloudDoc && cloudDoc.exists) {
+            const cloudSnap = cloudDoc.data();
+            if (cloudSnap && Array.isArray(cloudSnap.properties)) {
+              const cloudTime = Date.parse(cloudSnap.createdAt || 0) || 0;
+              const localTime = latestSnap ? Date.parse(latestSnap.createdAt || 0) || 0 : 0;
+              if (!latestSnap || cloudTime >= localTime) {
+                latestSnap = cloudSnap;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!latestSnap || !Array.isArray(latestSnap.properties)) {
+        showToast('لا توجد نسخة احتياطية متوفرة للاستعادة حالياً.', 'warning');
+        return;
+      }
+
+      await restoreFromSnapshotData(latestSnap);
+    }
+
+    // استعادة نسخة محددة من السجل أو ملف مستورد
+    async function restoreFromSnapshotData(snapshotData) {
+      if (!snapshotData || !Array.isArray(snapshotData.properties)) {
+        showToast('بيانات النسخة الاحتياطية غير صالحة.', 'error');
+        return;
+      }
+
+      isApplyingRemoteSync = true;
+      try {
+        deletedPropertyIds = new Set(
+          Array.isArray(snapshotData.deletedIds)
+            ? snapshotData.deletedIds.map((x) => String(x).trim()).filter(Boolean)
+            : []
+        );
+        saveDeletedPropertyIds(deletedPropertyIds);
+
+        const restoredProps = snapshotData.properties
+          .map((item, idx) => normalizeProperty(item, idx))
+          .filter((item) => !isPropertyMarkedDeleted(item));
+
+        properties = restoredProps;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+        currentSyncRevision = Math.max(Date.now(), Number(snapshotData.revision) || 0);
+        localStorage.setItem(SYNC_REVISION_KEY, String(currentSyncRevision));
+        lastAppliedCloudFingerprint = JSON.stringify({
+          p: properties,
+          d: Array.from(deletedPropertyIds).sort(),
+        });
+      } finally {
+        isApplyingRemoteSync = false;
+      }
+
+      renderProperties();
+      renderBackupRecoveryUI();
+      broadcastLocalSyncState('restore_snapshot');
+      await pushUnifiedMasterState();
+      await pushDirectToGitHubRepo(false);
+
+      const { dateText, timeText } = formatPropertyDateTime(snapshotData.createdAt);
+      showToast(
+        `تمت استعادة النسخة (${dateText} ${timeText}) بنجاح ومزامنتها (${formatNumber(properties.length)} عقار).`,
+        'success'
+      );
+    }
+
+    function restoreBackupById(snapshotId) {
+      const snaps = loadBackupSnapshots();
+      const target = snaps.find((s) => String(s.id) === String(snapshotId));
+      if (!target) {
+        showToast('لم يتم العثور على النسخة المحددة.', 'error');
+        return;
+      }
+      restoreFromSnapshotData(target);
+    }
+
+    function exportBackupJsonFile() {
+      const snap = buildBackupSnapshotObject('تصدير ملف للمشرف');
+      const jsonText = JSON.stringify(snap, null, 2);
+      const blob = new Blob([jsonText], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      link.href = url;
+      link.download = `althabi-backup-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('تم تحميل ملف النسخة الاحتياطية (JSON) بنجاح.', 'success');
+    }
+
+    function importBackupJsonFile(event) {
+      const file = event.target?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const parsed = JSON.parse(String(e.target?.result || ''));
+          if (!parsed || !Array.isArray(parsed.properties)) {
+            showToast('الملف المحدد ليس نسخة احتياطية صالحة للعقارات.', 'error');
+            return;
+          }
+          const snaps = loadBackupSnapshots();
+          saveBackupSnapshotsList([
+            { ...parsed, id: parsed.id || `imp-${Date.now()}`, label: parsed.label || 'نسخة مستوردة' },
+            ...snaps,
+          ]);
+          await restoreFromSnapshotData(parsed);
+        } catch (err) {
+          showToast('تعذر قراءة ملف النسخة الاحتياطية، تأكد من صيغة JSON.', 'error');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+      event.target.value = '';
+    }
+
+    function renderBackupRecoveryUI() {
+      const snaps = loadBackupSnapshots();
+      const badgeEl = document.getElementById('latest-backup-badge');
+      const detailsEl = document.getElementById('latest-backup-details');
+      const countEl = document.getElementById('backup-history-count');
+      const listEl = document.getElementById('backup-snapshots-list');
+
+      if (countEl) countEl.textContent = `${formatNumber(snaps.length)} نسخة`;
+
+      if (snaps.length > 0) {
+        const newest = snaps[0];
+        const { dateText, timeText } = formatPropertyDateTime(newest.createdAt);
+        if (badgeEl) {
+          badgeEl.className = 'px-3 py-1 rounded-full text-[11px] font-black bg-emerald-600 text-white';
+          badgeEl.textContent = `أحدث نسخة: ${dateText} • ${timeText}`;
+        }
+        if (detailsEl) {
+          detailsEl.textContent = `تحتوي أحدث نسخة (${escapeHtml(newest.label || 'نسخة احتياطية')}) على ${formatNumber(newest.propertyCount || newest.properties.length)} عقار محفوظ، ويمكن استعادتها فوراً في أي وقت.`;
+        }
+      } else {
+        if (badgeEl) {
+          badgeEl.className = 'px-3 py-1 rounded-full text-[11px] font-black bg-amber-600 text-white';
+          badgeEl.textContent = 'جاهز للحفظ الفوري';
+        }
+        if (detailsEl) {
+          detailsEl.textContent = 'اضغط على "حفظ نسخة احتياطية الآن" لإنشاء نسخة فورية قابلة للاستعادة في أي وقت.';
+        }
+      }
+
+      if (!listEl) return;
+      if (snaps.length === 0) {
+        listEl.innerHTML = `<div class="p-4 rounded-2xl bg-sandWarm-50 border border-sandWarm-200 text-center text-xs text-gray-500 font-bold">لا توجد نسخ محفوظة في السجل حتى الآن.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = snaps
+        .map((snap) => {
+          const { dateText, timeText } = formatPropertyDateTime(snap.createdAt);
+          const count = Array.isArray(snap.properties) ? snap.properties.length : Number(snap.propertyCount) || 0;
+          return `
+            <div class="p-3 rounded-2xl bg-white border border-sandWarm-200 flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs font-black text-emeraldLuxury-950 truncate">${escapeHtml(snap.label || 'نسخة احتياطية')}</div>
+                <div class="text-[11px] text-gray-500 font-bold" dir="ltr">${escapeHtml(dateText)} • ${escapeHtml(timeText)} — ${formatNumber(count)} عقار</div>
+              </div>
+              <button
+                type="button"
+                onclick="restoreBackupById('${escapeHtml(snap.id)}')"
+                class="shrink-0 px-3 py-1.5 rounded-xl bg-emeraldLuxury-50 hover:bg-goldLuxury-400 text-emeraldLuxury-950 border border-emeraldLuxury-200 text-xs font-black transition cursor-pointer"
+              >
+                استعادة
+              </button>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function openBackupRecoveryModal() {
+      renderBackupRecoveryUI();
+      const modal = document.getElementById('backup-recovery-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeBackupRecoveryModal() {
+      const modal = document.getElementById('backup-recovery-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     // بث التحديثات الفورية عبر قناة البث المحلية بين التبويبات
@@ -3212,6 +3592,10 @@
       if (!Array.isArray(properties) || properties.length === 0) {
         properties = mergeWithInitialSeed([]);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+      }
+      if (loadBackupSnapshots().length === 0) {
+        const initSnap = buildBackupSnapshotObject('نسخة تشغيل أولية');
+        saveBackupSnapshotsList([initSnap]);
       }
 
       initFirebase();
