@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2484,33 +2484,33 @@
         }
 
         githubSynced = await pushDirectToGitHubRepo(false);
-        updateSyncIndicatorBadge('مزامنة كاملة');
-      } finally {
-        isSyncPushInProgress = false;
-        if (syncIcon) {
-          setTimeout(() => syncIcon.classList.remove('animate-spin'), 450);
-        }
-      }
-
-      if (githubSynced && cloudSynced) {
-        showToast('تمت مزامنة الكل مباشرة مع GitHub والسحابة وتوحيد البيانات على جميع المتصفحات.', 'success');
-      } else if (githubSynced) {
-        showToast('تم دفع وتحديث جميع التغييرات مباشرة على GitHub لجميع المتصفحات.', 'success');
-      } else if (cloudSynced) {
-        showToast('تمت مزامنة وتوحيد جميع العقارات والمحذوفات مع كافة المتصفحات.', 'success');
-      } else {
-        showToast('تم الحفظ محلياً؛ فعّل جسر GitHub من لوحة المشرف لمزامنة المتصفحات الخارجية.', 'warning');
-      }
-    }
-
-    // استنتاج إعدادات مستودع GitHub تلقائياً أو من الإعدادات المحفوظة
+    // استنتاج إعدادات مستودع GitHub تلقائياً أو من الإعدادات المحفوظة بجميع مفاتيحها السابقة
     function getGitHubBridgeConfig() {
       let saved = {};
-      try {
-        saved = JSON.parse(localStorage.getItem(GH_BRIDGE_STORAGE_KEY) || '{}') || {};
-      } catch (e) {}
+      const candidateKeys = [
+        GH_BRIDGE_STORAGE_KEY,
+        'althabi_github_config_v1',
+        'github_bridge_config',
+        'gh_sync_config'
+      ];
+      for (const k of candidateKeys) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(k) || 'null');
+          if (parsed && typeof parsed === 'object' && (parsed.token || parsed.pat || parsed.repo)) {
+            saved = { ...saved, ...parsed };
+          }
+        } catch (e) {}
+      }
 
-      let inferredRepo = String(saved.repo || '').trim();
+      const standaloneToken =
+        saved.token ||
+        saved.pat ||
+        saved.githubToken ||
+        localStorage.getItem('althabi_gh_token') ||
+        localStorage.getItem('gh_pat_token') ||
+        '';
+
+      let inferredRepo = String(saved.repo || saved.repository || '').trim();
       if (!inferredRepo && window.location.hostname.endsWith('.github.io')) {
         const owner = window.location.hostname.replace('.github.io', '').trim();
         const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -2520,8 +2520,8 @@
         }
       }
 
-      const filePath = String(saved.path || 'properties-sync.json').trim() || 'properties-sync.json';
-      const token = String(saved.token || '').trim();
+      const filePath = String(saved.path || saved.filePath || 'properties-sync.json').trim() || 'properties-sync.json';
+      const token = String(standaloneToken || '').trim();
       return { repo: inferredRepo, path: filePath, token };
     }
 
@@ -2671,8 +2671,15 @@
             showToast('تم دفع وتحديث جميع البيانات مباشرة على مستودع GitHub بنجاح.', 'success');
           }
           return true;
-        } else if (manual) {
-          showToast('تعذر التحديث على GitHub، تأكد من صلاحية Token واسم المستودع.', 'error');
+        } else {
+          let errDetail = '';
+          try {
+            const errJson = await putResp.json();
+            errDetail = errJson && errJson.message ? ` (${errJson.message})` : ` (HTTP ${putResp.status})`;
+          } catch (err) {}
+          if (manual) {
+            showToast(`تعذر التحديث على GitHub${errDetail} — تأكد من صلاحية Contents: Read & Write للرمز.`, 'error');
+          }
         }
       } catch (e) {
         if (manual) {
@@ -2808,7 +2815,16 @@
       setSortMode('newest');
       updateGitHubBridgeStatusUI();
       initFirebase();
-      pullLatestAuthoritativeState();
+
+      // إذا كان المشرف مسجلاً ولديه رمز GitHub محفوظ، ادفع القائمة الحالية فوراً لضمان تحديث ملف المزامنة على GitHub
+      const initialGhCfg = getGitHubBridgeConfig();
+      if (isAdminLoggedIn && initialGhCfg.repo && initialGhCfg.token) {
+        pushDirectToGitHubRepo(false).then((pushed) => {
+          if (!pushed) pullLatestAuthoritativeState();
+        });
+      } else {
+        pullLatestAuthoritativeState();
+      }
 
       // تحديث دوري سريع كل 3 ثوانٍ لكسر الكاش في فايرفوكس وكروم وضمان تطابق 100% للبيانات
       setInterval(() => {
