@@ -2913,7 +2913,8 @@
               Authorization: `Bearer ${cfg.token}`,
               Accept: 'application/vnd.github+json',
               'Cache-Control': 'no-cache, no-store, must-revalidate',
-              Pragma: 'no-cache'
+              Pragma: 'no-cache',
+              Expires: '0'
             },
             cache: 'no-store'
           });
@@ -2925,7 +2926,7 @@
           }
         }
 
-        // 2. القراءة المباشرة من raw.githubusercontent.com لتجاوز تأخير كاش CDN في فايرفوكس وبقية المتصفحات
+        // 2. القراءة المباشرة من raw.githubusercontent.com لتجاوز تأخير الكاش في متصفح بينج وبقية المتصفحات
         if (!parsedPayload && cfg.repo.includes('/')) {
           const branches = ['main', 'master'];
           for (const branch of branches) {
@@ -2933,7 +2934,10 @@
               const rawUrl = `https://raw.githubusercontent.com/${cfg.repo}/${branch}/${cfg.path}?cb=${cacheBuster}`;
               const rawResp = await fetch(rawUrl, {
                 cache: 'no-store',
-                headers: { 'Cache-Control': 'no-cache' }
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  Pragma: 'no-cache'
+                }
               });
               if (rawResp.ok) {
                 parsedPayload = await rawResp.json();
@@ -2946,7 +2950,10 @@
         // 3. مسار احتياطي من نفس النطاق مع كسر الكاش
         if (!parsedPayload) {
           const publicUrl = `${cfg.path}?cb=${cacheBuster}`;
-          const pubResp = await fetch(publicUrl, { cache: 'no-store' });
+          const pubResp = await fetch(publicUrl, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+          });
           if (pubResp.ok) {
             parsedPayload = await pubResp.json();
           }
